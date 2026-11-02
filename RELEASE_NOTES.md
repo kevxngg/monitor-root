@@ -1,3 +1,8 @@
+## Novedades
+- Notificación de actualización: aunque la app esté cerrada, te avisa cuando hay una versión nueva (revisa cada 15 minutos en segundo plano).
+- Con la app abierta revisa cada 2 minutos, y también cada vez que vuelves a ella.
+
 ## Correcciones
-- Batería: la corriente ya no sale en negativo mientras el teléfono está cargando (pasaba en Xiaomi, Redmi y otros con MediaTek).
-- Ahora la corriente siempre se muestra igual en todos los teléfonos: con "+" cuando entra carga y con "−" cuando la batería se descarga.
+- El aviso de actualización tardaba mucho: antes solo se buscaba al abrir la app desde cero.
+- Se evita que GitHub devuelva información vieja guardada en caché.
+- "Más tarde" ahora pospone el aviso una hora en lugar de no volver a preguntar.
