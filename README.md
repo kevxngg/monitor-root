@@ -7,6 +7,6 @@ Monitor del sistema para Android con root, con el estilo de un administrador de 
 - **Historial de aplicaciones:** tiempo de uso, tiempo de CPU y datos por app.
 - **Aplicaciones de arranque:** habilitar o deshabilitar las apps que se inician con el teléfono.
 - **Usuarios**, **Detalles** (prioridad, afinidad, suspender, árbol de procesos, propiedades) y **Servicios** (servicios nativos y de apps).
-- **Configuración:** tema, página de inicio, velocidad de actualización.
+- **Configuración:** idioma (11 idiomas), tema, página de inicio, velocidad de actualización y actualizaciones automáticas.
 
-Requiere root (Magisk o KernelSU). La APK se compila sola con GitHub Actions en cada push y queda en **Releases**.
+Requiere root (Magisk o KernelSU).

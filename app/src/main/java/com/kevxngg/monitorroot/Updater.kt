@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.pm.PackageInfoCompat
@@ -164,10 +165,7 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                         if (info.sizeBytes > 0) " · ${formatBytes(info.sizeBytes)}" else "",
                     fontSize = 13.sp, color = win.sub,
                 )
-                if (info.notes.isNotBlank()) {
-                    Text(tr("Novedades"), fontSize = 13.sp, color = win.text)
-                    Text(info.notes.trim(), fontSize = 13.sp, color = win.text)
-                }
+                if (info.notes.isNotBlank()) ReleaseNotes(info.notes)
                 progress?.let { p ->
                     LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth(), color = win.accent)
                 }
@@ -191,4 +189,30 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
             }
         },
     )
+}
+
+/** Muestra el registro de cambios: "## Título" en negrita y "- punto" como viñetas. */
+@Composable
+fun ReleaseNotes(notes: String) {
+    val win = LocalWin.current
+    val lines = notes.trim().lines()
+    if (lines.none { it.trim().startsWith("#") }) {
+        Text(tr("Novedades"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        lines.forEach { raw ->
+            val t = raw.trim()
+            when {
+                t.startsWith("#") -> Text(
+                    t.trimStart('#').trim(), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                t.startsWith("- ") || t.startsWith("* ") -> Row {
+                    Text("•", fontSize = 13.sp, color = win.accent, modifier = Modifier.width(14.dp))
+                    Text(t.drop(2), fontSize = 13.sp, color = win.text)
+                }
+                t.isNotEmpty() -> Text(t, fontSize = 13.sp, color = win.text)
+            }
+        }
+    }
 }
