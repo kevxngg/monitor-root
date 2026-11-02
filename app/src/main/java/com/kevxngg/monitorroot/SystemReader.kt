@@ -51,6 +51,7 @@ data class GpuInfo(
     val maxMhz: Int?,
     val memBytes: Long?,
     val tempC: Float?,
+    val tempIsSoc: Boolean,
 )
 
 data class BattInfo(
@@ -123,6 +124,8 @@ private val USER_RE = Regex("^u(\\d+)_")
 private val SSID_RE = Regex("SSID: \"([^\"]*)\"")
 // Sensores del procesador (CPU/GPU/SoC): son los que se grafican
 private val CPU_TEMP = Regex("cpu|gpu|soc|tsens|apc|mtktscpu|cluster", RegexOption.IGNORE_CASE)
+private val OPP_FREQ = Regex("freq\\s*[:=]\\s*(\\d+)", RegexOption.IGNORE_CASE)
+private val SOC_TEMP = Regex("soc|mtktscpu|mtktsap|cpu|tsens|apc", RegexOption.IGNORE_CASE)
 private val SSID_RE2 = Regex("connected to \"([^\"]*)\"")
 
 private fun nums(s: String?): List<Long> =
@@ -155,6 +158,8 @@ private val SYS_FILES = listOf(
     "/sys/kernel/gpu/gpu_busy", "/sys/kernel/gpu/gpu_clock", "/sys/kernel/gpu/gpu_model", "/sys/kernel/gpu/gpu_max_clock",
     "/sys/kernel/ged/hal/gpu_utilization", "/sys/kernel/ged/hal/current_freqency",
     "/sys/class/devfreq/*/cur_freq",
+    "/sys/class/devfreq/*/max_freq",
+    "/sys/class/misc/mali0/device/gpuinfo",
 )
 
 // Una sola llamada a la shell root por actualización.
@@ -176,6 +181,7 @@ private val SCRIPT = """
 private val SLOW_SCRIPT = """
     echo @@SSID; cmd wifi status
     echo @@MAC; cat /sys/class/net/wlan0/address
+    echo @@GPUOPP; cat /proc/gpufreqv2/gpu_working_opp_table /proc/gpufreqv2/gpu_signed_opp_table /proc/gpufreq/gpufreq_opp_dump
 """.trimIndent()
 
 private class DiskPrev(val name: String, val rd: Long, val wr: Long, val ios: Long, val msRw: Long, val msIo: Long)
@@ -192,6 +198,7 @@ class SystemReader(context: Context) {
     private var counter = 0
     private var ssid: String? = null
     private var mac: String? = null
+    private var gpuOppMaxMhz: Int? = null
     private val lastTemp = HashMap<String, Float>()
     private val stuckTemp = HashMap<String, Int>()
 
@@ -217,6 +224,10 @@ class SystemReader(context: Context) {
                 (SSID_RE.find(it) ?: SSID_RE2.find(it))?.groupValues?.get(1)
             }?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
             mac = slow["MAC"]?.firstOrNull()?.trim()?.takeIf { it.contains(':') }
+            gpuOppMaxMhz = slow["GPUOPP"].orEmpty()
+                .mapNotNull { OPP_FREQ.find(it)?.groupValues?.get(1)?.toLongOrNull() }
+                .maxOrNull()?.let(::toMhz) ?: gpuOppMaxMhz
+            GlInfo.load()
         }
         counter++
 
@@ -452,14 +463,30 @@ class SystemReader(context: Context) {
                 }
             }
         }
+        // devfreq de la GPU (Mali en MediaTek/Exynos y otros)
+        val gpuDevfreq = sys.keys
+            .filter { it.startsWith("/sys/class/devfreq/") && GPU_NAME.containsMatchIn(it) }
+            .map { it.substringBeforeLast('/') }
+            .firstOrNull()
+        if (gpuFreqRaw == null && gpuDevfreq != null) gpuFreqRaw = sys["$gpuDevfreq/cur_freq"]
+        val maxMhz = nums(gpuMaxRaw).maxOrNull()?.let(::toMhz)
+            ?: gpuDevfreq?.let { nums(sys["$it/max_freq"]).maxOrNull()?.let(::toMhz) }
+            ?: gpuOppMaxMhz
+        // Nombre: el del driver gráfico, si no el de sysfs
+        val maliInfo = sys["/sys/class/misc/mali0/device/gpuinfo"]?.substringBefore(" r")?.trim()
+        val model = GlInfo.renderer ?: gpuModel?.takeIf { it.isNotBlank() } ?: maliInfo
+        // Temperatura: sensor de GPU; si el chip no tiene, la del SoC
+        val gpuTemp = thermals.filter { it.name.contains("gpu", ignoreCase = true) }.maxOfOrNull { it.celsius }
+        val socTemp = if (gpuTemp == null) thermals.filter { SOC_TEMP.containsMatchIn(it.name) }.maxOfOrNull { it.celsius } else null
         val gpu = GpuInfo(
             source = gpuSrc,
-            model = gpuModel?.takeIf { it.isNotBlank() },
+            model = model,
             load = gpuLoad?.coerceIn(0, 100),
             freqMhz = nums(gpuFreqRaw).maxOrNull()?.let(::toMhz),
-            maxMhz = nums(gpuMaxRaw).maxOrNull()?.let(::toMhz),
+            maxMhz = maxMhz,
             memBytes = gpuMem,
-            tempC = thermals.filter { it.name.contains("gpu", ignoreCase = true) }.maxOfOrNull { it.celsius },
+            tempC = gpuTemp ?: socTemp,
+            tempIsSoc = gpuTemp == null && socTemp != null,
         )
 
         // ---- Disco ----
