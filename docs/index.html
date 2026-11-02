@@ -21,7 +21,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Monitor Root",
-  "operatingSystem": "Android 8.0 o superior (con root)",
+  "operatingSystem": "Android 8.0 o superior (con root permanente o temporal)",
   "applicationCategory": "UtilitiesApplication",
   "description": "Monitor del sistema para Android con root, con el estilo del administrador de tareas de Windows 11.",
   "url": "https://kevxngg.github.io/monitor-root/",
@@ -440,7 +440,7 @@ footer a { color: var(--sub); }
           <svg aria-hidden="true"><use href="#i-gh"/></svg>Ver en GitHub
         </a>
       </div>
-      <p class="version" id="version">Requiere Android 8.0 o superior con root.</p>
+      <p class="version" id="version">Requiere Android 8.0 o superior con root permanente o temporal.</p>
     </div>
 
     <!-- Ilustración animada de la pestaña Rendimiento (no es una captura) -->
@@ -486,11 +486,11 @@ footer a { color: var(--sub); }
 
   <section id="instalacion" aria-labelledby="t-instalacion">
     <h2 id="t-instalacion">Instalación</h2>
-    <p class="section-intro">Necesitas un teléfono con root. Si ya usas Magisk, KernelSU o APatch, son cuatro pasos.</p>
+    <p class="section-intro">Necesitas un teléfono con root, permanente (Magisk, KernelSU o APatch) o temporal. Son cuatro pasos.</p>
     <ol class="steps">
       <li><div><strong>Descarga la APK</strong><span>Desde el botón de arriba o en la sección Releases del repositorio.</span></div></li>
       <li><div><strong>Permite instalar apps desconocidas</strong><span>Android te lo pedirá la primera vez para tu navegador o gestor de archivos.</span></div></li>
-      <li><div><strong>Abre Monitor Root y concede root</strong><span>Acepta el aviso de tu gestor de root. Sin root la app no puede leer los procesos del sistema.</span></div></li>
+      <li><div><strong>Abre Monitor Root y concede root</strong><span>Acepta el aviso de tu gestor de root. Si usas root temporal, actívalo antes de abrir la app.</span></div></li>
       <li><div><strong>Listo</strong><span>Las siguientes versiones llegan con un aviso dentro de la app.</span></div></li>
     </ol>
   </section>
@@ -501,7 +501,7 @@ footer a { color: var(--sub); }
         <h2 id="t-req">Requisitos</h2>
         <ul class="req">
           <li>Android 8.0 o superior.</li>
-          <li>Root con Magisk, KernelSU o APatch.</li>
+          <li>Root permanente con Magisk, KernelSU o APatch, o root temporal.</li>
           <li>Funciona con procesadores Qualcomm Snapdragon, MediaTek y Exynos.</li>
           <li>Ocupa poco más de 1 MB.</li>
         </ul>
@@ -528,6 +528,7 @@ footer a { color: var(--sub); }
   <section aria-labelledby="t-faq">
     <h2 id="t-faq">Preguntas frecuentes</h2>
     <details><summary>¿Funciona sin root?</summary><p>No. Desde Android 8, las apps normales no pueden ver los procesos de otras apps ni leer sensores como la carga de la GPU. Monitor Root usa root para leer esos datos directamente del sistema.</p></details>
+    <details><summary>¿Funciona con root temporal?</summary><p>Sí. La app funciona igual mientras el root temporal esté activo. Como ese tipo de root se pierde al reiniciar el teléfono, después de cada reinicio tienes que volver a activarlo para que la app lea los datos del sistema e instale actualizaciones sola.</p></details>
     <details><summary>¿Es gratis?</summary><p>Sí, es gratis, sin anuncios y el código está publicado en GitHub.</p></details>
     <details><summary>¿Puede dañar mi teléfono?</summary><p>Ver información es seguro. Finalizar procesos o servicios del sistema puede hacer que el teléfono se reinicie, por eso la app te pide confirmación antes de hacerlo.</p></details>
     <details><summary>¿Por qué no aparece la temperatura de la GPU?</summary><p>Algunos procesadores no tienen un sensor de temperatura propio para la GPU. En ese caso la app muestra la del procesador e indica "(SoC)".</p></details>
@@ -615,7 +616,7 @@ footer a { color: var(--sub); }
     .then(function (rel) {
       var build = (rel.tag_name || "").replace("build-", "");
       var date = new Date(rel.published_at).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
-      document.getElementById("version").textContent = "Última versión: build " + build + ", publicada el " + date + ". Requiere Android 8.0 o superior con root.";
+      document.getElementById("version").textContent = "Última versión: build " + build + ", publicada el " + date + ". Requiere Android 8.0 o superior con root permanente o temporal.";
       var box = document.getElementById("notes");
       var html = '<p class="meta">Build ' + build + ", " + date + '. Puedes ver todas las versiones en <a href="https://github.com/kevxngg/monitor-root/releases">Releases</a>.</p>';
       var inList = false;

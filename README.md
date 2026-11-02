@@ -36,14 +36,14 @@
 ## Requisitos
 
 - Android 8.0 o superior.
-- Root con **Magisk**, **KernelSU** o **APatch**.
+- Root permanente con **Magisk**, **KernelSU** o **APatch**, o **root temporal** (el que se activa con una herramienta sin desbloquear el bootloader).
 - Procesadores Qualcomm Snapdragon, MediaTek o Exynos.
 
 ## Instalación
 
 1. Descarga la APK desde el enlace de arriba.
 2. Ábrela y, si Android lo pide, permite instalar apps desconocidas para tu navegador o gestor de archivos.
-3. Abre Monitor Root y acepta el aviso de tu gestor de root.
+3. Abre Monitor Root y acepta el aviso de tu gestor de root. Si usas root temporal, actívalo antes de abrir la app.
 4. Las siguientes versiones llegarán con un aviso dentro de la app y se instalan con un toque.
 
 ## Permisos y privacidad
@@ -57,6 +57,9 @@
 
 **¿Funciona sin root?**
 No. Desde Android 8, las apps normales no pueden ver los procesos de otras apps ni leer sensores como la carga de la GPU.
+
+**¿Funciona con root temporal?**
+Sí. La app funciona igual mientras el root temporal esté activo. Como ese tipo de root se pierde al reiniciar el teléfono, después de cada reinicio tienes que volver a activarlo. Mientras no esté activo, la app no puede leer los datos del sistema ni instalar actualizaciones sola.
 
 **¿Puede dañar mi teléfono?**
 Ver información es seguro. Finalizar procesos o servicios del sistema puede hacer que el teléfono se reinicie, por eso la app pide confirmación antes.
