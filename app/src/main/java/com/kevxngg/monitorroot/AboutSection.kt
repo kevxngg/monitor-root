@@ -39,9 +39,19 @@ import kotlinx.coroutines.withContext
 private const val REPO = "https://github.com/kevxngg/monitor-root"
 private const val DEV = "kevxngg"
 
-/** Redes sociales del desarrollador: (nombre, usuario, enlace). */
-private val SOCIALS: List<Triple<String, String, String>> = listOf(
-    Triple("GitHub", "@kevxngg", "https://github.com/kevxngg"),
+/** Red social: nombre, usuario, enlace (null = se copia el usuario) e icono. */
+private class Social(val name: String, val user: String, val url: String?, val icon: ImageVector)
+
+/** Redes sociales del desarrollador (iconos genéricos, sin logotipos de marcas). */
+private val SOCIALS = listOf(
+    Social("GitHub", "@kevxngg", "https://github.com/kevxngg", Icons.Outlined.Code),
+    Social("Instagram", "@kevxngg", "https://www.instagram.com/kevxngg", Icons.Outlined.PhotoCamera),
+    Social("Facebook", "kevxngg", "https://www.facebook.com/kevxngg", Icons.Outlined.Groups),
+    Social("LinkedIn", "kevxngg", "https://www.linkedin.com/in/kevxngg", Icons.Outlined.Work),
+    Social("TikTok", "@kevxngg", "https://www.tiktok.com/@kevxngg", Icons.Outlined.MusicNote),
+    Social("Telegram", "@kevxngg", "https://t.me/kevxngg", Icons.Outlined.Send),
+    // Discord no tiene enlace público por nombre de usuario: al tocarlo se copia
+    Social("Discord", "kevxngg", null, Icons.Outlined.Forum),
 )
 
 private fun open(ctx: Context, url: String) {
@@ -112,6 +122,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
     val version = remember { appVersion(ctx) }
     var root by remember { mutableStateOf<String?>(null) }
     var copied by remember { mutableStateOf(false) }
+    var copiedUser by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { root = withContext(Dispatchers.IO) { rootManager() } }
     BackHandler(onBack = onBack)
 
@@ -168,9 +179,17 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
             // ---- Redes sociales ----
             SectionTitle(tr("Redes sociales"))
             AboutCard {
-                SOCIALS.forEachIndexed { i, (name, user, url) ->
+                SOCIALS.forEachIndexed { i, sn ->
                     if (i > 0) AboutDivider()
-                    AboutRow(Icons.Outlined.AlternateEmail, name, user) { open(ctx, url) }
+                    val url = sn.url
+                    if (url != null) {
+                        AboutRow(sn.icon, sn.name, sn.user) { open(ctx, url) }
+                    } else {
+                        AboutRow(sn.icon, sn.name, if (copiedUser == sn.name) tr("Usuario copiado") else sn.user, copyIcon = true) {
+                            clipboard.setText(AnnotatedString(sn.user))
+                            copiedUser = sn.name
+                        }
+                    }
                 }
             }
 
@@ -235,7 +254,7 @@ private fun AboutDivider() {
 }
 
 @Composable
-private fun AboutRow(icon: ImageVector, title: String, value: String, onClick: (() -> Unit)? = null) {
+private fun AboutRow(icon: ImageVector, title: String, value: String, copyIcon: Boolean = false, onClick: (() -> Unit)? = null) {
     val win = LocalWin.current
     Row(
         Modifier
@@ -252,7 +271,7 @@ private fun AboutRow(icon: ImageVector, title: String, value: String, onClick: (
         }
         if (onClick != null) {
             @Suppress("DEPRECATION")
-            Icon(Icons.Outlined.OpenInNew, null, tint = win.sub, modifier = Modifier.size(16.dp))
+            Icon(if (copyIcon) Icons.Outlined.ContentCopy else Icons.Outlined.OpenInNew, null, tint = win.sub, modifier = Modifier.size(16.dp))
         }
     }
 }

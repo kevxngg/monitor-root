@@ -104,4 +104,12 @@ La APK queda en `app/build/outputs/apk/release/`.
 
 Hecho por **[kevxngg](https://github.com/kevxngg)**.
 
+- [GitHub](https://github.com/kevxngg)
+- [Instagram](https://www.instagram.com/kevxngg)
+- [Facebook](https://www.facebook.com/kevxngg)
+- [LinkedIn](https://www.linkedin.com/in/kevxngg)
+- [TikTok](https://www.tiktok.com/@kevxngg)
+- [Telegram](https://t.me/kevxngg)
+- Discord: `kevxngg`
+
 Monitor Root no está afiliado a Microsoft. Windows es una marca de Microsoft Corporation.

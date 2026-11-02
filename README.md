@@ -104,4 +104,12 @@ The APK ends up in `app/build/outputs/apk/release/`.
 
 Made by **[kevxngg](https://github.com/kevxngg)**.
 
+- [GitHub](https://github.com/kevxngg)
+- [Instagram](https://www.instagram.com/kevxngg)
+- [Facebook](https://www.facebook.com/kevxngg)
+- [LinkedIn](https://www.linkedin.com/in/kevxngg)
+- [TikTok](https://www.tiktok.com/@kevxngg)
+- [Telegram](https://t.me/kevxngg)
+- Discord: `kevxngg`
+
 Monitor Root is not affiliated with Microsoft. Windows is a trademark of Microsoft Corporation.
