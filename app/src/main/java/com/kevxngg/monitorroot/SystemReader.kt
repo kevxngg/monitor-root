@@ -102,6 +102,8 @@ data class Snapshot(
     val disk: DiskInfo?,
     val gpu: GpuInfo,
     val thermals: List<ThermalInfo>,
+    val mainTempC: Float?,
+    val mainTempName: String?,
     val batt: BattInfo,
     val wifi: WifiData,
     val mobile: NetStat?,
@@ -119,6 +121,8 @@ private val DISK_RE = Regex("^(sd[a-z]|mmcblk\\d+|nvme\\d+n\\d+|vd[a-z])$")
 private val MOBILE_RE = Regex("^(rmnet_data\\d+|rmnet\\d+|ccmni\\d+|seth_lte\\d+|wwan\\d+)$")
 private val USER_RE = Regex("^u(\\d+)_")
 private val SSID_RE = Regex("SSID: \"([^\"]*)\"")
+// Sensores del procesador (CPU/GPU/SoC): son los que se grafican
+private val CPU_TEMP = Regex("cpu|gpu|soc|tsens|apc|mtktscpu|cluster", RegexOption.IGNORE_CASE)
 private val SSID_RE2 = Regex("connected to \"([^\"]*)\"")
 
 private fun nums(s: String?): List<Long> =
@@ -142,6 +146,7 @@ private val SYS_FILES = listOf(
     "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor",
     "/sys/class/thermal/thermal_zone*/type",
     "/sys/class/thermal/thermal_zone*/temp",
+    "/sys/class/thermal/thermal_zone*/mode",
     "${BAT}capacity", "${BAT}temp", "${BAT}current_now", "${BAT}status", "${BAT}health", "${BAT}voltage_now",
     "/sys/block/zram0/mm_stat",
     "${KG}gpu_busy_percentage", "${KG}gpubusy", "${KG}devfreq/cur_freq", "${KG}gpuclk",
@@ -187,6 +192,8 @@ class SystemReader(context: Context) {
     private var counter = 0
     private var ssid: String? = null
     private var mac: String? = null
+    private val lastTemp = HashMap<String, Float>()
+    private val stuckTemp = HashMap<String, Int>()
 
     private fun sections(lines: List<String>): Map<String, List<String>> {
         val sec = HashMap<String, MutableList<String>>()
@@ -358,16 +365,27 @@ class SystemReader(context: Context) {
             .map { CoreInfo(it, curF[it] ?: 0, maxF[it] ?: 0, coreUsage[it] ?: 0f) }
 
         // ---- Temperaturas ----
+        // Se descartan sensores apagados y los que dan valores imposibles o fijos
+        // (p. ej. "ti-cp-standalone", que siempre marca 100 °C).
         val thermals = sys.keys
             .filter { it.contains("thermal_zone") && it.endsWith("/temp") }
             .mapNotNull { k ->
                 val base = k.removeSuffix("/temp")
+                if (sys["$base/mode"] == "disabled") return@mapNotNull null
                 val raw = sys[k]?.toFloatOrNull() ?: return@mapNotNull null
                 val c = if (abs(raw) >= 1000f) raw / 1000f else raw
-                if (c <= 0f || c > 150f) null
-                else ThermalInfo(sys["$base/type"] ?: base.substringAfterLast('/'), c)
+                val name = sys["$base/type"] ?: base.substringAfterLast('/')
+                val isCpu = CPU_TEMP.containsMatchIn(name)
+                val same = lastTemp[name] == c
+                lastTemp[name] = c
+                val stuck = if (same && c >= 90f) (stuckTemp[name] ?: 0) + 1 else 0
+                stuckTemp[name] = stuck
+                val valid = c > 0f && c < 125f && (c < 95f || (isCpu && stuck < 3))
+                if (valid) ThermalInfo(name, c) else null
             }
             .sortedByDescending { it.celsius }
+        val mainTemp = thermals.filter { CPU_TEMP.containsMatchIn(it.name) }.maxByOrNull { it.celsius }
+            ?: thermals.firstOrNull()
 
         // ---- Batería ----
         val batt = BattInfo(
@@ -538,6 +556,8 @@ class SystemReader(context: Context) {
             disk = disk,
             gpu = gpu,
             thermals = thermals,
+            mainTempC = mainTemp?.celsius,
+            mainTempName = mainTemp?.name,
             batt = batt,
             wifi = wifi,
             mobile = mobile,
