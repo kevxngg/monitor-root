@@ -98,9 +98,9 @@ fun ProcessesPage(
         val native = nativeRows(vis)
         if (Prefs.groupByType) {
             listOf(
-                "Aplicaciones" to sortRows(apps, sortId, asc),
-                "Procesos en segundo plano" to sortRows(bg, sortId, asc),
-                "Procesos de Android" to sortRows(native, sortId, asc),
+                tr("Aplicaciones") to sortRows(apps, sortId, asc),
+                tr("Procesos en segundo plano") to sortRows(bg, sortId, asc),
+                tr("Procesos de Android") to sortRows(native, sortId, asc),
             )
         } else {
             listOf("" to sortRows(apps + bg + native, sortId, asc))
@@ -133,26 +133,26 @@ fun ProcessesPage(
 
     fun menuFor(r: TaskRow): List<MenuEntry> = buildList {
         if (r.procs.size > 1) {
-            add(MenuEntry(if (r.key in expanded) "Contraer" else "Expandir") {
+            add(MenuEntry(if (r.key in expanded) tr("Contraer") else tr("Expandir")) {
                 expanded = if (r.key in expanded) expanded - r.key else expanded + r.key
             })
         }
-        add(MenuEntry("Finalizar tarea", Icons.Outlined.Block) { requestEnd(r) })
+        add(MenuEntry(tr("Finalizar tarea"), Icons.Outlined.Block) { requestEnd(r) })
         if (r.pkg != null) {
             val on = r.pkg in Prefs.efficiency
-            add(MenuEntry(if (on) "Desactivar modo de eficiencia" else "Modo de eficiencia", Icons.Outlined.Eco) { toggleEfficiency(r) })
-            add(MenuEntry("Información de la app", Icons.Outlined.Info) { openAppInfo(ctx, r.pkg) })
+            add(MenuEntry(if (on) tr("Desactivar modo de eficiencia") else tr("Modo de eficiencia"), Icons.Outlined.Eco) { toggleEfficiency(r) })
+            add(MenuEntry(tr("Información de la app"), Icons.Outlined.Info) { openAppInfo(ctx, r.pkg) })
         }
-        r.procs.firstOrNull()?.let { p -> add(MenuEntry("Ir a detalles", Icons.Outlined.FormatListBulleted) { onGoDetails(p.pid) }) }
-        add(MenuEntry("Buscar en línea", Icons.Outlined.Search) { searchOnline(ctx, r.pkg ?: r.name) })
-        r.procs.firstOrNull()?.let { p -> add(MenuEntry("Propiedades", Icons.Outlined.Description) { props = p }) }
+        r.procs.firstOrNull()?.let { p -> add(MenuEntry(tr("Ir a detalles"), Icons.Outlined.FormatListBulleted) { onGoDetails(p.pid) }) }
+        add(MenuEntry(tr("Buscar en línea"), Icons.Outlined.Search) { searchOnline(ctx, r.pkg ?: r.name) })
+        r.procs.firstOrNull()?.let { p -> add(MenuEntry(tr("Propiedades"), Icons.Outlined.Description) { props = p }) }
     }
 
     val diskPct = s.disk?.activePct ?: 0f
-    val stateCol = Col("state", "Estado", if (compact) 70.dp else 104.dp, end = false)
+    val stateCol = Col("state", tr("Estado"), if (compact) 70.dp else 104.dp, end = false)
     val cpuCol = Col("cpu", "CPU", 64.dp, "%.0f%%".format(s.cpuTotal))
-    val memCol = Col("mem", "Memoria", 88.dp, "%.0f%%".format(s.mem.usedPct))
-    val diskCol = Col("disk", "Disco", 84.dp, "%.0f%%".format(diskPct))
+    val memCol = Col("mem", tr("Memoria"), 88.dp, "%.0f%%".format(s.mem.usedPct))
+    val diskCol = Col("disk", tr("Disco"), 84.dp, "%.0f%%".format(diskPct))
     // En el teléfono, CPU y Memoria primero para que se vean sin desplazar
     val cols = if (compact) listOf(cpuCol, memCol, diskCol, stateCol) else listOf(stateCol, cpuCol, memCol, diskCol)
 
@@ -161,8 +161,8 @@ fun ProcessesPage(
             "state" -> {
                 val eco = r.pkg != null && r.pkg in Prefs.efficiency
                 when {
-                    r.suspended -> Cell(if (compact) "" else "Suspendido", icon = Icons.Outlined.PauseCircle, iconTint = win.warn)
-                    eco -> Cell(if (compact) "" else "Eficiencia", icon = Icons.Outlined.Eco, iconTint = win.eco)
+                    r.suspended -> Cell(if (compact) "" else tr("Suspendido"), icon = Icons.Outlined.PauseCircle, iconTint = win.warn)
+                    eco -> Cell(if (compact) "" else tr("Eficiencia"), icon = Icons.Outlined.Eco, iconTint = win.eco)
                     else -> Cell("")
                 }
             }
@@ -173,40 +173,40 @@ fun ProcessesPage(
     }
 
     Column(Modifier.fillMaxSize()) {
-        PageHeader("Procesos") {
-            CmdButton(Icons.Outlined.AddBox, "Ejecutar nueva tarea", onClick = onRun)
-            CmdButton(Icons.Outlined.Block, "Finalizar tarea", enabled = selected != null) { selected?.let(::requestEnd) }
-            CmdButton(Icons.Outlined.Eco, "Modo de eficiencia", enabled = selected?.pkg != null) { selected?.let(::toggleEfficiency) }
+        PageHeader(tr("Procesos")) {
+            CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
+            CmdButton(Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null) { selected?.let(::requestEnd) }
+            CmdButton(Icons.Outlined.Eco, tr("Modo de eficiencia"), enabled = selected?.pkg != null) { selected?.let(::toggleEfficiency) }
             CmdMore(
                 listOf(
-                    MenuEntry("Agrupar por tipo", checked = Prefs.groupByType) {
+                    MenuEntry(tr("Agrupar por tipo"), checked = Prefs.groupByType) {
                         Prefs.groupByType = !Prefs.groupByType; Prefs.save()
                     },
-                    MenuEntry("Mostrar nombres de paquete", checked = Prefs.showPackageNames) {
+                    MenuEntry(tr("Mostrar nombres de paquete"), checked = Prefs.showPackageNames) {
                         Prefs.showPackageNames = !Prefs.showPackageNames; Prefs.save()
                     },
-                    MenuEntry("Expandir todo", Icons.Outlined.UnfoldMore) {
+                    MenuEntry(tr("Expandir todo"), Icons.Outlined.UnfoldMore) {
                         expanded = all.filter { it.procs.size > 1 }.map { it.key }.toSet()
                     },
-                    MenuEntry("Contraer todo", Icons.Outlined.UnfoldLess) { expanded = emptySet() },
+                    MenuEntry(tr("Contraer todo"), Icons.Outlined.UnfoldLess) { expanded = emptySet() },
                 )
             )
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val nameW = nameWidth(maxWidth, cols)
             Column(Modifier.fillMaxSize()) {
-                TableHeader("Nombre", nameW, cols, h, sortId, asc) { id ->
+                TableHeader(tr("Nombre"), nameW, cols, h, sortId, asc) { id ->
                     if (sortId == id) asc = !asc else {
                         sortId = id; asc = id == "name"
                     }
                 }
                 if (all.isEmpty()) {
-                    EmptyText(if (query.isBlank()) "Cargando procesos…" else "Ningún proceso coincide con “$query”.")
+                    EmptyText(if (query.isBlank()) tr("Cargando procesos…") else tr("Ningún proceso coincide con “%s”.", query))
                 }
                 LazyColumn(Modifier.fillMaxSize()) {
                     groups.forEach { (title, rows) ->
                         if (rows.isEmpty()) return@forEach
-                        if (title.isNotEmpty()) item(key = "g:$title") { GroupTitle("$title (${rows.size})") }
+                        if (title.isNotEmpty()) item(key = "g:$title") { GroupTitle("${tr(title)} (${rows.size})") }
                         rows.forEach { r ->
                             item(key = r.key) {
                                 TableRow(
@@ -258,9 +258,9 @@ fun ProcessesPage(
 
     confirm?.let { r ->
         ConfirmDialog(
-            title = "¿Finalizar ${r.name}?",
-            text = "Es un proceso del sistema. Si lo finalizas, el teléfono puede volverse inestable o reiniciarse.",
-            confirm = "Finalizar proceso",
+            title = tr("¿Finalizar %s?", r.name),
+            text = tr("Es un proceso del sistema. Si lo finalizas, el teléfono puede volverse inestable o reiniciarse."),
+            confirm = tr("Finalizar proceso"),
             onConfirm = { endTask(r) },
             onDismiss = { confirm = null },
         )

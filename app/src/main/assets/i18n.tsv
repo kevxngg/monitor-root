@@ -1,0 +1,263 @@
+es	en	fr	pt	de	it	ru	ar	zh	ja	ko
+Excelente	Excellent	Excellent	Excelente	Ausgezeichnet	Eccellente	Отлично	ممتاز	极好	非常に良い	매우 좋음
+Buena	Good	Bonne	Boa	Gut	Buona	Хорошо	جيدة	良好	良好	좋음
+Regular	Fair	Moyenne	Regular	Mittel	Discreta	Средне	متوسطة	一般	普通	보통
+Débil	Weak	Faible	Fraca	Schwach	Debole	Слабо	ضعيفة	弱	弱い	약함
+En ejecución	Running	En cours d'exécution	Em execução	Wird ausgeführt	In esecuzione	Выполняется	قيد التشغيل	正在运行	実行中	실행 중
+En espera	Waiting	En attente	Em espera	Wartend	In attesa	Ожидание	في الانتظار	等待中	待機中	대기 중
+En E/S	In I/O	En E/S	Em E/S	In E/A	In I/O	Ввод-вывод	إدخال/إخراج	I/O 中	I/O 中	I/O 중
+Suspendido	Suspended	Suspendu	Suspenso	Angehalten	Sospeso	Приостановлен	معلّق	已挂起	中断	일시 중단됨
+Zombi	Zombie	Zombie	Zumbi	Zombie	Zombie	Зомби	زومبي	僵尸	ゾンビ	좀비
+Tiempo real	Realtime	Temps réel	Tempo real	Echtzeit	Tempo reale	Реального времени	الوقت الحقيقي	实时	リアルタイム	실시간
+Alta	High	Haute	Alta	Hoch	Alta	Высокий	عالية	高	高	높음
+Por encima de lo normal	Above normal	Supérieure à la normale	Acima do normal	Höher als normal	Sopra il normale	Выше среднего	أعلى من العادي	高于正常	通常以上	보통 초과
+Normal	Normal	Normale	Normal	Normal	Normale	Обычный	عادية	正常	通常	보통
+Por debajo de lo normal	Below normal	Inférieure à la normale	Abaixo do normal	Niedriger als normal	Sotto il normale	Ниже среднего	أقل من العادي	低于正常	通常以下	보통 미만
+Baja	Low	Basse	Baixa	Niedrig	Bassa	Низкий	منخفضة	低	低	낮음
+Ir a detalles	Go to details	Accéder aux détails	Ir para detalhes	Zu Details wechseln	Vai ai dettagli	Перейти к подробностям	الانتقال إلى التفاصيل	转到详细信息	詳細に移動	세부 정보로 이동
+Finalizar tarea	End task	Fin de tâche	Finalizar tarefa	Task beenden	Termina attività	Снять задачу	إنهاء المهمة	结束任务	タスクを終了	작업 끝내기
+Finalizar árbol de procesos	End process tree	Terminer l'arborescence du processus	Finalizar árvore de processos	Prozessstruktur beenden	Termina albero dei processi	Завершить дерево процессов	إنهاء شجرة العمليات	结束进程树	プロセス ツリーの終了	프로세스 트리 끝내기
+Reanudar proceso	Resume process	Reprendre le processus	Retomar processo	Prozess fortsetzen	Riprendi processo	Возобновить процесс	استئناف العملية	恢复进程	プロセスを再開	프로세스 다시 시작
+Suspender proceso	Suspend process	Suspendre le processus	Suspender processo	Prozess anhalten	Sospendi processo	Приостановить процесс	تعليق العملية	挂起进程	プロセスを中断	프로세스 일시 중단
+Establecer prioridad	Set priority	Définir la priorité	Definir prioridade	Priorität festlegen	Imposta priorità	Задать приоритет	تعيين الأولوية	设置优先级	優先度の設定	우선 순위 설정
+Establecer afinidad	Set affinity	Définir l'affinité	Definir afinidade	Zugehörigkeit festlegen	Imposta affinità	Задать сходство	تعيين التقارب	设置相关性	関係の設定	선호도 설정
+Buscar en línea	Search online	Rechercher en ligne	Pesquisar online	Online suchen	Cerca online	Найти в Интернете	البحث عبر الإنترنت	在线搜索	オンライン検索	온라인 검색
+Propiedades	Properties	Propriétés	Propriedades	Eigenschaften	Proprietà	Свойства	الخصائص	属性	プロパティ	속성
+Estado	Status	Statut	Status	Status	Stato	Состояние	الحالة	状态	状態	상태
+Nombre de usuario	User name	Nom d'utilisateur	Nome de usuário	Benutzername	Nome utente	Имя пользователя	اسم المستخدم	用户名	ユーザー名	사용자 이름
+Memoria	Memory	Mémoire	Memória	Arbeitsspeicher	Memoria	Память	الذاكرة	内存	メモリ	메모리
+Subprocesos	Threads	Threads	Threads	Threads	Thread	Потоки	مؤشرات الترابط	线程	スレッド	스레드
+Prioridad	Priority	Priorité	Prioridade	Priorität	Priorità	Приоритет	الأولوية	优先级	優先度	우선 순위
+Disco	Disk	Disque	Disco	Datenträger	Disco	Диск	القرص	磁盘	ディスク	디스크
+Detalles	Details	Détails	Detalhes	Details	Dettagli	Подробности	التفاصيل	详细信息	詳細	세부 정보
+Ejecutar nueva tarea	Run new task	Exécuter une nouvelle tâche	Executar nova tarefa	Neuen Task ausführen	Esegui nuova attività	Запустить новую задачу	تشغيل مهمة جديدة	运行新任务	新しいタスクを実行する	새 작업 실행
+Selecciona un proceso	Select a process	Sélectionnez un processus	Selecione um processo	Prozess auswählen	Seleziona un processo	Выберите процесс	اختر عملية	选择一个进程	プロセスを選択	프로세스 선택
+Nombre	Name	Nom	Nome	Name	Nome	Имя	الاسم	名称	名前	이름
+¿Finalizar el árbol de procesos de %s?	End the process tree of %s?	Terminer l'arborescence du processus de %s ?	Finalizar a árvore de processos de %s?	Prozessstruktur von %s beenden?	Terminare l'albero dei processi di %s?	Завершить дерево процессов %s?	هل تريد إنهاء شجرة عمليات %s؟	要结束 %s 的进程树吗?	%s のプロセス ツリーを終了しますか?	%s의 프로세스 트리를 끝내시겠습니까?
+¿Finalizar %s?	End %s?	Terminer %s ?	Finalizar %s?	%s beenden?	Terminare %s?	Завершить %s?	هل تريد إنهاء %s؟	要结束 %s 吗?	%s を終了しますか?	%s을(를) 끝내시겠습니까?
+Se finalizará este proceso y todos los que inició. Si son procesos del sistema, el teléfono puede reiniciarse.	This process and all the processes it started will be ended. If they are system processes, the phone may restart.	Ce processus et tous ceux qu'il a lancés seront terminés. S'il s'agit de processus système, le téléphone peut redémarrer.	Este processo e todos os que ele iniciou serão finalizados. Se forem processos do sistema, o telefone pode reiniciar.	Dieser Prozess und alle von ihm gestarteten Prozesse werden beendet. Bei Systemprozessen kann das Telefon neu starten.	Questo processo e tutti quelli che ha avviato verranno terminati. Se sono processi di sistema, il telefono potrebbe riavviarsi.	Этот процесс и все запущенные им процессы будут завершены. Если это системные процессы, телефон может перезагрузиться.	سيتم إنهاء هذه العملية وجميع العمليات التي بدأتها. إذا كانت عمليات نظام، فقد تتم إعادة تشغيل الهاتف.	将结束此进程及其启动的所有进程。如果是系统进程,手机可能会重启。	このプロセスと、それが開始したすべてのプロセスが終了します。システム プロセスの場合、スマートフォンが再起動することがあります。	이 프로세스와 이 프로세스가 시작한 모든 프로세스가 종료됩니다. 시스템 프로세스인 경우 휴대폰이 다시 시작될 수 있습니다.
+Si finalizas un proceso del sistema, el teléfono puede volverse inestable o reiniciarse.	Ending a system process can make the phone unstable or restart it.	Terminer un processus système peut rendre le téléphone instable ou le faire redémarrer.	Finalizar um processo do sistema pode deixar o telefone instável ou reiniciá-lo.	Das Beenden eines Systemprozesses kann das Telefon instabil machen oder neu starten.	Terminare un processo di sistema può rendere il telefono instabile o riavviarlo.	Завершение системного процесса может сделать телефон нестабильным или перезагрузить его.	قد يؤدي إنهاء عملية نظام إلى عدم استقرار الهاتف أو إعادة تشغيله.	结束系统进程可能导致手机不稳定或重启。	システム プロセスを終了すると、スマートフォンが不安定になったり再起動したりすることがあります。	시스템 프로세스를 끝내면 휴대폰이 불안정해지거나 다시 시작될 수 있습니다.
+Finalizar proceso	End process	Terminer le processus	Finalizar processo	Prozess beenden	Termina processo	Завершить процесс	إنهاء العملية	结束进程	プロセスの終了	프로세스 끝내기
+Tiempo de uso	Usage time	Temps d'utilisation	Tempo de uso	Nutzungsdauer	Tempo di utilizzo	Время использования	وقت الاستخدام	使用时间	使用時間	사용 시간
+Tiempo de CPU	CPU time	Temps processeur	Tempo de CPU	CPU-Zeit	Tempo CPU	Время ЦП	وقت وحدة المعالجة	CPU 时间	CPU 時間	CPU 시간
+Datos móviles	Mobile data	Données mobiles	Dados móveis	Mobile Daten	Dati mobili	Мобильные данные	بيانات الجوال	移动数据	モバイル データ	모바일 데이터
+Historial de aplicaciones	App history	Historique des applications	Histórico de aplicativos	App-Verlauf	Cronologia app	Журнал приложений	محفوظات التطبيقات	应用历史记录	アプリの履歴	앱 기록
+Actualizar	Refresh	Actualiser	Atualizar	Aktualisieren	Aggiorna	Обновить	تحديث	刷新	最新の情報に更新	새로 고침
+Uso de recursos desde el %s para el usuario actual.	Resource usage since %s for the current user.	Utilisation des ressources depuis le %s pour l'utilisateur actuel.	Uso de recursos desde %s para o usuário atual.	Ressourcennutzung seit %s für den aktuellen Benutzer.	Utilizzo delle risorse dal %s per l'utente corrente.	Использование ресурсов с %s для текущего пользователя.	استخدام الموارد منذ %s للمستخدم الحالي.	自 %s 以来当前用户的资源使用情况。	%s 以降の現在のユーザーのリソース使用状況。	%s 이후 현재 사용자의 리소스 사용량입니다.
+Leyendo estadísticas de uso…	Reading usage statistics…	Lecture des statistiques d'utilisation…	Lendo estatísticas de uso…	Nutzungsstatistiken werden gelesen…	Lettura delle statistiche di utilizzo…	Чтение статистики использования…	جارٍ قراءة إحصاءات الاستخدام…	正在读取使用统计信息…	使用状況の統計を読み取っています…	사용 통계를 읽는 중…
+No hay datos. Si es la primera vez, toca Actualizar.	No data. If this is the first time, tap Refresh.	Aucune donnée. Si c'est la première fois, appuyez sur Actualiser.	Sem dados. Se for a primeira vez, toque em Atualizar.	Keine Daten. Wenn dies das erste Mal ist, tippe auf Aktualisieren.	Nessun dato. Se è la prima volta, tocca Aggiorna.	Нет данных. Если это первый запуск, нажмите «Обновить».	لا توجد بيانات. إذا كانت هذه هي المرة الأولى، فاضغط على تحديث.	没有数据。如果是第一次使用,请点按"刷新"。	データがありません。初めての場合は [最新の情報に更新] をタップしてください。	데이터가 없습니다. 처음이라면 새로 고침을 누르세요.
+Abrir	Open	Ouvrir	Abrir	Öffnen	Apri	Открыть	فتح	打开	開く	열기
+Información de la app	App info	Infos sur l'application	Informações do app	App-Info	Informazioni app	О приложении	معلومات التطبيق	应用信息	アプリ情報	앱 정보
+Pidiendo acceso root…\nAcepta el aviso de Magisk / KernelSU.	Requesting root access…\nAccept the Magisk / KernelSU prompt.	Demande d'accès root…\nAcceptez l'invite de Magisk / KernelSU.	Solicitando acesso root…\nAceite o aviso do Magisk / KernelSU.	Root-Zugriff wird angefordert…\nBestätige die Magisk-/KernelSU-Anfrage.	Richiesta accesso root…\nAccetta l'avviso di Magisk / KernelSU.	Запрос root-доступа…\nПримите запрос Magisk / KernelSU.	جارٍ طلب صلاحية الجذر…\nاقبل طلب Magisk / KernelSU.	正在请求 root 权限…\n请在 Magisk / KernelSU 提示中允许。	root アクセスを要求しています…\nMagisk / KernelSU の確認を許可してください。	루트 권한을 요청하는 중…\nMagisk / KernelSU 알림을 허용하세요.
+No se obtuvo acceso root.\nDale permiso a la app en Magisk / KernelSU y vuelve a abrirla.	Root access was not granted.\nAllow the app in Magisk / KernelSU and open it again.	L'accès root n'a pas été accordé.\nAutorisez l'application dans Magisk / KernelSU et rouvrez-la.	O acesso root não foi concedido.\nPermita o app no Magisk / KernelSU e abra-o novamente.	Root-Zugriff wurde nicht gewährt.\nErlaube die App in Magisk / KernelSU und öffne sie erneut.	Accesso root non concesso.\nConsenti l'app in Magisk / KernelSU e riaprila.	Root-доступ не предоставлен.\nРазрешите приложение в Magisk / KernelSU и откройте его снова.	لم يتم منح صلاحية الجذر.\nاسمح للتطبيق في Magisk / KernelSU ثم افتحه مجددًا.	未获得 root 权限。\n请在 Magisk / KernelSU 中允许本应用,然后重新打开。	root アクセスが許可されませんでした。\nMagisk / KernelSU でアプリを許可して、もう一度開いてください。	루트 권한을 얻지 못했습니다.\nMagisk / KernelSU에서 앱을 허용한 후 다시 여세요.
+Leyendo datos del sistema…	Reading system data…	Lecture des données système…	Lendo dados do sistema…	Systemdaten werden gelesen…	Lettura dei dati di sistema…	Чтение данных системы…	جارٍ قراءة بيانات النظام…	正在读取系统数据…	システム データを読み取っています…	시스템 데이터를 읽는 중…
+Busque un nombre, paquete o PID…	Search for a name, package or PID…	Rechercher un nom, un package ou un PID…	Pesquise um nome, pacote ou PID…	Name, Paket oder PID suchen…	Cerca un nome, pacchetto o PID…	Поиск по имени, пакету или PID…	ابحث عن اسم أو حزمة أو PID…	搜索名称、包名或 PID…	名前、パッケージ、PID で検索…	이름, 패키지 또는 PID 검색…
+Borrar	Clear	Effacer	Limpar	Löschen	Cancella	Очистить	مسح	清除	クリア	지우기
+Desconectado	Disconnected	Déconnecté	Desconectado	Getrennt	Disconnesso	Отключено	غير متصل	已断开连接	切断	연결 끊김
+Batería	Battery	Batterie	Bateria	Akku	Batteria	Батарея	البطارية	电池	バッテリー	배터리
+Máx. %.0f °C	Max %.0f °C	Max %.0f °C	Máx. %.0f °C	Max. %.0f °C	Max %.0f °C	Макс. %.0f °C	الحد الأقصى %.0f °م	最高 %.0f °C	最大 %.0f °C	최대 %.0f °C
+Rendimiento	Performance	Performance	Desempenho	Leistung	Prestazioni	Производительность	الأداء	性能	パフォーマンス	성능
+Gráfico: uso general	Graph: overall utilization	Graphique : utilisation globale	Gráfico: utilização geral	Diagramm: Gesamtauslastung	Grafico: utilizzo complessivo	График: общая загрузка	الرسم البياني: الاستخدام العام	图表: 总体利用率	グラフ: 全体の使用率	그래프: 전체 사용률
+Gráfico: procesadores lógicos	Graph: logical processors	Graphique : processeurs logiques	Gráfico: processadores lógicos	Diagramm: logische Prozessoren	Grafico: processori logici	График: логические процессоры	الرسم البياني: المعالجات المنطقية	图表: 逻辑处理器	グラフ: 論理プロセッサ	그래프: 논리 프로세서
+Copiar resumen	Copy summary	Copier le résumé	Copiar resumo	Zusammenfassung kopieren	Copia riepilogo	Копировать сводку	نسخ الملخص	复制摘要	概要のコピー	요약 복사
+% de uso por procesador lógico	% utilization per logical processor	% d'utilisation par processeur logique	% de utilização por processador lógico	% Auslastung pro logischem Prozessor	% di utilizzo per processore logico	% загрузки по логическим процессорам	% الاستخدام لكل معالج منطقي	每个逻辑处理器的利用率 %	論理プロセッサごとの使用率 %	논리 프로세서별 사용률 %
+apagado	off	éteint	desligado	aus	spento	выкл.	متوقف	关闭	オフ	꺼짐
+% de uso	% Utilization	% d'utilisation	% de utilização	% Auslastung	% di utilizzo	% загрузки	% الاستخدام	利用率 %	使用率 %	사용률 %
+Uso	Utilization	Utilisation	Utilização	Auslastung	Utilizzo	Загрузка	الاستخدام	利用率	使用率	사용률
+Velocidad	Speed	Vitesse	Velocidade	Geschwindigkeit	Velocità	Скорость	السرعة	速度	速度	속도
+Procesos	Processes	Processus	Processos	Prozesse	Processi	Процессы	العمليات	进程	プロセス	프로세스
+Identificadores	Handles	Handles	Identificadores	Handles	Handle	Дескрипторы	المعرّفات	句柄	ハンドル	핸들
+Tiempo activo	Up time	Temps d'activité	Tempo de atividade	Betriebszeit	Tempo di attività	Время работы	مدة التشغيل	正常运行时间	稼働時間	작동 시간
+Velocidad máxima	Max speed	Vitesse maximale	Velocidade máxima	Maximale Geschwindigkeit	Velocità massima	Макс. скорость	السرعة القصوى	最大速度	最大速度	최대 속도
+Núcleos	Cores	Cœurs	Núcleos	Kerne	Core	Ядра	الأنوية	内核	コア	코어
+Procesadores lógicos	Logical processors	Processeurs logiques	Processadores lógicos	Logische Prozessoren	Processori logici	Логические процессоры	المعالجات المنطقية	逻辑处理器	論理プロセッサ数	논리 프로세서
+Clústeres	Clusters	Clusters	Clusters	Cluster	Cluster	Кластеры	المجموعات	集群	クラスター	클러스터
+Gobernador	Governor	Gouverneur	Governador	Governor	Governor	Регулятор	المنظِّم	调速器	ガバナー	거버너
+Arquitectura	Architecture	Architecture	Arquitetura	Architektur	Architettura	Архитектура	البنية	架构	アーキテクチャ	아키텍처
+Frecuencia por núcleo	Frequency per core	Fréquence par cœur	Frequência por núcleo	Frequenz pro Kern	Frequenza per core	Частота по ядрам	التردد لكل نواة	每个内核的频率	コアごとの周波数	코어별 주파수
+Apagado	Off	Éteint	Desligado	Aus	Spento	Выкл.	متوقف	关闭	オフ	꺼짐
+Uso de memoria	Memory usage	Utilisation de la mémoire	Uso de memória	Speichernutzung	Utilizzo memoria	Использование памяти	استخدام الذاكرة	内存使用量	メモリ使用量	메모리 사용량
+Composición de memoria	Memory composition	Composition de la mémoire	Composição da memória	Speicherzusammensetzung	Composizione memoria	Структура памяти	تركيبة الذاكرة	内存组合	メモリ構成	메모리 구성
+En uso (comprimida)	In use (Compressed)	Utilisée (compressée)	Em uso (compactada)	In Verwendung (komprimiert)	In uso (compressa)	Используется (сжатая)	قيد الاستخدام (مضغوطة)	使用中(已压缩)	使用中 (圧縮)	사용 중(압축)
+Disponible	Available	Disponible	Disponível	Verfügbar	Disponibile	Доступно	متوفرة	可用	利用可能	사용 가능
+Confirmada	Committed	Validée	Confirmada	Zugesichert	Allocata	Выделено	ملتزم بها	已提交	コミット済み	커밋됨
+En caché	Cached	En cache	Em cache	Im Cache	Memorizzata nella cache	Кэшировано	مخزنة مؤقتًا	已缓存	キャッシュ済み	캐시됨
+Kernel (slab)	Kernel (slab)	Noyau (slab)	Kernel (slab)	Kernel (Slab)	Kernel (slab)	Ядро (slab)	النواة (slab)	内核 (slab)	カーネル (slab)	커널(slab)
+No recuperable	Unreclaimable	Non récupérable	Não recuperável	Nicht freigebbar	Non recuperabile	Невосполнимая	غير قابلة للاسترداد	不可回收	回収不可	회수 불가
+Swap / ZRAM	Swap / ZRAM	Swap / ZRAM	Swap / ZRAM	Swap / ZRAM	Swap / ZRAM	Подкачка / ZRAM	Swap / ZRAM	交换区 / ZRAM	スワップ / ZRAM	스왑 / ZRAM
+%s de %s	%s of %s	%s sur %s	%s de %s	%s von %s	%s di %s	%s из %s	%s من %s	%s / %s	%s / %s	%s / %s
+Datos en ZRAM	Data in ZRAM	Données dans ZRAM	Dados na ZRAM	Daten in ZRAM	Dati in ZRAM	Данные в ZRAM	البيانات في ZRAM	ZRAM 中的数据	ZRAM 内のデータ	ZRAM의 데이터
+Búferes	Buffers	Tampons	Buffers	Puffer	Buffer	Буферы	المخازن المؤقتة	缓冲区	バッファー	버퍼
+Disco 0	Disk 0	Disque 0	Disco 0	Datenträger 0	Disco 0	Диск 0	القرص 0	磁盘 0	ディスク 0	디스크 0
+No se encontró el almacenamiento interno.	Internal storage was not found.	Stockage interne introuvable.	Armazenamento interno não encontrado.	Interner Speicher wurde nicht gefunden.	Memoria interna non trovata.	Внутреннее хранилище не найдено.	لم يتم العثور على التخزين الداخلي.	未找到内部存储。	内部ストレージが見つかりませんでした。	내부 저장소를 찾을 수 없습니다.
+Velocidad de transferencia del disco	Disk transfer rate	Taux de transfert du disque	Taxa de transferência do disco	Datenträger-Übertragungsrate	Velocità di trasferimento disco	Скорость обмена с диском	معدل نقل القرص	磁盘传输速率	ディスク転送速度	디스크 전송 속도
+Velocidad de lectura	Read speed	Vitesse de lecture	Velocidade de leitura	Lesegeschwindigkeit	Velocità di lettura	Скорость чтения	سرعة القراءة	读取速度	読み取り速度	읽기 속도
+Velocidad de escritura	Write speed	Vitesse d'écriture	Velocidade de gravação	Schreibgeschwindigkeit	Velocità di scrittura	Скорость записи	سرعة الكتابة	写入速度	書き込み速度	쓰기 속도
+Tiempo de respuesta medio	Average response time	Temps de réponse moyen	Tempo médio de resposta	Durchschnittliche Antwortzeit	Tempo medio di risposta	Среднее время отклика	متوسط وقت الاستجابة	平均响应时间	平均応答時間	평균 응답 시간
+Capacidad (/data)	Capacity (/data)	Capacité (/data)	Capacidade (/data)	Kapazität (/data)	Capacità (/data)	Ёмкость (/data)	السعة (/data)	容量 (/data)	容量 (/data)	용량(/data)
+Disco del sistema	System disk	Disque système	Disco do sistema	Systemdatenträger	Disco di sistema	Системный диск	قرص النظام	系统磁盘	システム ディスク	시스템 디스크
+Sí	Yes	Oui	Sim	Ja	Sì	Да	نعم	是	はい	예
+Tipo	Type	Type	Tipo	Typ	Tipo	Тип	النوع	类型	種類	유형
+Conectado	Connected	Connecté	Conectado	Verbunden	Connesso	Подключено	متصل	已连接	接続済み	연결됨
+Recibir	Receive	Réception	Receber	Empfangen	Ricezione	Получение	استقبال	接收	受信	받기
+Enviar	Send	Envoi	Enviar	Senden	Invio	Отправка	إرسال	发送	送信	보내기
+Intensidad	Strength	Intensité	Intensidade	Stärke	Intensità	Мощность	القوة	强度	強度	강도
+Nombre del adaptador	Adapter name	Nom de la carte	Nome do adaptador	Adaptername	Nome scheda	Имя адаптера	اسم المحول	适配器名称	アダプター名	어댑터 이름
+Tipo de conexión	Connection type	Type de connexion	Tipo de conexão	Verbindungstyp	Tipo di connessione	Тип подключения	نوع الاتصال	连接类型	接続の種類	연결 유형
+Calidad de señal	Signal quality	Qualité du signal	Qualidade do sinal	Signalqualität	Qualità del segnale	Качество сигнала	جودة الإشارة	信号质量	信号品質	신호 품질
+Velocidad del vínculo	Link speed	Vitesse de liaison	Velocidade do link	Verbindungsgeschwindigkeit	Velocità collegamento	Скорость соединения	سرعة الارتباط	链接速度	リンク速度	연결 속도
+Dirección IPv4	IPv4 address	Adresse IPv4	Endereço IPv4	IPv4-Adresse	Indirizzo IPv4	IPv4-адрес	عنوان IPv4	IPv4 地址	IPv4 アドレス	IPv4 주소
+Dirección IPv6	IPv6 address	Adresse IPv6	Endereço IPv6	IPv6-Adresse	Indirizzo IPv6	IPv6-адрес	عنوان IPv6	IPv6 地址	IPv6 アドレス	IPv6 주소
+Dirección MAC	MAC address	Adresse MAC	Endereço MAC	MAC-Adresse	Indirizzo MAC	MAC-адрес	عنوان MAC	MAC 地址	MAC アドレス	MAC 주소
+Recibido desde el encendido	Received since boot	Reçu depuis le démarrage	Recebido desde a inicialização	Seit dem Start empfangen	Ricevuti dall'avvio	Получено с момента включения	المستلم منذ التشغيل	开机以来接收	起動後の受信量	부팅 후 받은 데이터
+Enviado desde el encendido	Sent since boot	Envoyé depuis le démarrage	Enviado desde a inicialização	Seit dem Start gesendet	Inviati dall'avvio	Отправлено с момента включения	المرسل منذ التشغيل	开机以来发送	起動後の送信量	부팅 후 보낸 데이터
+Sin interfaz activa	No active interface	Aucune interface active	Nenhuma interface ativa	Keine aktive Schnittstelle	Nessuna interfaccia attiva	Нет активного интерфейса	لا توجد واجهة نشطة	无活动接口	アクティブなインターフェイスなし	활성 인터페이스 없음
+Interfaces	Interfaces	Interfaces	Interfaces	Schnittstellen	Interfacce	Интерфейсы	الواجهات	接口	インターフェイス	인터페이스
+No se pudo leer el uso de la GPU en este chip.	GPU usage could not be read on this chip.	Impossible de lire l'utilisation du GPU sur cette puce.	Não foi possível ler o uso da GPU neste chip.	Die GPU-Auslastung kann auf diesem Chip nicht gelesen werden.	Impossibile leggere l'utilizzo della GPU su questo chip.	Не удалось прочитать загрузку GPU на этом чипе.	تعذّرت قراءة استخدام وحدة GPU على هذه الشريحة.	无法读取此芯片的 GPU 使用率。	このチップでは GPU 使用率を読み取れませんでした。	이 칩에서는 GPU 사용률을 읽을 수 없습니다.
+Frecuencia	Frequency	Fréquence	Frequência	Frequenz	Frequenza	Частота	التردد	频率	周波数	주파수
+Temperatura	Temperature	Température	Temperatura	Temperatur	Temperatura	Температура	درجة الحرارة	温度	温度	온도
+Familia	Family	Famille	Família	Familie	Famiglia	Семейство	العائلة	系列	ファミリ	제품군
+Modelo	Model	Modèle	Modelo	Modell	Modello	Модель	الطراز	型号	モデル	모델
+Frecuencia máxima	Max frequency	Fréquence maximale	Frequência máxima	Maximale Frequenz	Frequenza massima	Макс. частота	التردد الأقصى	最大频率	最大周波数	최대 주파수
+Memoria de GPU compartida	Shared GPU memory	Mémoire GPU partagée	Memória compartilhada da GPU	Gemeinsamer GPU-Speicher	Memoria GPU condivisa	Общая память GPU	ذاكرة GPU المشتركة	共享 GPU 内存	共有 GPU メモリ	공유 GPU 메모리
+Batería y temperatura	Battery and temperature	Batterie et température	Bateria e temperatura	Akku und Temperatur	Batteria e temperatura	Батарея и температура	البطارية ودرجة الحرارة	电池和温度	バッテリーと温度	배터리 및 온도
+°C del sensor más caliente	°C of the hottest sensor	°C du capteur le plus chaud	°C do sensor mais quente	°C des heißesten Sensors	°C del sensore più caldo	°C самого горячего датчика	°م لأسخن مستشعر	最热传感器 °C	最も高温のセンサー °C	가장 뜨거운 센서 °C
+Máxima	Maximum	Maximale	Máxima	Maximum	Massima	Максимум	القصوى	最高	最大	최대
+Carga	Charge	Charge	Carga	Ladung	Carica	Заряд	الشحن	电量	充電量	충전량
+Corriente	Current	Courant	Corrente	Strom	Corrente	Ток	التيار	电流	電流	전류
+Voltaje	Voltage	Tension	Tensão	Spannung	Tensione	Напряжение	الجهد	电压	電圧	전압
+Salud de la batería	Battery health	État de la batterie	Saúde da bateria	Akkuzustand	Stato della batteria	Состояние батареи	صحة البطارية	电池健康状况	バッテリーの状態	배터리 상태
+Disco no disponible	Disk not available	Disque indisponible	Disco indisponível	Datenträger nicht verfügbar	Disco non disponibile	Диск недоступен	القرص غير متوفر	磁盘不可用	ディスクを利用できません	디스크를 사용할 수 없음
+Aplicaciones	Apps	Applications	Aplicativos	Apps	App	Приложения	التطبيقات	应用	アプリ	앱
+Procesos en segundo plano	Background processes	Processus en arrière-plan	Processos em segundo plano	Hintergrundprozesse	Processi in background	Фоновые процессы	عمليات الخلفية	后台进程	バックグラウンド プロセス	백그라운드 프로세스
+Procesos de Android	Android processes	Processus Android	Processos do Android	Android-Prozesse	Processi Android	Процессы Android	عمليات Android	Android 进程	Android プロセス	Android 프로세스
+Contraer	Collapse	Réduire	Recolher	Reduzieren	Comprimi	Свернуть	طي	折叠	折りたたむ	축소
+Expandir	Expand	Développer	Expandir	Erweitern	Espandi	Развернуть	توسيع	展开	展開	확장
+Desactivar modo de eficiencia	Turn off efficiency mode	Désactiver le mode efficacité	Desativar modo de eficiência	Effizienzmodus deaktivieren	Disattiva modalità efficienza	Отключить режим эффективности	إيقاف وضع الكفاءة	关闭效率模式	効率モードをオフにする	효율 모드 끄기
+Modo de eficiencia	Efficiency mode	Mode efficacité	Modo de eficiência	Effizienzmodus	Modalità efficienza	Режим эффективности	وضع الكفاءة	效率模式	効率モード	효율 모드
+Eficiencia	Efficiency	Efficacité	Eficiência	Effizienz	Efficienza	Эффективность	الكفاءة	效率	効率	효율
+Agrupar por tipo	Group by type	Regrouper par type	Agrupar por tipo	Nach Typ gruppieren	Raggruppa per tipo	Группировать по типу	التجميع حسب النوع	按类型分组	種類別にグループ化	유형별로 그룹화
+Mostrar nombres de paquete	Show package names	Afficher les noms de package	Mostrar nomes de pacote	Paketnamen anzeigen	Mostra nomi pacchetto	Показывать имена пакетов	إظهار أسماء الحزم	显示包名	パッケージ名を表示	패키지 이름 표시
+Expandir todo	Expand all	Tout développer	Expandir tudo	Alle erweitern	Espandi tutto	Развернуть все	توسيع الكل	全部展开	すべて展開	모두 확장
+Contraer todo	Collapse all	Tout réduire	Recolher tudo	Alle reduzieren	Comprimi tutto	Свернуть все	طي الكل	全部折叠	すべて折りたたむ	모두 축소
+Cargando procesos…	Loading processes…	Chargement des processus…	Carregando processos…	Prozesse werden geladen…	Caricamento processi…	Загрузка процессов…	جارٍ تحميل العمليات…	正在加载进程…	プロセスを読み込んでいます…	프로세스 로드 중…
+Ningún proceso coincide con “%s”.	No process matches “%s”.	Aucun processus ne correspond à « %s ».	Nenhum processo corresponde a “%s”.	Kein Prozess entspricht „%s“.	Nessun processo corrisponde a “%s”.	Нет процессов, соответствующих «%s».	لا توجد عملية تطابق "%s".	没有与"%s"匹配的进程。	「%s」に一致するプロセスはありません。	"%s"과(와) 일치하는 프로세스가 없습니다.
+Es un proceso del sistema. Si lo finalizas, el teléfono puede volverse inestable o reiniciarse.	This is a system process. Ending it can make the phone unstable or restart it.	C'est un processus système. Le terminer peut rendre le téléphone instable ou le faire redémarrer.	É um processo do sistema. Finalizá-lo pode deixar o telefone instável ou reiniciá-lo.	Dies ist ein Systemprozess. Das Beenden kann das Telefon instabil machen oder neu starten.	È un processo di sistema. Terminarlo può rendere il telefono instabile o riavviarlo.	Это системный процесс. Его завершение может сделать телефон нестабильным или перезагрузить его.	هذه عملية نظام. قد يؤدي إنهاؤها إلى عدم استقرار الهاتف أو إعادة تشغيله.	这是系统进程。结束它可能导致手机不稳定或重启。	これはシステム プロセスです。終了すると、スマートフォンが不安定になったり再起動したりすることがあります。	시스템 프로세스입니다. 끝내면 휴대폰이 불안정해지거나 다시 시작될 수 있습니다.
+Servicio nativo de Android	Native Android service	Service Android natif	Serviço nativo do Android	Nativer Android-Dienst	Servizio nativo Android	Собственная служба Android	خدمة Android أصلية	Android 原生服务	Android ネイティブ サービス	Android 기본 서비스
+Usuario	User	Utilisateur	Usuário	Benutzer	Utente	Пользователь	المستخدم	用户	ユーザー	사용자
+¿Iniciar %s?	Start %s?	Démarrer %s ?	Iniciar %s?	%s starten?	Avviare %s?	Запустить %s?	هل تريد بدء %s؟	要启动 %s 吗?	%s を開始しますか?	%s을(를) 시작하시겠습니까?
+¿Detener %s?	Stop %s?	Arrêter %s ?	Parar %s?	%s beenden?	Arrestare %s?	Остановить %s?	هل تريد إيقاف %s؟	要停止 %s 吗?	%s を停止しますか?	%s을(를) 중지하시겠습니까?
+¿Reiniciar %s?	Restart %s?	Redémarrer %s ?	Reiniciar %s?	%s neu starten?	Riavviare %s?	Перезапустить %s?	هل تريد إعادة تشغيل %s؟	要重新启动 %s 吗?	%s を再起動しますか?	%s을(를) 다시 시작하시겠습니까?
+\n\nEs un servicio del sistema: detenerlo puede dejar el teléfono inestable o hacer que se reinicie.	\n\nThis is a system service: stopping it can make the phone unstable or restart it.	\n\nC'est un service système : l'arrêter peut rendre le téléphone instable ou le faire redémarrer.	\n\nÉ um serviço do sistema: pará-lo pode deixar o telefone instável ou reiniciá-lo.	\n\nDies ist ein Systemdienst: Das Beenden kann das Telefon instabil machen oder neu starten.	\n\nÈ un servizio di sistema: arrestarlo può rendere il telefono instabile o riavviarlo.	\n\nЭто системная служба: её остановка может сделать телефон нестабильным или перезагрузить его.	\n\nهذه خدمة نظام: قد يؤدي إيقافها إلى عدم استقرار الهاتف أو إعادة تشغيله.	\n\n这是系统服务:停止它可能导致手机不稳定或重启。	\n\nこれはシステム サービスです。停止すると、スマートフォンが不安定になったり再起動したりすることがあります。	\n\n시스템 서비스입니다. 중지하면 휴대폰이 불안정해지거나 다시 시작될 수 있습니다.
+Iniciar	Start	Démarrer	Iniciar	Starten	Avvia	Запустить	بدء	启动	開始	시작
+Detener	Stop	Arrêter	Parar	Beenden	Arresta	Остановить	إيقاف	停止	停止	중지
+Reiniciar	Restart	Redémarrer	Reiniciar	Neu starten	Riavvia	Перезапустить	إعادة التشغيل	重新启动	再起動	다시 시작
+Descripción	Description	Description	Descrição	Beschreibung	Descrizione	Описание	الوصف	描述	説明	설명
+Grupo	Group	Groupe	Grupo	Gruppe	Gruppo	Группа	المجموعة	组	グループ	그룹
+Servicios	Services	Services	Serviços	Dienste	Servizi	Службы	الخدمات	服务	サービス	서비스
+Mostrar solo en ejecución	Show only running	Afficher uniquement ceux en cours	Mostrar apenas em execução	Nur laufende anzeigen	Mostra solo in esecuzione	Показывать только запущенные	إظهار قيد التشغيل فقط	仅显示正在运行	実行中のみ表示	실행 중인 항목만 표시
+Leyendo servicios…	Reading services…	Lecture des services…	Lendo serviços…	Dienste werden gelesen…	Lettura dei servizi…	Чтение служб…	جارٍ قراءة الخدمات…	正在读取服务…	サービスを読み取っています…	서비스를 읽는 중…
+Detenido	Stopped	Arrêté	Parado	Beendet	Arrestato	Остановлена	متوقفة	已停止	停止	중지됨
+Aceptar	OK	OK	OK	OK	OK	ОК	موافق	确定	OK	확인
+Configuración	Settings	Paramètres	Configurações	Einstellungen	Impostazioni	Параметры	الإعدادات	设置	設定	설정
+General	General	Général	Geral	Allgemein	Generale	Общие	عام	常规	全般	일반
+Idioma	Language	Langue	Idioma	Sprache	Lingua	Язык	اللغة	语言	言語	언어
+Idioma de la aplicación	App language	Langue de l'application	Idioma do app	App-Sprache	Lingua dell'app	Язык приложения	لغة التطبيق	应用语言	アプリの言語	앱 언어
+Usar idioma del sistema	Use system language	Utiliser la langue du système	Usar idioma do sistema	Systemsprache verwenden	Usa la lingua di sistema	Использовать язык системы	استخدام لغة النظام	使用系统语言	システムの言語を使用	시스템 언어 사용
+Tema de la aplicación	App theme	Thème de l'application	Tema do app	App-Design	Tema dell'app	Тема приложения	سمة التطبيق	应用主题	アプリのテーマ	앱 테마
+Elige la apariencia de la app	Choose how the app looks	Choisissez l'apparence de l'application	Escolha a aparência do app	Wähle das Aussehen der App	Scegli l'aspetto dell'app	Выберите внешний вид приложения	اختر مظهر التطبيق	选择应用的外观	アプリの外観を選択	앱 모양 선택
+Usar configuración del sistema	Use system setting	Utiliser le paramètre système	Usar configuração do sistema	Systemeinstellung verwenden	Usa impostazione di sistema	Как в системе	استخدام إعداد النظام	使用系统设置	システム設定を使用	시스템 설정 사용
+Claro	Light	Clair	Claro	Hell	Chiaro	Светлая	فاتح	浅色	ライト	밝게
+Oscuro	Dark	Sombre	Escuro	Dunkel	Scuro	Тёмная	داكن	深色	ダーク	어둡게
+Página de inicio predeterminada	Default start page	Page de démarrage par défaut	Página inicial padrão	Standard-Startseite	Pagina iniziale predefinita	Начальная страница по умолчанию	صفحة البدء الافتراضية	默认启动页	既定のスタート ページ	기본 시작 페이지
+La página que se abre al iniciar la app	The page that opens when the app starts	La page qui s'ouvre au démarrage de l'application	A página que abre ao iniciar o app	Die Seite, die beim Start der App geöffnet wird	La pagina che si apre all'avvio dell'app	Страница, открываемая при запуске	الصفحة التي تفتح عند بدء التطبيق	应用启动时打开的页面	アプリ起動時に開くページ	앱을 시작할 때 열리는 페이지
+Velocidad de actualización en tiempo real	Real-time update speed	Vitesse de mise à jour en temps réel	Velocidade de atualização em tempo real	Echtzeit-Aktualisierungsgeschwindigkeit	Velocità di aggiornamento in tempo reale	Скорость обновления в реальном времени	سرعة التحديث في الوقت الحقيقي	实时更新速度	リアルタイムの更新速度	실시간 업데이트 속도
+Cada cuánto se actualizan los datos	How often the data is updated	Fréquence de mise à jour des données	Com que frequência os dados são atualizados	Wie oft die Daten aktualisiert werden	Ogni quanto si aggiornano i dati	Как часто обновляются данные	عدد مرات تحديث البيانات	数据更新的频率	データを更新する頻度	데이터 업데이트 빈도
+Alta (0,5 s)	High (0.5 s)	Haute (0,5 s)	Alta (0,5 s)	Hoch (0,5 s)	Alta (0,5 s)	Высокая (0,5 с)	عالية (0.5 ث)	高 (0.5 秒)	高 (0.5 秒)	높음(0.5초)
+Normal (1 s)	Normal (1 s)	Normale (1 s)	Normal (1 s)	Normal (1 s)	Normale (1 s)	Обычная (1 с)	عادية (1 ث)	正常 (1 秒)	標準 (1 秒)	보통(1초)
+Baja (4 s)	Low (4 s)	Basse (4 s)	Baixa (4 s)	Niedrig (4 s)	Bassa (4 s)	Низкая (4 с)	منخفضة (4 ث)	低 (4 秒)	低 (4 秒)	낮음(4초)
+En pausa	Paused	En pause	Pausado	Angehalten	In pausa	Приостановлено	متوقف مؤقتًا	已暂停	一時停止	일시 중지됨
+Opciones de vista	View options	Options d'affichage	Opções de exibição	Ansichtsoptionen	Opzioni di visualizzazione	Параметры представления	خيارات العرض	视图选项	表示オプション	보기 옵션
+Separa aplicaciones, procesos en segundo plano y de Android	Separates apps, background and Android processes	Sépare les applications, les processus en arrière-plan et Android	Separa aplicativos, processos em segundo plano e do Android	Trennt Apps, Hintergrund- und Android-Prozesse	Separa app, processi in background e Android	Разделяет приложения, фоновые процессы и процессы Android	يفصل التطبيقات وعمليات الخلفية وعمليات Android	将应用、后台进程和 Android 进程分开	アプリ、バックグラウンド、Android のプロセスを分けて表示	앱, 백그라운드, Android 프로세스를 구분
+Muestra com.ejemplo.app en lugar del nombre de la app	Shows com.example.app instead of the app name	Affiche com.exemple.app au lieu du nom de l'application	Mostra com.exemplo.app em vez do nome do app	Zeigt com.beispiel.app statt des App-Namens	Mostra com.esempio.app invece del nome dell'app	Показывает com.example.app вместо имени приложения	يعرض com.example.app بدلاً من اسم التطبيق	显示 com.example.app 而不是应用名称	アプリ名の代わりに com.example.app を表示	앱 이름 대신 com.example.app 표시
+Apps en modo de eficiencia	Apps in efficiency mode	Applications en mode efficacité	Apps no modo de eficiência	Apps im Effizienzmodus	App in modalità efficienza	Приложения в режиме эффективности	التطبيقات في وضع الكفاءة	效率模式下的应用	効率モードのアプリ	효율 모드의 앱
+%d apps con prioridad baja	%d apps with low priority	%d applications en priorité basse	%d apps com prioridade baixa	%d Apps mit niedriger Priorität	%d app con priorità bassa	Приложений с низким приоритетом: %d	%d تطبيقات بأولوية منخفضة	%d 个低优先级应用	優先度が低いアプリ: %d	우선 순위가 낮은 앱 %d개
+Quitar todas	Remove all	Tout supprimer	Remover todas	Alle entfernen	Rimuovi tutte	Удалить все	إزالة الكل	全部移除	すべて削除	모두 제거
+Actualizaciones	Updates	Mises à jour	Atualizações	Updates	Aggiornamenti	Обновления	التحديثات	更新	更新	업데이트
+Buscar actualizaciones al abrir	Check for updates on launch	Rechercher des mises à jour à l'ouverture	Procurar atualizações ao abrir	Beim Start nach Updates suchen	Cerca aggiornamenti all'apertura	Проверять обновления при запуске	البحث عن تحديثات عند الفتح	打开时检查更新	起動時に更新を確認	시작할 때 업데이트 확인
+Avisa cuando hay una versión nueva en GitHub	Notifies you when there's a new version on GitHub	Vous avertit quand une nouvelle version est sur GitHub	Avisa quando há uma nova versão no GitHub	Benachrichtigt bei einer neuen Version auf GitHub	Avvisa quando c'è una nuova versione su GitHub	Сообщает о новой версии на GitHub	ينبهك عند توفر إصدار جديد على GitHub	GitHub 上有新版本时通知你	GitHub に新しいバージョンがあると通知	GitHub에 새 버전이 있으면 알림
+Buscar ahora	Check now	Rechercher maintenant	Procurar agora	Jetzt suchen	Cerca ora	Проверить сейчас	التحقق الآن	立即检查	今すぐ確認	지금 확인
+Build instalada: %d	Installed build: %d	Build installé : %d	Build instalada: %d	Installierter Build: %d	Build installata: %d	Установленная сборка: %d	الإصدار المثبت: %d	已安装版本:%d	インストール済みビルド: %d	설치된 빌드: %d
+Buscando…	Checking…	Recherche…	Procurando…	Suche läuft…	Ricerca in corso…	Поиск…	جارٍ البحث…	正在检查…	確認しています…	확인 중…
+Build %d disponible	Build %d available	Build %d disponible	Build %d disponível	Build %d verfügbar	Build %d disponibile	Доступна сборка %d	الإصدار %d متوفر	版本 %d 可用	ビルド %d が利用可能	빌드 %d 사용 가능
+Ya tienes la última versión (build %d)	You have the latest version (build %d)	Vous avez la dernière version (build %d)	Você tem a versão mais recente (build %d)	Du hast die neueste Version (Build %d)	Hai l'ultima versione (build %d)	У вас последняя версия (сборка %d)	لديك أحدث إصدار (الإصدار %d)	已是最新版本(版本 %d)	最新バージョンです (ビルド %d)	최신 버전입니다(빌드 %d)
+Buscar	Check	Rechercher	Procurar	Suchen	Cerca	Проверить	تحقق	检查	確認	확인
+Acerca de	About	À propos	Sobre	Info	Informazioni	О программе	حول	关于	バージョン情報	정보
+Monitor del sistema para Android con root	System monitor for rooted Android	Moniteur système pour Android rooté	Monitor do sistema para Android com root	Systemmonitor für gerootetes Android	Monitor di sistema per Android con root	Системный монитор для Android с root	مراقب النظام لأجهزة Android بصلاحية الجذر	适用于已 root 的 Android 的系统监视器	root 化した Android 用のシステム モニター	루팅된 Android용 시스템 모니터
+Crear nueva tarea	Create new task	Créer une tâche	Criar nova tarefa	Neuen Task erstellen	Crea nuova attività	Создать задачу	إنشاء مهمة جديدة	新建任务	新しいタスクの作成	새 작업 만들기
+Escribe el nombre de una app para abrirla, o un comando para ejecutarlo.	Type the name of an app to open it, or a command to run it.	Saisissez le nom d'une application pour l'ouvrir, ou une commande pour l'exécuter.	Digite o nome de um app para abri-lo ou um comando para executá-lo.	Gib den Namen einer App ein, um sie zu öffnen, oder einen Befehl, um ihn auszuführen.	Digita il nome di un'app per aprirla o un comando per eseguirlo.	Введите имя приложения, чтобы открыть его, или команду, чтобы выполнить её.	اكتب اسم تطبيق لفتحه، أو أمرًا لتشغيله.	输入应用名称以打开它,或输入命令以运行它。	開くアプリの名前、または実行するコマンドを入力してください。	열 앱 이름이나 실행할 명령을 입력하세요.
+Crear esta tarea con privilegios de administrador (root)	Create this task with administrative (root) privileges	Créer cette tâche avec des privilèges d'administrateur (root)	Criar esta tarefa com privilégios de administrador (root)	Diesen Task mit Administratorrechten (Root) erstellen	Crea questa attività con privilegi di amministratore (root)	Создать задачу с правами администратора (root)	إنشاء هذه المهمة بامتيازات المسؤول (root)	以管理员 (root) 权限创建此任务	管理者 (root) 権限でこのタスクを作成する	관리자(root) 권한으로 이 작업 만들기
+Ejecutando…	Running…	Exécution…	Executando…	Wird ausgeführt…	Esecuzione…	Выполнение…	جارٍ التشغيل…	正在运行…	実行しています…	실행 중…
+Cerrar	Close	Fermer	Fechar	Schließen	Chiudi	Закрыть	إغلاق	关闭	閉じる	닫기
+Sistema	System	Système	Sistema	System	Sistema	Система	النظام	系统	システム	시스템
+Desconocido	Unknown	Inconnu	Desconhecido	Unbekannt	Sconosciuto	Неизвестно	غير معروف	未知	不明	알 수 없음
+Publicador	Publisher	Éditeur	Editor	Herausgeber	Autore	Издатель	الناشر	发布者	発行元	게시자
+Receptores de inicio	Startup receivers	Récepteurs de démarrage	Receptores de inicialização	Start-Empfänger	Ricevitori di avvio	Обработчики запуска	مستقبلات بدء التشغيل	启动接收器	起動レシーバー	시작 수신기
+Aplicaciones de arranque	Startup apps	Applications de démarrage	Aplicativos de inicialização	Autostart-Apps	App di avvio	Автозагрузка	تطبيقات بدء التشغيل	启动应用	スタートアップ アプリ	시작 앱
+Habilitar	Enable	Activer	Habilitar	Aktivieren	Abilita	Включить	تمكين	启用	有効にする	사용
+Deshabilitar	Disable	Désactiver	Desabilitar	Deaktivieren	Disabilita	Отключить	تعطيل	禁用	無効にする	사용 안 함
+Mostrar apps del sistema	Show system apps	Afficher les applications système	Mostrar apps do sistema	System-Apps anzeigen	Mostra app di sistema	Показывать системные приложения	إظهار تطبيقات النظام	显示系统应用	システム アプリを表示	시스템 앱 표시
+Último arranque: %s	Last boot: %s	Dernier démarrage : %s	Última inicialização: %s	Letzter Start: %s	Ultimo avvio: %s	Последний запуск: %s	آخر تشغيل: %s	上次启动:%s	最終起動: %s	마지막 부팅: %s
+Buscando apps que se inician con el teléfono…	Looking for apps that start with the phone…	Recherche des applications qui démarrent avec le téléphone…	Procurando apps que iniciam com o telefone…	Apps, die mit dem Telefon starten, werden gesucht…	Ricerca delle app che si avviano con il telefono…	Поиск приложений, запускающихся вместе с телефоном…	جارٍ البحث عن التطبيقات التي تبدأ مع الهاتف…	正在查找随手机启动的应用…	スマートフォンと一緒に起動するアプリを探しています…	휴대폰과 함께 시작되는 앱을 찾는 중…
+No hay aplicaciones de arranque para mostrar.	There are no startup apps to show.	Aucune application de démarrage à afficher.	Não há aplicativos de inicialização para mostrar.	Keine Autostart-Apps vorhanden.	Nessuna app di avvio da mostrare.	Нет приложений автозагрузки.	لا توجد تطبيقات بدء تشغيل لعرضها.	没有要显示的启动应用。	表示するスタートアップ アプリはありません。	표시할 시작 앱이 없습니다.
+Deshabilitado	Disabled	Désactivé	Desabilitado	Deaktiviert	Disabilitato	Отключено	معطّل	已禁用	無効	사용 안 함
+Parcial	Partial	Partiel	Parcial	Teilweise	Parziale	Частично	جزئي	部分	一部	일부
+Habilitado	Enabled	Activé	Habilitado	Aktiviert	Abilitato	Включено	ممكّن	已启用	有効	사용
+Más	More	Plus	Mais	Mehr	Altro	Ещё	المزيد	更多	その他	더 보기
+Cancelar	Cancel	Annuler	Cancelar	Abbrechen	Annulla	Отмена	إلغاء	取消	キャンセル	취소
+Proceso padre (PPID)	Parent process (PPID)	Processus parent (PPID)	Processo pai (PPID)	Übergeordneter Prozess (PPID)	Processo padre (PPID)	Родительский процесс (PPID)	العملية الأم (PPID)	父进程 (PPID)	親プロセス (PPID)	부모 프로세스(PPID)
+En ejecución desde hace	Running for	En cours depuis	Em execução há	Läuft seit	In esecuzione da	Работает	قيد التشغيل منذ	已运行	実行時間	실행 시간
+Paquete	Package	Package	Pacote	Paket	Pacchetto	Пакет	الحزمة	包名	パッケージ	패키지
+Cargando…	Loading…	Chargement…	Carregando…	Wird geladen…	Caricamento…	Загрузка…	جارٍ التحميل…	正在加载…	読み込んでいます…	로드 중…
+Afinidad del procesador	Processor affinity	Affinité du processeur	Afinidade do processador	Prozessorzugehörigkeit	Affinità processore	Сходство процессора	تقارب المعالج	处理器相关性	プロセッサの関係	프로세서 선호도
+¿Qué núcleos pueden ejecutar este proceso?	Which cores are allowed to run this process?	Quels cœurs peuvent exécuter ce processus ?	Quais núcleos podem executar este processo?	Welche Kerne dürfen diesen Prozess ausführen?	Quali core possono eseguire questo processo?	Каким ядрам разрешено выполнять этот процесс?	ما الأنوية المسموح لها بتشغيل هذه العملية؟	允许哪些内核运行此进程?	このプロセスの実行を許可するコア	이 프로세스를 실행할 수 있는 코어는?
+<Todos los procesadores>	<All processors>	<Tous les processeurs>	<Todos os processadores>	<Alle Prozessoren>	<Tutti i processori>	<Все процессоры>	<كل المعالجات>	<所有处理器>	<すべてのプロセッサ>	<모든 프로세서>
+Descargando…	Downloading…	Téléchargement…	Baixando…	Wird heruntergeladen…	Download in corso…	Загрузка…	جارٍ التنزيل…	正在下载…	ダウンロードしています…	다운로드 중…
+Instalando… la app se cerrará y volverá a abrirse.	Installing… the app will close and reopen.	Installation… l'application va se fermer et se rouvrir.	Instalando… o app será fechado e aberto novamente.	Wird installiert… die App wird geschlossen und erneut geöffnet.	Installazione… l'app si chiuderà e si riaprirà.	Установка… приложение закроется и откроется снова.	جارٍ التثبيت… سيُغلق التطبيق ثم يُعاد فتحه.	正在安装… 应用将关闭并重新打开。	インストールしています… アプリが閉じてから再び開きます。	설치 중… 앱이 닫혔다가 다시 열립니다.
+No se pudo instalar automáticamente. Puedes descargarla desde el navegador.	It couldn't be installed automatically. You can download it from the browser.	Impossible d'installer automatiquement. Vous pouvez la télécharger depuis le navigateur.	Não foi possível instalar automaticamente. Você pode baixá-la pelo navegador.	Automatische Installation fehlgeschlagen. Du kannst sie über den Browser herunterladen.	Impossibile installare automaticamente. Puoi scaricarla dal browser.	Не удалось установить автоматически. Скачайте её в браузере.	تعذّر التثبيت تلقائيًا. يمكنك تنزيله من المتصفح.	无法自动安装。你可以通过浏览器下载。	自動でインストールできませんでした。ブラウザーからダウンロードできます。	자동으로 설치할 수 없습니다. 브라우저에서 다운로드할 수 있습니다.
+Hay una nueva versión	A new version is available	Une nouvelle version est disponible	Há uma nova versão	Eine neue Version ist verfügbar	È disponibile una nuova versione	Доступна новая версия	يتوفر إصدار جديد	有新版本可用	新しいバージョンがあります	새 버전이 있습니다
+Build %d disponible (tienes la build %d)	Build %d available (you have build %d)	Build %d disponible (vous avez le build %d)	Build %d disponível (você tem a build %d)	Build %d verfügbar (du hast Build %d)	Build %d disponibile (hai la build %d)	Доступна сборка %d (у вас сборка %d)	الإصدار %d متوفر (لديك الإصدار %d)	版本 %d 可用(当前版本 %d)	ビルド %d が利用可能 (現在のビルド %d)	빌드 %d 사용 가능(현재 빌드 %d)
+Novedades	What's new	Nouveautés	Novidades	Neuigkeiten	Novità	Что нового	الجديد	新功能	新機能	새로운 기능
+Actualizar ahora	Update now	Mettre à jour	Atualizar agora	Jetzt aktualisieren	Aggiorna ora	Обновить сейчас	التحديث الآن	立即更新	今すぐ更新	지금 업데이트
+Navegador	Browser	Navigateur	Navegador	Browser	Browser	Браузер	المتصفح	浏览器	ブラウザー	브라우저
+Omitir	Skip	Ignorer	Ignorar	Überspringen	Salta	Пропустить	تخطي	跳过	スキップ	건너뛰기
+Más tarde	Later	Plus tard	Mais tarde	Später	Più tardi	Позже	لاحقًا	稍后	後で	나중에
+Sistema (root y servicios)	System (root and services)	Système (root et services)	Sistema (root e serviços)	System (Root und Dienste)	Sistema (root e servizi)	Система (root и службы)	النظام (الجذر والخدمات)	系统(root 和服务)	システム (root とサービス)	시스템(root 및 서비스)
+Usuario %d	User %d	Utilisateur %d	Usuário %d	Benutzer %d	Utente %d	Пользователь %d	المستخدم %d	用户 %d	ユーザー %d	사용자 %d
+Usuarios	Users	Utilisateurs	Usuários	Benutzer	Utenti	Пользователи	المستخدمون	用户	ユーザー	사용자
+Cambiar a	Switch to	Basculer vers	Mudar para	Wechseln zu	Passa a	Переключиться	التبديل إلى	切换到	切り替え	전환
+¿Cambiar al usuario %d?	Switch to user %d?	Basculer vers l'utilisateur %d ?	Mudar para o usuário %d?	Zu Benutzer %d wechseln?	Passare all'utente %d?	Переключиться на пользователя %d?	هل تريد التبديل إلى المستخدم %d؟	要切换到用户 %d 吗?	ユーザー %d に切り替えますか?	사용자 %d(으)로 전환하시겠습니까?
+Detener usuario	Stop user	Arrêter l'utilisateur	Parar usuário	Benutzer beenden	Arresta utente	Остановить пользователя	إيقاف المستخدم	停止用户	ユーザーを停止	사용자 중지
+¿Detener el usuario %d? Se cerrarán todas sus apps.	Stop user %d? All their apps will be closed.	Arrêter l'utilisateur %d ? Toutes ses applications seront fermées.	Parar o usuário %d? Todos os apps dele serão fechados.	Benutzer %d beenden? Alle Apps werden geschlossen.	Arrestare l'utente %d? Tutte le sue app verranno chiuse.	Остановить пользователя %d? Все его приложения будут закрыты.	هل تريد إيقاف المستخدم %d؟ سيتم إغلاق كل تطبيقاته.	要停止用户 %d 吗?其所有应用都将关闭。	ユーザー %d を停止しますか? すべてのアプリが閉じられます。	사용자 %d을(를) 중지하시겠습니까? 모든 앱이 닫힙니다.
+Activo	Active	Actif	Ativo	Aktiv	Attivo	Активен	نشط	活动	アクティブ	활성
+Últimas 24 horas	Last 24 hours	Dernières 24 heures	Últimas 24 horas	Letzte 24 Stunden	Ultime 24 ore	Последние 24 часа	آخر 24 ساعة	过去 24 小时	過去 24 時間	지난 24시간
+Últimos 7 días	Last 7 days	7 derniers jours	Últimos 7 dias	Letzte 7 Tage	Ultimi 7 giorni	Последние 7 дней	آخر 7 أيام	过去 7 天	過去 7 日間	지난 7일
+Últimos 30 días	Last 30 days	30 derniers jours	Últimos 30 dias	Letzte 30 Tage	Ultimi 30 giorni	Последние 30 дней	آخر 30 يومًا	过去 30 天	過去 30 日間	지난 30일
+Cargando	Charging	En charge	Carregando	Wird geladen	In carica	Заряжается	قيد الشحن	正在充电	充電中	충전 중
+Descargando	Discharging	Décharge	Descarregando	Wird entladen	In scarica	Разряжается	يتم التفريغ	正在放电	放電中	방전 중
+Completa	Full	Pleine	Completa	Voll	Carica	Полностью заряжена	ممتلئة	已充满	満充電	완전 충전
+No se está cargando	Not charging	Pas en charge	Não está carregando	Wird nicht geladen	Non in carica	Не заряжается	لا يتم الشحن	未在充电	充電していません	충전 안 함
+Sobrecalentada	Overheated	Surchauffe	Superaquecida	Überhitzt	Surriscaldata	Перегрев	ساخنة جدًا	过热	過熱	과열
+Agotada	Dead	Épuisée	Esgotada	Defekt	Esaurita	Неисправна	تالفة	已损坏	劣化	사용 불가
+Fría	Cold	Froide	Fria	Kalt	Fredda	Холодная	باردة	过冷	低温	저온
+No detectada	Not detected	Non détecté	Não detectada	Nicht erkannt	Non rilevata	Не обнаружено	لم يتم الاكتشاف	未检测到	検出されません	감지되지 않음
+Ejecutable	Executable	Exécutable	Executável	Ausführbare Datei	Eseguibile	Исполняемый файл	الملف التنفيذي	可执行文件	実行可能ファイル	실행 파일
+Carpeta de trabajo	Working folder	Dossier de travail	Pasta de trabalho	Arbeitsordner	Cartella di lavoro	Рабочая папка	مجلد العمل	工作文件夹	作業フォルダー	작업 폴더
+Línea de comandos	Command line	Ligne de commande	Linha de comando	Befehlszeile	Riga di comando	Командная строка	سطر الأوامر	命令行	コマンド ライン	명령줄
+Prioridad OOM	OOM priority	Priorité OOM	Prioridade OOM	OOM-Priorität	Priorità OOM	Приоритет OOM	أولوية OOM	OOM 优先级	OOM 優先度	OOM 우선 순위
+Memoria virtual máxima	Peak virtual memory	Mémoire virtuelle maximale	Memória virtual máxima	Maximaler virtueller Speicher	Memoria virtuale massima	Пик виртуальной памяти	الحد الأقصى للذاكرة الظاهرية	虚拟内存峰值	仮想メモリの最大値	최대 가상 메모리
+Memoria en swap	Swapped memory	Mémoire en swap	Memória em swap	Ausgelagerter Speicher	Memoria in swap	Память в подкачке	الذاكرة في swap	交换区内存	スワップ中のメモリ	스왑된 메모리
+Núcleos permitidos	Allowed cores	Cœurs autorisés	Núcleos permitidos	Erlaubte Kerne	Core consentiti	Разрешённые ядра	الأنوية المسموح بها	允许的内核	許可されたコア	허용된 코어
+Cambios de contexto voluntarios	Voluntary context switches	Changements de contexte volontaires	Trocas de contexto voluntárias	Freiwillige Kontextwechsel	Cambi di contesto volontari	Добровольные переключения контекста	تبديلات السياق الطوعية	自愿上下文切换	自発的なコンテキスト スイッチ	자발적 컨텍스트 전환
+Cambios de contexto forzados	Forced context switches	Changements de contexte forcés	Trocas de contexto forçadas	Erzwungene Kontextwechsel	Cambi di contesto forzati	Принудительные переключения контекста	تبديلات السياق الإجبارية	强制上下文切换	強制的なコンテキスト スイッチ	강제 컨텍스트 전환
+Señales bloqueadas	Blocked signals	Signaux bloqués	Sinais bloqueados	Blockierte Signale	Segnali bloccati	Заблокированные сигналы	الإشارات المحظورة	已阻塞的信号	ブロックされたシグナル	차단된 신호

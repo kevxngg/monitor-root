@@ -64,7 +64,7 @@ private fun loadStartup(): List<StartRow> {
             pkg = pkg,
             label = m.label,
             icon = m.icon,
-            publisher = if (m.system) "Sistema" else Apps.installerLabel(pkg) ?: "Desconocido",
+            publisher = if (m.system) tr("Sistema") else Apps.installerLabel(pkg) ?: tr("Desconocido"),
             comps = comps.keys.toList(),
             enabledCount = comps.values.count { it },
             system = m.system,
@@ -109,50 +109,50 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
     }
 
     val cols = listOf(
-        Col("pub", "Publicador", 130.dp, end = false),
-        Col("state", "Estado", 110.dp, end = false),
-        Col("count", "Receptores de inicio", 150.dp),
+        Col("pub", tr("Publicador"), 130.dp, end = false),
+        Col("state", tr("Estado"), 110.dp, end = false),
+        Col("count", tr("Receptores de inicio"), 150.dp),
     )
 
     Column(Modifier.fillMaxSize()) {
-        PageHeader("Aplicaciones de arranque") {
-            CmdButton(Icons.Outlined.AddBox, "Ejecutar nueva tarea", onClick = onRun)
-            CmdButton(Icons.Outlined.CheckCircle, "Habilitar", enabled = selected != null && selected.enabledCount < selected.comps.size) {
+        PageHeader(tr("Aplicaciones de arranque")) {
+            CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
+            CmdButton(Icons.Outlined.CheckCircle, tr("Habilitar"), enabled = selected != null && selected.enabledCount < selected.comps.size) {
                 selected?.let { setEnabled(it, true) }
             }
-            CmdButton(Icons.Outlined.DoNotDisturbOn, "Deshabilitar", enabled = selected?.enabled == true) {
+            CmdButton(Icons.Outlined.DoNotDisturbOn, tr("Deshabilitar"), enabled = selected?.enabled == true) {
                 selected?.let { setEnabled(it, false) }
             }
             CmdMore(
                 listOf(
-                    MenuEntry("Mostrar apps del sistema", checked = showSystem) { showSystem = !showSystem },
-                    MenuEntry("Actualizar", Icons.Outlined.Refresh) { reload++ },
+                    MenuEntry(tr("Mostrar apps del sistema"), checked = showSystem) { showSystem = !showSystem },
+                    MenuEntry(tr("Actualizar"), Icons.Outlined.Refresh) { reload++ },
                 )
             )
         }
-        val bootAt = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+        val bootAt = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, I18n.locale())
             .format(Date(System.currentTimeMillis() - s.uptimeSec * 1000))
         Text(
-            "Último arranque: $bootAt",
+            tr("Último arranque: %s", bootAt),
             fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
         )
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val nameW = nameWidth(maxWidth, cols)
             Column(Modifier.fillMaxSize()) {
-                TableHeader("Nombre", nameW, cols, h, sortId, asc) { id ->
+                TableHeader(tr("Nombre"), nameW, cols, h, sortId, asc) { id ->
                     if (sortId == id) asc = !asc else {
                         sortId = id; asc = true
                     }
                 }
                 when {
-                    data == null -> EmptyText("Buscando apps que se inician con el teléfono…")
-                    rows.isEmpty() -> EmptyText("No hay aplicaciones de arranque para mostrar.")
+                    data == null -> EmptyText(tr("Buscando apps que se inician con el teléfono…"))
+                    rows.isEmpty() -> EmptyText(tr("No hay aplicaciones de arranque para mostrar."))
                     else -> LazyColumn(Modifier.fillMaxSize()) {
                         items(rows, key = { it.pkg }) { r ->
                             val state = when {
-                                r.enabledCount == 0 -> "Deshabilitado"
-                                r.enabledCount < r.comps.size -> "Parcial"
-                                else -> "Habilitado"
+                                r.enabledCount == 0 -> tr("Deshabilitado")
+                                r.enabledCount < r.comps.size -> tr("Parcial")
+                                else -> tr("Habilitado")
                             }
                             TableRow(
                                 nameW, cols,
@@ -165,11 +165,11 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                     WinMenu(
                                         menuPkg == r.pkg, { menuPkg = null },
                                         listOf(
-                                            MenuEntry(if (r.enabled) "Deshabilitar" else "Habilitar", if (r.enabled) Icons.Outlined.DoNotDisturbOn else Icons.Outlined.CheckCircle) {
+                                            MenuEntry(if (r.enabled) tr("Deshabilitar") else tr("Habilitar"), if (r.enabled) Icons.Outlined.DoNotDisturbOn else Icons.Outlined.CheckCircle) {
                                                 setEnabled(r, !r.enabled)
                                             },
-                                            MenuEntry("Información de la app", Icons.Outlined.Info) { openAppInfo(ctx, r.pkg) },
-                                            MenuEntry("Buscar en línea", Icons.Outlined.Search) { searchOnline(ctx, r.label) },
+                                            MenuEntry(tr("Información de la app"), Icons.Outlined.Info) { openAppInfo(ctx, r.pkg) },
+                                            MenuEntry(tr("Buscar en línea"), Icons.Outlined.Search) { searchOnline(ctx, r.label) },
                                         ),
                                     )
                                 },

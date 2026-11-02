@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +56,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         Prefs.init(applicationContext)
         Apps.init(applicationContext)
+        I18n.init(applicationContext)
         setContent {
             val dark = when (Prefs.theme) {
                 1 -> false
@@ -81,7 +84,8 @@ class MainActivity : ComponentActivity() {
                 surfaceContainerHigh = win.card,
                 surfaceContainerHighest = win.card,
             )
-            CompositionLocalProvider(LocalWin provides win) {
+            val dir = if (I18n.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+            CompositionLocalProvider(LocalWin provides win, LocalLayoutDirection provides dir) {
                 MaterialTheme(colorScheme = scheme) {
                     Box(Modifier.fillMaxSize().background(win.mica)) { App() }
                 }
@@ -100,8 +104,8 @@ fun App() {
     var hasRoot by remember { mutableStateOf<Boolean?>(null) }
     LaunchedEffect(Unit) { hasRoot = withContext(Dispatchers.IO) { RootShell.open() } }
     when (hasRoot) {
-        null -> CenterText("Pidiendo acceso root…\nAcepta el aviso de Magisk / KernelSU.")
-        false -> CenterText("No se obtuvo acceso root.\nDale permiso a la app en Magisk / KernelSU y vuelve a abrirla.")
+        null -> CenterText(tr("Pidiendo acceso root…\nAcepta el aviso de Magisk / KernelSU."))
+        false -> CenterText(tr("No se obtuvo acceso root.\nDale permiso a la app en Magisk / KernelSU y vuelve a abrirla."))
         else -> Shell()
     }
 }
@@ -176,7 +180,7 @@ fun Shell() {
                         ) {
                             val s = snap
                             if (s == null) {
-                                CenterText("Leyendo datos del sistema…")
+                                CenterText(tr("Leyendo datos del sistema…"))
                             } else {
                                 val onRun = { runOpen = true }
                                 when (page) {
@@ -245,7 +249,7 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
             Spacer(Modifier.width(8.dp))
             Box(Modifier.weight(1f)) {
                 if (query.isEmpty()) {
-                    Text("Busque un nombre, paquete o PID…", fontSize = 13.sp, color = win.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(tr("Busque un nombre, paquete o PID…"), fontSize = 13.sp, color = win.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 BasicTextField(
                     value = query,
@@ -258,7 +262,7 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
             }
             if (query.isNotEmpty()) {
                 Icon(
-                    Icons.Outlined.Close, "Borrar", tint = win.sub,
+                    Icons.Outlined.Close, tr("Borrar"), tint = win.sub,
                     modifier = Modifier.size(16.dp).clickable { onQuery("") },
                 )
             }
@@ -280,10 +284,10 @@ private fun NavRail(page: Page, expanded: Boolean, onMenu: () -> Unit, onSelect:
         NavItem(Icons.Outlined.Menu, "", selected = false, expanded = false, onClick = onMenu)
         Spacer(Modifier.height(4.dp))
         Page.entries.filter { it != Page.SETTINGS }.forEach { p ->
-            NavItem(p.icon, p.title, page == p, expanded) { onSelect(p) }
+            NavItem(p.icon, tr(p.title), page == p, expanded) { onSelect(p) }
         }
         Spacer(Modifier.weight(1f))
-        NavItem(Page.SETTINGS.icon, Page.SETTINGS.title, page == Page.SETTINGS, expanded) { onSelect(Page.SETTINGS) }
+        NavItem(Page.SETTINGS.icon, tr(Page.SETTINGS.title), page == Page.SETTINGS, expanded) { onSelect(Page.SETTINGS) }
         Spacer(Modifier.height(4.dp))
     }
 }

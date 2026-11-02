@@ -113,6 +113,7 @@ object Prefs {
     var showPackageNames by mutableStateOf(false)
     var efficiency by mutableStateOf(setOf<String>())
     var autoUpdate by mutableStateOf(true)
+    var language by mutableStateOf("")       // "" = idioma del sistema
     var skippedBuild by mutableIntStateOf(0)
 
     fun init(ctx: Context) {
@@ -125,6 +126,7 @@ object Prefs {
         showPackageNames = p.getBoolean("pkgNames", false)
         efficiency = p.getStringSet("eff", emptySet())?.toSet() ?: emptySet()
         autoUpdate = p.getBoolean("autoUpdate", true)
+        language = p.getString("lang", "") ?: ""
         skippedBuild = p.getInt("skipped", 0)
     }
 
@@ -137,6 +139,7 @@ object Prefs {
             ?.putBoolean("pkgNames", showPackageNames)
             ?.putStringSet("eff", efficiency)
             ?.putBoolean("autoUpdate", autoUpdate)
+            ?.putString("lang", language)
             ?.putInt("skipped", skippedBuild)
             ?.apply()
     }
@@ -313,10 +316,10 @@ fun niceScale(v: Float, min: Float = 100_000f): Float {
 }
 
 fun signalQuality(rssi: Int): String = when {
-    rssi >= -50 -> "Excelente"
-    rssi >= -60 -> "Buena"
-    rssi >= -70 -> "Regular"
-    else -> "Débil"
+    rssi >= -50 -> tr("Excelente")
+    rssi >= -60 -> tr("Buena")
+    rssi >= -70 -> tr("Regular")
+    else -> tr("Débil")
 }
 
 fun band(freqMhz: Int): String = when {
@@ -335,21 +338,21 @@ fun avgGhz(s: Snapshot): String {
 }
 
 fun stateText(c: Char): String = when (c) {
-    'R' -> "En ejecución"
-    'S', 'I' -> "En espera"
-    'D' -> "En E/S"
-    'T', 't' -> "Suspendido"
-    'Z' -> "Zombi"
+    'R' -> tr("En ejecución")
+    'S', 'I' -> tr("En espera")
+    'D' -> tr("En E/S")
+    'T', 't' -> tr("Suspendido")
+    'Z' -> tr("Zombi")
     else -> c.toString()
 }
 
 fun priorityText(nice: Int): String = when {
-    nice <= -20 -> "Tiempo real"
-    nice <= -10 -> "Alta"
-    nice < 0 -> "Por encima de lo normal"
-    nice == 0 -> "Normal"
-    nice < 10 -> "Por debajo de lo normal"
-    else -> "Baja"
+    nice <= -20 -> tr("Tiempo real")
+    nice <= -10 -> tr("Alta")
+    nice < 0 -> tr("Por encima de lo normal")
+    nice == 0 -> tr("Normal")
+    nice < 10 -> tr("Por debajo de lo normal")
+    else -> tr("Baja")
 }
 
 val PRIORITIES = listOf(
