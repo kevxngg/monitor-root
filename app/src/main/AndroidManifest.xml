@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Historial de aplicaciones (se concede solo con root) -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
     <!-- Para mostrar el nombre y el icono de cada app en la lista de procesos -->
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
