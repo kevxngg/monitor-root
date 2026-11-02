@@ -1,220 +1,259 @@
 package com.kevxngg.monitorroot
 
+import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import android.provider.Settings
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.core.graphics.drawable.toBitmap
 
-// ===================== PALETA (estilo escritorio) =====================
+const val HISTORY = 60
 
-data class WinPalette(
+// ===================== TEMA (estilo Windows 11) =====================
+
+data class Win(
     val dark: Boolean,
-    val bg: Color,
-    val header: Color,
+    val mica: Color,
+    val content: Color,
+    val card: Color,
     val text: Color,
     val sub: Color,
     val border: Color,
+    val divider: Color,
+    val hover: Color,
     val select: Color,
-    val selectBorder: Color,
-    val button: Color,
-    val buttonBorder: Color,
-    val group: Color,
+    val accent: Color,
     val heatLow: Color,
+    val heatMid: Color,
     val heatHigh: Color,
+    val eco: Color,
+    val warn: Color,
 ) {
-    fun heat(frac: Float): Color = lerp(heatLow, heatHigh, frac.coerceIn(0f, 1f))
+    /** Color de celda según el uso (0..1): azul claro → azul → naranja. */
+    fun heat(f: Float): Color {
+        val x = f.coerceIn(0f, 1f)
+        return if (x <= 0.75f) lerp(heatLow, heatMid, x / 0.75f) else lerp(heatMid, heatHigh, (x - 0.75f) / 0.25f)
+    }
 }
 
-val LightWin = WinPalette(
+val LightWin = Win(
     dark = false,
-    bg = Color.White,
-    header = Color(0xFFF3F3F3),
-    text = Color(0xFF1A1A1A),
-    sub = Color(0xFF6B6B6B),
-    border = Color(0xFFE0E0E0),
-    select = Color(0xFFCCE8FF),
-    selectBorder = Color(0xFF99D1FF),
-    button = Color(0xFFE1E1E1),
-    buttonBorder = Color(0xFFADADAD),
-    group = Color(0xFF1E3B8C),
-    heatLow = Color(0xFFFFF4C4),
-    heatHigh = Color(0xFFFFB900),
+    mica = Color(0xFFEEF2F7),
+    content = Color(0xFFF9F9F9),
+    card = Color(0xFFFFFFFF),
+    text = Color(0xFF1B1B1B),
+    sub = Color(0xFF616161),
+    border = Color(0xFFE3E3E3),
+    divider = Color(0xFFEBEBEB),
+    hover = Color(0xFFE6E8EB),
+    select = Color(0xFFCDE6F7),
+    accent = Color(0xFF005FB8),
+    heatLow = Color(0xFFE5F2FB),
+    heatMid = Color(0xFFA9D6F5),
+    heatHigh = Color(0xFFF6C38F),
+    eco = Color(0xFF0F7B0F),
+    warn = Color(0xFFB3800A),
 )
 
-val DarkWin = WinPalette(
+val DarkWin = Win(
     dark = true,
-    bg = Color(0xFF1F1F1F),
-    header = Color(0xFF2B2B2B),
-    text = Color(0xFFF2F2F2),
-    sub = Color(0xFFA6A6A6),
+    mica = Color(0xFF1C1C1C),
+    content = Color(0xFF272727),
+    card = Color(0xFF2D2D2D),
+    text = Color(0xFFFFFFFF),
+    sub = Color(0xFFA8A8A8),
     border = Color(0xFF3A3A3A),
-    select = Color(0xFF1C4466),
-    selectBorder = Color(0xFF3A7BBF),
-    button = Color(0xFF333333),
-    buttonBorder = Color(0xFF555555),
-    group = Color(0xFF8AB4F8),
-    heatLow = Color(0xFF2E2A1C),
-    heatHigh = Color(0xFF8A6500),
+    divider = Color(0xFF333333),
+    hover = Color(0xFF333333),
+    select = Color(0xFF1E4057),
+    accent = Color(0xFF60CDFF),
+    heatLow = Color(0xFF16303F),
+    heatMid = Color(0xFF1F5A80),
+    heatHigh = Color(0xFF8A4B12),
+    eco = Color(0xFF6CCB5F),
+    warn = Color(0xFFFCE100),
 )
 
 val LocalWin = staticCompositionLocalOf { LightWin }
+val LocalCompact = staticCompositionLocalOf { true }
 
 enum class Res(val title: String, val light: Color, val dark: Color) {
-    CPU("CPU", Color(0xFF117DBB), Color(0xFF4CC2FF)),
-    MEM("Memoria", Color(0xFF8B12AE), Color(0xFFC86DD7)),
-    GPU("GPU 0", Color(0xFF0E8A9A), Color(0xFF3FD0D4)),
-    WIFI("Wi‑Fi", Color(0xFFA74F01), Color(0xFFE38A3B)),
-    TEMP("Temperatura", Color(0xFF4DA60C), Color(0xFF7FD34E));
+    CPU("CPU", Color(0xFF0E7DB6), Color(0xFF3FB8CC)),
+    MEM("Memoria", Color(0xFF5B48C2), Color(0xFF8C8FF0)),
+    DISK("Disco 0", Color(0xFF3F8F0E), Color(0xFF6CCB5F)),
+    WIFI("Wi‑Fi", Color(0xFFB4387F), Color(0xFFE37AC4)),
+    MOBILE("Datos móviles", Color(0xFFB45F06), Color(0xFFF0A050)),
+    GPU("GPU 0", Color(0xFF7B3FB8), Color(0xFFB58CF0)),
+    TEMP("Batería y temperatura", Color(0xFFC0392B), Color(0xFFF07060));
 
-    fun color(p: WinPalette) = if (p.dark) dark else light
+    fun color(w: Win) = if (w.dark) dark else light
 }
 
-// ===================== MODIFICADORES =====================
+// ===================== AJUSTES =====================
 
-fun Modifier.bottomBorder(color: Color) = drawBehind {
-    drawLine(color, Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1f)
-}
+object Prefs {
+    private var sp: SharedPreferences? = null
 
-fun Modifier.topBorder(color: Color) = drawBehind {
-    drawLine(color, Offset(0f, 0.5f), Offset(size.width, 0.5f), 1f)
-}
+    var theme by mutableIntStateOf(0)        // 0 sistema, 1 claro, 2 oscuro
+    var startPage by mutableIntStateOf(0)
+    var speed by mutableIntStateOf(1)        // 0 alta, 1 normal, 2 baja, 3 pausa
+    var groupByType by mutableStateOf(true)
+    var showPackageNames by mutableStateOf(false)
+    var efficiency by mutableStateOf(setOf<String>())
 
-// ===================== GRÁFICA =====================
+    fun init(ctx: Context) {
+        val p = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        sp = p
+        theme = p.getInt("theme", 0)
+        startPage = p.getInt("startPage", 0)
+        speed = p.getInt("speed", 1)
+        groupByType = p.getBoolean("group", true)
+        showPackageNames = p.getBoolean("pkgNames", false)
+        efficiency = p.getStringSet("eff", emptySet())?.toSet() ?: emptySet()
+    }
 
-/**
- * Gráfica de línea con cuadrícula y relleno, como las de rendimiento del PC.
- * [values] van de 0 a [max]; el punto más nuevo queda a la derecha.
- */
-@Composable
-fun TaskGraph(
-    values: List<Float>,
-    max: Float,
-    color: Color,
-    modifier: Modifier,
-    second: List<Float>? = null,
-    grid: Boolean = true,
-) {
-    Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        val step = w / (HISTORY - 1)
-        drawRect(color.copy(alpha = 0.04f))
-        if (grid) {
-            val g = color.copy(alpha = 0.18f)
-            for (i in 1 until 10) {
-                val y = h * i / 10f
-                drawLine(g, Offset(0f, y), Offset(w, y), 1f)
-            }
-            for (i in 1 until 20) {
-                val x = w * i / 20f
-                drawLine(g, Offset(x, 0f), Offset(x, h), 1f)
-            }
-        }
-        fun pathFor(v: List<Float>, asFill: Boolean): Path? {
-            if (v.size < 2) return null
-            val p = Path()
-            v.forEachIndexed { i, value ->
-                val x = w - (v.size - 1 - i) * step
-                val y = h * (1f - (value / max).coerceIn(0f, 1f))
-                if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
-            }
-            if (asFill) {
-                p.lineTo(w, h)
-                p.lineTo(w - (v.size - 1) * step, h)
-                p.close()
-            }
-            return p
-        }
-        pathFor(values, true)?.let { drawPath(it, color.copy(alpha = 0.15f)) }
-        pathFor(values, false)?.let { drawPath(it, color, style = Stroke(width = 1.5.dp.toPx())) }
-        if (second != null) {
-            pathFor(second, false)?.let {
-                drawPath(
-                    it, color,
-                    style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 7f))),
-                )
-            }
-        }
-        drawRect(color, style = Stroke(width = 1.dp.toPx()))
+    fun save() {
+        sp?.edit()
+            ?.putInt("theme", theme)
+            ?.putInt("startPage", startPage)
+            ?.putInt("speed", speed)
+            ?.putBoolean("group", groupByType)
+            ?.putBoolean("pkgNames", showPackageNames)
+            ?.putStringSet("eff", efficiency)
+            ?.apply()
+    }
+
+    fun refreshMs(): Long = when (speed) {
+        0 -> 500L
+        2 -> 4000L
+        3 -> -1L
+        else -> 1000L
     }
 }
 
-// ===================== CONTROLES =====================
+// ===================== APPS (nombre e icono en caché) =====================
 
-@Composable
-fun WinTabs(titles: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    val win = LocalWin.current
-    Row(
-        Modifier.fillMaxWidth().background(win.header).bottomBorder(win.border).padding(start = 6.dp, top = 6.dp),
-    ) {
-        titles.forEachIndexed { i, t ->
-            val sel = i == selected
-            val base = Modifier.clickable { onSelect(i) }
-            Box(
-                (if (sel) base.background(win.bg).border(1.dp, win.border) else base)
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-            ) {
-                Text(t, fontSize = 14.sp, color = if (sel) win.text else win.sub)
+class AppMeta(
+    val pkg: String,
+    val label: String,
+    val icon: ImageBitmap?,
+    val launchable: Boolean,
+    val system: Boolean,
+    val uid: Int,
+)
+
+object Apps {
+    private var pm: PackageManager? = null
+    private val cache = HashMap<String, AppMeta?>()
+
+    fun init(ctx: Context) {
+        pm = ctx.packageManager
+    }
+
+    @Synchronized
+    fun meta(pkg: String): AppMeta? {
+        if (cache.containsKey(pkg)) return cache[pkg]
+        val p = pm ?: return null
+        val meta = try {
+            @Suppress("DEPRECATION")
+            val ai = p.getApplicationInfo(pkg, 0)
+            val icon = try {
+                p.getApplicationIcon(ai).toBitmap(64, 64).asImageBitmap()
+            } catch (e: Exception) {
+                null
             }
+            AppMeta(
+                pkg = pkg,
+                label = p.getApplicationLabel(ai).toString(),
+                icon = icon,
+                launchable = p.getLaunchIntentForPackage(pkg) != null,
+                system = (ai.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
+                uid = ai.uid,
+            )
+        } catch (e: Exception) {
+            null
         }
+        cache[pkg] = meta
+        return meta
+    }
+
+    fun launchablePackages(): List<String> {
+        val p = pm ?: return emptyList()
+        val i = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        @Suppress("DEPRECATION")
+        return p.queryIntentActivities(i, 0).map { it.activityInfo.packageName }.distinct()
+    }
+
+    fun packageForUid(uid: Int): String? = pm?.getPackagesForUid(uid)?.firstOrNull()
+
+    fun installerLabel(pkg: String): String? {
+        val p = pm ?: return null
+        val inst = try {
+            if (Build.VERSION.SDK_INT >= 30) p.getInstallSourceInfo(pkg).installingPackageName
+            else p.getInstallerPackageName(pkg)
+        } catch (e: Exception) {
+            null
+        } ?: return null
+        return meta(inst)?.label ?: inst
+    }
+
+    fun pm(): PackageManager? = pm
+}
+
+fun openAppInfo(ctx: Context, pkg: String) {
+    try {
+        ctx.startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg"))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    } catch (_: Exception) {
     }
 }
 
-@Composable
-fun WinButton(text: String, enabled: Boolean, onClick: () -> Unit) {
-    val win = LocalWin.current
-    Box(
-        Modifier
-            .border(1.dp, if (enabled) win.buttonBorder else win.border)
-            .background(win.button)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 8.dp),
-    ) {
-        Text(text, fontSize = 13.sp, color = if (enabled) win.text else win.sub)
+fun searchOnline(ctx: Context, q: String) {
+    try {
+        ctx.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + Uri.encode(q)))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    } catch (_: Exception) {
     }
 }
 
-@Composable
-fun BottomBar(enabled: Boolean, onEnd: () -> Unit) {
-    val win = LocalWin.current
-    Row(
-        Modifier.fillMaxWidth().background(win.header).topBorder(win.border).padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.End,
-    ) {
-        WinButton("Finalizar tarea", enabled, onEnd)
-    }
-}
+// ===================== HISTORIAL DE GRÁFICAS =====================
 
-@Composable
-fun AppIcon(icon: ImageBitmap?, name: String) {
-    if (icon != null) {
-        Image(bitmap = icon, contentDescription = null, modifier = Modifier.size(18.dp))
-    } else {
-        Box(
-            Modifier.size(18.dp).background(Color(0xFF7A7A7A), RoundedCornerShape(3.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(name.take(1).uppercase(), fontSize = 10.sp, color = Color.White)
-        }
+class History(private val m: Map<String, List<Float>> = emptyMap()) {
+    operator fun get(k: String): List<Float> = m[k] ?: emptyList()
+
+    fun add(s: Snapshot): History {
+        val v = HashMap<String, Float>()
+        v["cpu"] = s.cpuTotal
+        v["mem"] = s.mem.usedPct
+        v["gpu"] = (s.gpu.load ?: 0).toFloat()
+        v["wrx"] = s.wifi.net.rxBps * 8f
+        v["wtx"] = s.wifi.net.txBps * 8f
+        v["mrx"] = (s.mobile?.rxBps ?: 0L) * 8f
+        v["mtx"] = (s.mobile?.txBps ?: 0L) * 8f
+        v["dact"] = s.disk?.activePct ?: 0f
+        v["drd"] = (s.disk?.readBps ?: 0L).toFloat()
+        v["dwr"] = (s.disk?.writeBps ?: 0L).toFloat()
+        v["temp"] = s.thermals.firstOrNull()?.celsius ?: 0f
+        s.cores.forEach { v["core${it.index}"] = it.usage }
+        val n = HashMap(m)
+        v.forEach { (k, value) -> n[k] = ((m[k] ?: emptyList()) + value).takeLast(HISTORY) }
+        return History(n)
     }
 }
 
@@ -223,6 +262,7 @@ fun AppIcon(icon: ImageBitmap?, name: String) {
 fun formatKb(kb: Long): String = formatBytes(kb * 1024)
 
 fun formatBytes(b: Long): String = when {
+    b >= 1L shl 40 -> "%.1f TB".format(b / 1099511627776.0)
     b >= 1L shl 30 -> "%.1f GB".format(b / 1073741824.0)
     b >= 1L shl 20 -> "%.1f MB".format(b / 1048576.0)
     b >= 1L shl 10 -> "%.0f KB".format(b / 1024.0)
@@ -230,6 +270,13 @@ fun formatBytes(b: Long): String = when {
 }
 
 fun formatGb(kb: Long): String = "%.1f GB".format(kb / 1048576.0)
+
+fun formatMBs(bps: Long): String = "%.1f MB/s".format(bps / 1048576.0)
+
+fun formatRate(bps: Float): String = when {
+    bps >= 1048576f -> "%.1f MB/s".format(bps / 1048576f)
+    else -> "%.0f KB/s".format(bps / 1024f)
+}
 
 fun formatBits(bps: Float): String = when {
     bps >= 1e9f -> "%.1f Gbps".format(bps / 1e9f)
@@ -243,9 +290,13 @@ fun formatGhz(mhz: Int): String = "%.2f GHz".format(mhz / 1000f)
 fun formatUptime(sec: Long): String =
     "%d:%02d:%02d:%02d".format(sec / 86400, (sec % 86400) / 3600, (sec % 3600) / 60, sec % 60)
 
-/** Escala "redonda" para la gráfica de red: 100 Kbps, 250 Kbps, 500 Kbps, 1 Mbps... */
-fun niceScale(v: Float): Float {
-    var mag = 100_000f
+fun formatDuration(sec: Long): String =
+    if (sec >= 3600) "%d:%02d:%02d".format(sec / 3600, (sec % 3600) / 60, sec % 60)
+    else "%d:%02d".format(sec / 60, sec % 60)
+
+/** Escala "redonda" para gráficas de velocidad. */
+fun niceScale(v: Float, min: Float = 100_000f): Float {
+    var mag = min
     while (true) {
         for (k in floatArrayOf(1f, 2.5f, 5f)) {
             val s = mag * k
@@ -276,3 +327,30 @@ fun avgGhz(s: Snapshot): String {
     val on = s.cores.map { it.curMhz }.filter { it > 0 }
     return if (on.isEmpty()) "—" else formatGhz(on.average().toInt())
 }
+
+fun stateText(c: Char): String = when (c) {
+    'R' -> "En ejecución"
+    'S', 'I' -> "En espera"
+    'D' -> "En E/S"
+    'T', 't' -> "Suspendido"
+    'Z' -> "Zombi"
+    else -> c.toString()
+}
+
+fun priorityText(nice: Int): String = when {
+    nice <= -20 -> "Tiempo real"
+    nice <= -10 -> "Alta"
+    nice < 0 -> "Por encima de lo normal"
+    nice == 0 -> "Normal"
+    nice < 10 -> "Por debajo de lo normal"
+    else -> "Baja"
+}
+
+val PRIORITIES = listOf(
+    "Tiempo real" to -20,
+    "Alta" to -10,
+    "Por encima de lo normal" to -5,
+    "Normal" to 0,
+    "Por debajo de lo normal" to 5,
+    "Baja" to 19,
+)

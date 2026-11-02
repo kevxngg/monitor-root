@@ -1,68 +1,130 @@
 package com.kevxngg.monitorroot
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
+import android.os.Environment
+import android.os.StatFs
 import android.os.SystemClock
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.core.graphics.drawable.toBitmap
 import kotlin.math.abs
 
 data class ProcInfo(
     val pid: Int,
+    val ppid: Int,
     val user: String,
+    val androidUser: Int?,
     val name: String,
+    val state: Char,
+    val nice: Int,
     val cpu: Float,
+    val cpuTicks: Long,
+    val startTicks: Long,
     val rssKb: Long,
     val threads: Int,
+    val diskBps: Long,
     val pkg: String?,
     val label: String?,
     val icon: ImageBitmap?,
     val launchable: Boolean,
 )
 
-data class CoreInfo(val index: Int, val curMhz: Int, val maxMhz: Int)
+data class CoreInfo(val index: Int, val curMhz: Int, val maxMhz: Int, val usage: Float)
 data class ThermalInfo(val name: String, val celsius: Float)
+data class NetStat(val rxBps: Long = 0, val txBps: Long = 0, val rxTotal: Long = 0, val txTotal: Long = 0)
+
+data class DiskInfo(
+    val name: String,
+    val type: String,
+    val activePct: Float,
+    val readBps: Long,
+    val writeBps: Long,
+    val respMs: Float,
+    val totalBytes: Long,
+    val freeBytes: Long,
+)
+
+data class GpuInfo(
+    val source: String,
+    val model: String?,
+    val load: Int?,
+    val freqMhz: Int?,
+    val maxMhz: Int?,
+    val memBytes: Long?,
+    val tempC: Float?,
+)
+
+data class BattInfo(
+    val level: Int?,
+    val tempC: Float?,
+    val currentMa: Int?,
+    val status: String?,
+    val health: String?,
+    val voltageMv: Int?,
+)
+
+data class WifiData(
+    val net: NetStat,
+    val ip: String?,
+    val ip6: String?,
+    val rssi: Int?,
+    val linkMbps: Int?,
+    val freqMhz: Int?,
+    val ssid: String?,
+    val mac: String?,
+)
+
+data class MemInfo(
+    val totalKb: Long,
+    val availKb: Long,
+    val cachedKb: Long,
+    val buffersKb: Long,
+    val slabKb: Long,
+    val sunreclaimKb: Long,
+    val committedKb: Long,
+    val commitLimitKb: Long,
+    val swapTotalKb: Long,
+    val swapFreeKb: Long,
+    val zramOrigBytes: Long,
+    val zramUsedBytes: Long,
+) {
+    val usedKb get() = totalKb - availKb
+    val usedPct get() = if (totalKb > 0) usedKb * 100f / totalKb else 0f
+}
 
 data class Snapshot(
     val cpuTotal: Float,
     val cores: List<CoreInfo>,
+    val governor: String?,
     val threads: Int,
+    val handles: Long,
     val uptimeSec: Long,
-    val memTotalKb: Long,
-    val memAvailKb: Long,
-    val memCachedKb: Long,
-    val swapTotalKb: Long,
-    val swapFreeKb: Long,
-    val gpuSource: String,
-    val gpuLoad: Int?,
-    val gpuFreqMhz: Int?,
+    val mem: MemInfo,
+    val disk: DiskInfo?,
+    val gpu: GpuInfo,
     val thermals: List<ThermalInfo>,
-    val battLevel: Int?,
-    val battTempC: Float?,
-    val battCurrentMa: Int?,
-    val wifiRxBps: Long,
-    val wifiTxBps: Long,
-    val wifiRxTotal: Long,
-    val wifiTxTotal: Long,
-    val wifiIp: String?,
-    val wifiRssi: Int?,
-    val wifiLinkMbps: Int?,
-    val wifiFreqMhz: Int?,
+    val batt: BattInfo,
+    val wifi: WifiData,
+    val mobile: NetStat?,
+    val mobileIfaces: List<String>,
     val processes: List<ProcInfo>,
 )
-
-private class AppMeta(val label: String, val icon: ImageBitmap?, val launchable: Boolean)
 
 private val WS = Regex("\\s+")
 private val NUM = Regex("\\d+")
 private val CORE = Regex("/cpu(\\d+)/cpufreq/(scaling_cur_freq|cpuinfo_max_freq)$")
 private val IPV4 = Regex("inet (\\d+\\.\\d+\\.\\d+\\.\\d+)")
+private val IPV6 = Regex("inet6 ([0-9a-fA-F:]+)/\\d+ scope global")
 private val GPU_NAME = Regex("gpu|mali|kgsl", RegexOption.IGNORE_CASE)
+private val DISK_RE = Regex("^(sd[a-z]|mmcblk\\d+|nvme\\d+n\\d+|vd[a-z])$")
+private val MOBILE_RE = Regex("^(rmnet_data\\d+|rmnet\\d+|ccmni\\d+|seth_lte\\d+|wwan\\d+)$")
+private val USER_RE = Regex("^u(\\d+)_")
+private val SSID_RE = Regex("SSID: \"([^\"]*)\"")
+private val SSID_RE2 = Regex("connected to \"([^\"]*)\"")
 
 private fun nums(s: String?): List<Long> =
     if (s == null) emptyList() else NUM.findAll(s).mapNotNull { it.value.toLongOrNull() }.toList()
+
+private fun List<String>.long(i: Int) = getOrNull(i)?.toLongOrNull() ?: 0L
 
 /** Normaliza una frecuencia que puede venir en Hz, kHz o MHz. */
 private fun toMhz(v: Long): Int = when {
@@ -71,54 +133,65 @@ private fun toMhz(v: Long): Int = when {
     else -> v
 }.toInt()
 
-// Todo se lee con una sola llamada a la shell root.
-// Las rutas de GPU cambian según el chip (Adreno, Mali, MediaTek).
+private const val KG = "/sys/class/kgsl/kgsl-3d0/"
+private const val BAT = "/sys/class/power_supply/battery/"
+
+private val SYS_FILES = listOf(
+    "/sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq",
+    "/sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_max_freq",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor",
+    "/sys/class/thermal/thermal_zone*/type",
+    "/sys/class/thermal/thermal_zone*/temp",
+    "${BAT}capacity", "${BAT}temp", "${BAT}current_now", "${BAT}status", "${BAT}health", "${BAT}voltage_now",
+    "/sys/block/zram0/mm_stat",
+    "${KG}gpu_busy_percentage", "${KG}gpubusy", "${KG}devfreq/cur_freq", "${KG}gpuclk",
+    "${KG}gpu_model", "${KG}max_gpuclk", "${KG}devfreq/max_freq",
+    "/sys/class/kgsl/kgsl/page_alloc",
+    "/sys/kernel/gpu/gpu_busy", "/sys/kernel/gpu/gpu_clock", "/sys/kernel/gpu/gpu_model", "/sys/kernel/gpu/gpu_max_clock",
+    "/sys/kernel/ged/hal/gpu_utilization", "/sys/kernel/ged/hal/current_freqency",
+    "/sys/class/devfreq/*/cur_freq",
+)
+
+// Una sola llamada a la shell root por actualización.
 private val SCRIPT = """
-    echo @@STAT; head -n 1 /proc/stat
+    echo @@STAT; grep '^cpu' /proc/stat
     echo @@UP; cat /proc/uptime
     echo @@PSTAT; cat /proc/[0-9]*/stat
     echo @@PS; ps -A -o PID,USER,RSS,NAME
+    echo @@IO; grep -H -e '^read_bytes' -e '^write_bytes' /proc/[0-9]*/io
     echo @@MEM; cat /proc/meminfo
-    echo @@SYS; grep -H . /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_max_freq /sys/class/thermal/thermal_zone*/type /sys/class/thermal/thermal_zone*/temp /sys/class/power_supply/battery/capacity /sys/class/power_supply/battery/temp /sys/class/power_supply/battery/current_now /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/class/kgsl/kgsl-3d0/gpubusy /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/gpu/gpu_busy /sys/kernel/gpu/gpu_clock /sys/kernel/ged/hal/gpu_utilization /sys/kernel/ged/hal/current_freqency /sys/class/devfreq/*/cur_freq
+    echo @@DISK; cat /proc/diskstats
+    echo @@FILE; cat /proc/sys/fs/file-nr
+    echo @@SYS; grep -H . ${SYS_FILES.joinToString(" ")}
     echo @@NET; cat /proc/net/dev
-    echo @@IP; ip -4 -o addr show wlan0
+    echo @@IP; ip -o addr show wlan0
 """.trimIndent()
 
+// Datos que cambian poco: se leen cada 5 actualizaciones.
+private val SLOW_SCRIPT = """
+    echo @@SSID; cmd wifi status
+    echo @@MAC; cat /sys/class/net/wlan0/address
+""".trimIndent()
+
+private class DiskPrev(val name: String, val rd: Long, val wr: Long, val ios: Long, val msRw: Long, val msIo: Long)
+
 class SystemReader(context: Context) {
-    private val wifi = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-    private val pm: PackageManager = context.packageManager
-    private val apps = HashMap<String, AppMeta?>()
+    private val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
-    private var prevTotal = 0L
-    private var prevIdle = 0L
+    private var prevCpu = HashMap<String, Pair<Long, Long>>()
     private var prevProc = HashMap<Int, Long>()
-    private var prevRx = -1L
-    private var prevTx = -1L
+    private var prevIo = HashMap<Int, Long>()
+    private var prevNet = HashMap<String, Pair<Long, Long>>()
+    private var prevDisk: DiskPrev? = null
     private var prevTime = 0L
+    private var counter = 0
+    private var ssid: String? = null
+    private var mac: String? = null
 
-    /** Nombre e icono de la app dueña del proceso (se guarda en caché). */
-    private fun appMeta(pkg: String): AppMeta? {
-        if (apps.containsKey(pkg)) return apps[pkg]
-        val meta = try {
-            @Suppress("DEPRECATION")
-            val ai = pm.getApplicationInfo(pkg, 0)
-            val icon = try {
-                pm.getApplicationIcon(ai).toBitmap(64, 64).asImageBitmap()
-            } catch (e: Exception) {
-                null
-            }
-            AppMeta(pm.getApplicationLabel(ai).toString(), icon, pm.getLaunchIntentForPackage(pkg) != null)
-        } catch (e: Exception) {
-            null
-        }
-        apps[pkg] = meta
-        return meta
-    }
-
-    fun sample(): Snapshot {
+    private fun sections(lines: List<String>): Map<String, List<String>> {
         val sec = HashMap<String, MutableList<String>>()
         var cur: MutableList<String>? = null
-        for (line in RootShell.run(SCRIPT)) {
+        for (line in lines) {
             if (line.startsWith("@@")) {
                 val l = ArrayList<String>()
                 sec[line.removePrefix("@@").trim()] = l
@@ -127,23 +200,64 @@ class SystemReader(context: Context) {
                 cur?.add(line)
             }
         }
+        return sec
+    }
 
-        // ---- CPU total ----
-        val cpuF = sec["STAT"]?.firstOrNull()?.trim()?.split(WS)?.drop(1)
-            ?.mapNotNull { it.toLongOrNull() }.orEmpty()
-        val hadPrev = prevTotal > 0
-        var cpuTotal = 0f
-        var dTotal = 0L
-        if (cpuF.size >= 5) {
-            val total = cpuF.take(8).sum()
-            val idle = cpuF[3] + cpuF[4]
-            dTotal = total - prevTotal
-            if (hadPrev && dTotal > 0) cpuTotal = (dTotal - (idle - prevIdle)) * 100f / dTotal
-            prevTotal = total
-            prevIdle = idle
+    fun sample(): Snapshot {
+        if (counter % 5 == 0) {
+            val slow = sections(RootShell.run(SLOW_SCRIPT))
+            ssid = slow["SSID"]?.firstNotNullOfOrNull {
+                (SSID_RE.find(it) ?: SSID_RE2.find(it))?.groupValues?.get(1)
+            }?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
+            mac = slow["MAC"]?.firstOrNull()?.trim()?.takeIf { it.contains(':') }
         }
+        counter++
+
+        val sec = sections(RootShell.run(SCRIPT))
+        val now = SystemClock.elapsedRealtime()
+        val dt = if (prevTime > 0) (now - prevTime) / 1000f else 0f
+        prevTime = now
+
+        // ---- CPU (total y por núcleo) ----
+        var cpuTotal = 0f
+        var dTotalAll = 0L
+        val hadPrev = prevCpu.containsKey("cpu")
+        val coreUsage = HashMap<Int, Float>()
+        val newCpu = HashMap<String, Pair<Long, Long>>()
+        sec["STAT"]?.forEach { l ->
+            val f = l.trim().split(WS)
+            val n = f.drop(1).mapNotNull { it.toLongOrNull() }
+            if (n.size < 5) return@forEach
+            val total = n.take(8).sum()
+            val idle = n[3] + n[4]
+            val key = f[0]
+            val prev = prevCpu[key]
+            if (prev != null) {
+                val dT = total - prev.first
+                val dI = idle - prev.second
+                val pct = if (dT > 0) ((dT - dI) * 100f / dT).coerceIn(0f, 100f) else 0f
+                if (key == "cpu") {
+                    cpuTotal = pct
+                    dTotalAll = dT
+                } else {
+                    key.removePrefix("cpu").toIntOrNull()?.let { coreUsage[it] = pct }
+                }
+            }
+            newCpu[key] = total to idle
+        }
+        prevCpu = newCpu
 
         val uptime = sec["UP"]?.firstOrNull()?.substringBefore(' ')?.toDoubleOrNull()?.toLong() ?: 0L
+
+        // ---- E/S de disco por proceso ----
+        val ioNow = HashMap<Int, Long>()
+        sec["IO"]?.forEach { l ->
+            val b = l.indexOf("/io:")
+            if (!l.startsWith("/proc/") || b < 0) return@forEach
+            val pid = l.substring(6, b).toIntOrNull() ?: return@forEach
+            val v = l.substring(b + 4).substringAfter(':').trim().toLongOrNull() ?: return@forEach
+            ioNow[pid] = (ioNow[pid] ?: 0L) + v
+        }
 
         // ---- Procesos ----
         val names = HashMap<Int, Pair<String, String>>()
@@ -166,24 +280,34 @@ class SystemReader(context: Context) {
             val pid = l.substring(0, open).trim().toIntOrNull() ?: return@forEach
             val comm = l.substring(open + 1, close)
             val f = l.substring(close + 2).split(' ')
-            if (f.size < 18) return@forEach
-            val ticks = (f[11].toLongOrNull() ?: 0L) + (f[12].toLongOrNull() ?: 0L) // utime + stime
-            val threads = f[17].toIntOrNull() ?: 0
+            if (f.size < 20) return@forEach
+            val ticks = f.long(11) + f.long(12)
+            val threads = f.long(17).toInt()
             threadsTotal += threads
             newProc[pid] = ticks
             val prev = prevProc[pid]
-            val cpu = if (hadPrev && prev != null && dTotal > 0) (ticks - prev) * 100f / dTotal else 0f
+            val cpu = if (hadPrev && prev != null && dTotalAll > 0) (ticks - prev) * 100f / dTotalAll else 0f
+            val io = ioNow[pid]
+            val pio = prevIo[pid]
+            val diskBps = if (io != null && pio != null && dt > 0) ((io - pio) / dt).toLong().coerceAtLeast(0) else 0L
             val (user, rawName) = names[pid] ?: ("?" to comm)
             val pkgCandidate = rawName.substringBefore(':')
-            val meta = if (pkgCandidate.contains('.') && !pkgCandidate.startsWith("/")) appMeta(pkgCandidate) else null
+            val meta = if (pkgCandidate.contains('.') && !pkgCandidate.startsWith("/")) Apps.meta(pkgCandidate) else null
             procs.add(
                 ProcInfo(
                     pid = pid,
+                    ppid = f.long(1).toInt(),
                     user = user,
+                    androidUser = USER_RE.find(user)?.groupValues?.get(1)?.toIntOrNull(),
                     name = if (meta != null) rawName else rawName.substringAfterLast('/'),
-                    cpu = cpu.coerceAtLeast(0f),
+                    state = f[0].firstOrNull() ?: '?',
+                    nice = f.long(16).toInt(),
+                    cpu = cpu.coerceIn(0f, 100f),
+                    cpuTicks = ticks,
+                    startTicks = f.long(19),
                     rssKb = rss[pid] ?: 0L,
                     threads = threads,
+                    diskBps = diskBps,
                     pkg = if (meta != null) pkgCandidate else null,
                     label = meta?.label,
                     icon = meta?.icon,
@@ -192,11 +316,7 @@ class SystemReader(context: Context) {
             )
         }
         prevProc = newProc
-
-        // ---- Memoria ----
-        val mem = sec["MEM"].orEmpty()
-        fun memKb(key: String) =
-            mem.firstOrNull { it.startsWith("$key:") }?.split(WS)?.getOrNull(1)?.toLongOrNull() ?: 0L
+        prevIo = ioNow
 
         // ---- Archivos de /sys (ruta -> valor) ----
         val sys = LinkedHashMap<String, String>()
@@ -205,6 +325,27 @@ class SystemReader(context: Context) {
             if (i > 0) sys.putIfAbsent(l.substring(0, i), l.substring(i + 1).trim())
         }
 
+        // ---- Memoria ----
+        val memLines = sec["MEM"].orEmpty()
+        fun memKb(key: String) =
+            memLines.firstOrNull { it.startsWith("$key:") }?.split(WS)?.getOrNull(1)?.toLongOrNull() ?: 0L
+        val zram = nums(sys["/sys/block/zram0/mm_stat"])
+        val mem = MemInfo(
+            totalKb = memKb("MemTotal"),
+            availKb = memKb("MemAvailable"),
+            cachedKb = memKb("Cached"),
+            buffersKb = memKb("Buffers"),
+            slabKb = memKb("Slab"),
+            sunreclaimKb = memKb("SUnreclaim"),
+            committedKb = memKb("Committed_AS"),
+            commitLimitKb = memKb("CommitLimit"),
+            swapTotalKb = memKb("SwapTotal"),
+            swapFreeKb = memKb("SwapFree"),
+            zramOrigBytes = zram.getOrNull(0) ?: 0L,
+            zramUsedBytes = zram.getOrNull(2) ?: 0L,
+        )
+
+        // ---- Núcleos ----
         val curF = HashMap<Int, Int>()
         val maxF = HashMap<Int, Int>()
         sys.forEach { (k, v) ->
@@ -213,8 +354,10 @@ class SystemReader(context: Context) {
             val mhz = ((v.toLongOrNull() ?: 0L) / 1000).toInt()
             if (m.groupValues[2] == "scaling_cur_freq") curF[idx] = mhz else maxF[idx] = mhz
         }
-        val cores = (curF.keys + maxF.keys).sorted().map { CoreInfo(it, curF[it] ?: 0, maxF[it] ?: 0) }
+        val cores = (curF.keys + maxF.keys + coreUsage.keys).sorted().distinct()
+            .map { CoreInfo(it, curF[it] ?: 0, maxF[it] ?: 0, coreUsage[it] ?: 0f) }
 
+        // ---- Temperaturas ----
         val thermals = sys.keys
             .filter { it.contains("thermal_zone") && it.endsWith("/temp") }
             .mapNotNull { k ->
@@ -226,30 +369,57 @@ class SystemReader(context: Context) {
             }
             .sortedByDescending { it.celsius }
 
-        val bp = "/sys/class/power_supply/battery/"
-        val battLevel = sys[bp + "capacity"]?.toIntOrNull()
-        val battTemp = sys[bp + "temp"]?.toFloatOrNull()?.div(10f)
-        val battCur = sys[bp + "current_now"]?.toLongOrNull()
-            ?.let { if (abs(it) > 10_000) (it / 1000).toInt() else it.toInt() }
+        // ---- Batería ----
+        val batt = BattInfo(
+            level = sys[BAT + "capacity"]?.toIntOrNull(),
+            tempC = sys[BAT + "temp"]?.toFloatOrNull()?.div(10f),
+            currentMa = sys[BAT + "current_now"]?.toLongOrNull()
+                ?.let { if (abs(it) > 10_000) (it / 1000).toInt() else it.toInt() },
+            status = when (sys[BAT + "status"]) {
+                "Charging" -> "Cargando"
+                "Discharging" -> "Descargando"
+                "Full" -> "Completa"
+                "Not charging" -> "No se está cargando"
+                null -> null
+                else -> sys[BAT + "status"]
+            },
+            health = when (sys[BAT + "health"]) {
+                "Good" -> "Buena"
+                "Overheat" -> "Sobrecalentada"
+                "Dead" -> "Agotada"
+                "Cold" -> "Fría"
+                null -> null
+                else -> sys[BAT + "health"]
+            },
+            voltageMv = sys[BAT + "voltage_now"]?.toLongOrNull()
+                ?.let { if (it > 100_000) (it / 1000).toInt() else it.toInt() },
+        )
 
         // ---- GPU ----
-        val kg = "/sys/class/kgsl/kgsl-3d0/"
         var gpuSrc = "No detectada"
+        var gpuModel: String? = null
         var gpuLoad: Int? = null
         var gpuFreqRaw: String? = null
+        var gpuMaxRaw: String? = null
+        var gpuMem: Long? = null
         when {
-            sys.keys.any { it.startsWith(kg) } -> {
+            sys.keys.any { it.startsWith(KG) } -> {
                 gpuSrc = "Adreno"
-                gpuLoad = nums(sys[kg + "gpu_busy_percentage"]).firstOrNull()?.toInt()
-                    ?: nums(sys[kg + "gpubusy"]).let { n ->
+                gpuModel = sys[KG + "gpu_model"]
+                gpuLoad = nums(sys[KG + "gpu_busy_percentage"]).firstOrNull()?.toInt()
+                    ?: nums(sys[KG + "gpubusy"]).let { n ->
                         if (n.size >= 2 && n[1] > 0) (n[0] * 100 / n[1]).toInt() else null
                     }
-                gpuFreqRaw = sys[kg + "devfreq/cur_freq"] ?: sys[kg + "gpuclk"]
+                gpuFreqRaw = sys[KG + "devfreq/cur_freq"] ?: sys[KG + "gpuclk"]
+                gpuMaxRaw = sys[KG + "max_gpuclk"] ?: sys[KG + "devfreq/max_freq"]
+                gpuMem = sys["/sys/class/kgsl/kgsl/page_alloc"]?.toLongOrNull()
             }
             "/sys/kernel/gpu/gpu_busy" in sys || "/sys/kernel/gpu/gpu_clock" in sys -> {
                 gpuSrc = "Mali"
+                gpuModel = sys["/sys/kernel/gpu/gpu_model"]
                 gpuLoad = nums(sys["/sys/kernel/gpu/gpu_busy"]).firstOrNull()?.toInt()
                 gpuFreqRaw = sys["/sys/kernel/gpu/gpu_clock"]
+                gpuMaxRaw = sys["/sys/kernel/gpu/gpu_max_clock"]
             }
             "/sys/kernel/ged/hal/gpu_utilization" in sys -> {
                 gpuSrc = "Mali (MediaTek)"
@@ -264,57 +434,114 @@ class SystemReader(context: Context) {
                 }
             }
         }
-        val gpuFreq = nums(gpuFreqRaw).maxOrNull()?.let(::toMhz)
+        val gpu = GpuInfo(
+            source = gpuSrc,
+            model = gpuModel?.takeIf { it.isNotBlank() },
+            load = gpuLoad?.coerceIn(0, 100),
+            freqMhz = nums(gpuFreqRaw).maxOrNull()?.let(::toMhz),
+            maxMhz = nums(gpuMaxRaw).maxOrNull()?.let(::toMhz),
+            memBytes = gpuMem,
+            tempC = thermals.filter { it.name.contains("gpu", ignoreCase = true) }.maxOfOrNull { it.celsius },
+        )
 
-        // ---- Wi-Fi ----
-        val now = SystemClock.elapsedRealtime()
-        var rx = 0L
-        var tx = 0L
-        sec["NET"]?.firstOrNull { it.trim().startsWith("wlan0:") }?.let { l ->
-            val f = l.substringAfter(':').trim().split(WS)
-            rx = f.getOrNull(0)?.toLongOrNull() ?: 0L
-            tx = f.getOrNull(8)?.toLongOrNull() ?: 0L
+        // ---- Disco ----
+        var disk: DiskInfo? = null
+        val best = sec["DISK"].orEmpty()
+            .map { it.trim().split(WS) }
+            .filter { it.size >= 13 && DISK_RE.matches(it[2]) }
+            .maxByOrNull { it.long(5) + it.long(9) }
+        if (best != null) {
+            val name = best[2]
+            val rd = best.long(5) * 512
+            val wr = best.long(9) * 512
+            val ios = best.long(3) + best.long(7)
+            val msRw = best.long(6) + best.long(10)
+            val msIo = best.long(12)
+            val p = prevDisk
+            var act = 0f
+            var rBps = 0L
+            var wBps = 0L
+            var resp = 0f
+            if (p != null && p.name == name && dt > 0) {
+                act = ((msIo - p.msIo) / (dt * 1000f) * 100f).coerceIn(0f, 100f)
+                rBps = ((rd - p.rd) / dt).toLong().coerceAtLeast(0)
+                wBps = ((wr - p.wr) / dt).toLong().coerceAtLeast(0)
+                val dIos = ios - p.ios
+                resp = if (dIos > 0) (msRw - p.msRw).toFloat() / dIos else 0f
+            }
+            prevDisk = DiskPrev(name, rd, wr, ios, msRw, msIo)
+            val st = try {
+                StatFs(Environment.getDataDirectory().path)
+            } catch (e: Exception) {
+                null
+            }
+            val type = when {
+                name.startsWith("sd") -> "UFS"
+                name.startsWith("mmcblk") -> "eMMC"
+                name.startsWith("nvme") -> "NVMe"
+                else -> "Virtual"
+            }
+            disk = DiskInfo(name, type, act, rBps, wBps, resp.coerceAtLeast(0f), st?.totalBytes ?: 0L, st?.availableBytes ?: 0L)
         }
-        val dt = (now - prevTime) / 1000f
-        val rxBps = if (prevRx >= 0 && dt > 0) ((rx - prevRx) / dt).toLong().coerceAtLeast(0) else 0L
-        val txBps = if (prevTx >= 0 && dt > 0) ((tx - prevTx) / dt).toLong().coerceAtLeast(0) else 0L
-        prevRx = rx
-        prevTx = tx
-        prevTime = now
 
-        val ip = sec["IP"]?.firstNotNullOfOrNull { IPV4.find(it)?.groupValues?.get(1) }
+        // ---- Red ----
+        val ifaces = HashMap<String, Pair<Long, Long>>()
+        sec["NET"]?.forEach { l ->
+            val i = l.indexOf(':')
+            if (i <= 0) return@forEach
+            val f = l.substring(i + 1).trim().split(WS)
+            if (f.size >= 9) ifaces[l.substring(0, i).trim()] = f.long(0) to f.long(8)
+        }
+        val newNet = HashMap<String, Pair<Long, Long>>()
+        fun rate(key: String, rx: Long, tx: Long): NetStat {
+            val p = prevNet[key]
+            newNet[key] = rx to tx
+            if (p == null || dt <= 0f) return NetStat(0, 0, rx, tx)
+            return NetStat(
+                ((rx - p.first) / dt).toLong().coerceAtLeast(0),
+                ((tx - p.second) / dt).toLong().coerceAtLeast(0),
+                rx, tx,
+            )
+        }
+        val w = ifaces["wlan0"]
+        val wifiNet = rate("wlan0", w?.first ?: 0L, w?.second ?: 0L)
+        val mobileNames = ifaces.keys.filter { MOBILE_RE.matches(it) }.sorted()
+        val mobile = if (mobileNames.isEmpty()) null else rate(
+            "mobile",
+            mobileNames.sumOf { ifaces[it]?.first ?: 0L },
+            mobileNames.sumOf { ifaces[it]?.second ?: 0L },
+        )
+        prevNet = newNet
 
+        val ipLines = sec["IP"].orEmpty()
         @Suppress("DEPRECATION")
-        val info = wifi.connectionInfo
-        val rssi = info?.rssi?.takeIf { it > -127 && it < 0 }
-        val link = info?.linkSpeed?.takeIf { it > 0 }
-        val freq = info?.frequency?.takeIf { it > 0 }
+        val info = wifiManager.connectionInfo
+        val wifi = WifiData(
+            net = wifiNet,
+            ip = ipLines.firstNotNullOfOrNull { IPV4.find(it)?.groupValues?.get(1) },
+            ip6 = ipLines.firstNotNullOfOrNull { IPV6.find(it)?.groupValues?.get(1) },
+            rssi = info?.rssi?.takeIf { it > -127 && it < 0 },
+            linkMbps = info?.linkSpeed?.takeIf { it > 0 },
+            freqMhz = info?.frequency?.takeIf { it > 0 },
+            ssid = ssid,
+            mac = mac,
+        )
 
         return Snapshot(
-            cpuTotal = cpuTotal.coerceIn(0f, 100f),
+            cpuTotal = cpuTotal,
             cores = cores,
+            governor = sys["/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"],
             threads = threadsTotal,
+            handles = sec["FILE"]?.firstOrNull()?.trim()?.split(WS)?.long(0) ?: 0L,
             uptimeSec = uptime,
-            memTotalKb = memKb("MemTotal"),
-            memAvailKb = memKb("MemAvailable"),
-            memCachedKb = memKb("Cached"),
-            swapTotalKb = memKb("SwapTotal"),
-            swapFreeKb = memKb("SwapFree"),
-            gpuSource = gpuSrc,
-            gpuLoad = gpuLoad?.coerceIn(0, 100),
-            gpuFreqMhz = gpuFreq,
+            mem = mem,
+            disk = disk,
+            gpu = gpu,
             thermals = thermals,
-            battLevel = battLevel,
-            battTempC = battTemp,
-            battCurrentMa = battCur,
-            wifiRxBps = rxBps,
-            wifiTxBps = txBps,
-            wifiRxTotal = rx,
-            wifiTxTotal = tx,
-            wifiIp = ip,
-            wifiRssi = rssi,
-            wifiLinkMbps = link,
-            wifiFreqMhz = freq,
+            batt = batt,
+            wifi = wifi,
+            mobile = mobile,
+            mobileIfaces = mobileNames,
             processes = procs,
         )
     }
