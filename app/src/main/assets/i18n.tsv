@@ -262,3 +262,16 @@ Cambios de contexto voluntarios	Voluntary context switches	Changements de contex
 Cambios de contexto forzados	Forced context switches	Changements de contexte forcés	Trocas de contexto forçadas	Erzwungene Kontextwechsel	Cambi di contesto forzati	Принудительные переключения контекста	تبديلات السياق الإجبارية	强制上下文切换	強制的なコンテキスト スイッチ	강제 컨텍스트 전환
 Señales bloqueadas	Blocked signals	Signaux bloqués	Sinais bloqueados	Blockierte Signale	Segnali bloccati	Заблокированные сигналы	الإشارات المحظورة	已阻塞的信号	ブロックされたシグナル	차단된 신호
 Temperatura del procesador	Processor temperature	Température du processeur	Temperatura do processador	Prozessortemperatur	Temperatura del processore	Температура процессора	درجة حرارة المعالج	处理器温度	プロセッサの温度	프로세서 온도
+No se pudo comprobar. Revisa tu conexión e inténtalo de nuevo.	Couldn't check. Check your connection and try again.	Vérification impossible. Vérifiez votre connexion et réessayez.	Não foi possível verificar. Confira sua conexão e tente novamente.	Prüfung fehlgeschlagen. Überprüfe deine Verbindung und versuche es erneut.	Impossibile verificare. Controlla la connessione e riprova.	Не удалось проверить. Проверьте подключение и повторите попытку.	تعذّر التحقق. تحقق من اتصالك وحاول مرة أخرى.	无法检查。请检查网络连接后重试。	確認できませんでした。接続を確認して、もう一度お試しください。	확인할 수 없습니다. 연결을 확인하고 다시 시도하세요.
+Versión	Version	Version	Versão	Version	Versione	Версия	الإصدار	版本	バージョン	버전
+Desarrollador	Developer	Développeur	Desenvolvedor	Entwickler	Sviluppatore	Разработчик	المطوّر	开发者	開発者	개발자
+Repositorio	Repository	Dépôt	Repositório	Repository	Repository	Репозиторий	المستودع	代码仓库	リポジトリ	저장소
+Registro de cambios	Changelog	Journal des modifications	Registro de alterações	Änderungsprotokoll	Registro delle modifiche	Журнал изменений	سجل التغييرات	更新日志	変更履歴	변경 내역
+Ver todas las versiones	See all versions	Voir toutes les versions	Ver todas as versões	Alle Versionen anzeigen	Vedi tutte le versioni	Все версии	عرض كل الإصدارات	查看所有版本	すべてのバージョンを表示	모든 버전 보기
+Informar un problema	Report a problem	Signaler un problème	Relatar um problema	Problem melden	Segnala un problema	Сообщить о проблеме	الإبلاغ عن مشكلة	报告问题	問題を報告	문제 신고
+Redes sociales	Social media	Réseaux sociaux	Redes sociais	Soziale Netzwerke	Social network	Социальные сети	وسائل التواصل الاجتماعي	社交媒体	SNS	소셜 미디어
+Información del dispositivo	Device information	Informations sur l'appareil	Informações do dispositivo	Geräteinformationen	Informazioni sul dispositivo	Сведения об устройстве	معلومات الجهاز	设备信息	デバイス情報	기기 정보
+Dispositivo	Device	Appareil	Dispositivo	Gerät	Dispositivo	Устройство	الجهاز	设备	デバイス	기기
+Procesador	Processor	Processeur	Processador	Prozessor	Processore	Процессор	المعالج	处理器	プロセッサ	프로세서
+Kernel	Kernel	Noyau	Kernel	Kernel	Kernel	Ядро	النواة	内核	カーネル	커널
+Gestor de root	Root manager	Gestionnaire root	Gerenciador de root	Root-Manager	Gestore root	Root-менеджер	مدير صلاحيات الجذر	Root 管理器	root マネージャー	루트 관리자

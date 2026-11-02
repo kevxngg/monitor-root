@@ -99,14 +99,15 @@ fun SettingsPage() {
                             found = info
                             checkMsg = tr("Build %d disponible", info.build)
                         } else {
-                            checkMsg = tr("Ya tienes la última versión (build %d)", build)
+                            checkMsg = if (Updater.lastFailed) tr("No se pudo comprobar. Revisa tu conexión e inténtalo de nuevo.")
+                            else tr("Ya tienes la última versión (build %d)", build)
                         }
                     }
                 }) { Text(tr("Buscar")) }
             }
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Acerca de"))
-            SettingCard(Icons.Outlined.Info, "Monitor Root · build $build", tr("Monitor del sistema para Android con root")) {}
+            AboutSection(build)
             Spacer(Modifier.height(16.dp))
         }
     }

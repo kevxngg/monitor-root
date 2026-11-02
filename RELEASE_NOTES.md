@@ -1,8 +1,7 @@
 ## Novedades
-- Notificación de actualización: aunque la app esté cerrada, te avisa cuando hay una versión nueva (revisa cada 15 minutos en segundo plano).
-- Con la app abierta revisa cada 2 minutos, y también cada vez que vuelves a ella.
+- Nueva sección "Acerca de" en Configuración: versión, desarrollador, repositorio, registro de cambios, informar un problema y redes sociales.
+- Información del dispositivo: modelo, versión de Android, procesador, GPU, kernel y gestor de root (Magisk, KernelSU o APatch).
 
 ## Correcciones
-- El aviso de actualización tardaba mucho: antes solo se buscaba al abrir la app desde cero.
-- Se evita que GitHub devuelva información vieja guardada en caché.
-- "Más tarde" ahora pospone el aviso una hora en lugar de no volver a preguntar.
+- Las actualizaciones a veces no aparecían: la app usaba la API de GitHub, que solo permite 60 consultas por hora por conexión. Ahora cada versión publica un archivo propio que no tiene ese límite.
+- Si no se puede comprobar si hay actualización, ahora lo dice, en lugar de decir que ya tienes la última versión.
