@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
         Prefs.init(applicationContext)
         Apps.init(applicationContext)
         I18n.init(applicationContext)
+        UpdateWorker.schedule(applicationContext)
         setContent {
             val dark = when (Prefs.theme) {
                 1 -> false
@@ -133,8 +134,21 @@ fun Shell() {
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
 
     // Al abrir la app, busca si hay una versión nueva en GitHub
+    // Busca actualizaciones cada vez que vuelves a la app y cada 2 minutos mientras está abierta
     LaunchedEffect(Unit) {
-        if (Prefs.autoUpdate) update = withContext(Dispatchers.IO) { Updater.check(context.applicationContext) }
+        withContext(Dispatchers.IO) { UpdateWorker.prepare(context.applicationContext) }
+        (context as LifecycleOwner).repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                if (Prefs.autoUpdate && update == null) {
+                    val info = withContext(Dispatchers.IO) { Updater.check(context.applicationContext) }
+                    if (info != null && !Updater.isSnoozed(info.build)) {
+                        update = info
+                        UpdateWorker.cancelNotification(context.applicationContext)
+                    }
+                }
+                delay(2 * 60 * 1000L)
+            }
+        }
     }
 
     // Lectura periódica (solo con la app en pantalla)

@@ -29,6 +29,17 @@ object Updater {
     private const val API = "https://api.github.com/repos/kevxngg/monitor-root/releases/latest"
     private const val TMP = "/data/local/tmp/monitorroot-update.apk"
 
+    /** "Más tarde": no vuelve a preguntar por esa build durante una hora. */
+    @Volatile var snoozedBuild = 0
+    @Volatile var snoozedUntil = 0L
+
+    fun isSnoozed(build: Int) = build == snoozedBuild && System.currentTimeMillis() < snoozedUntil
+
+    fun snooze(build: Int) {
+        snoozedBuild = build
+        snoozedUntil = System.currentTimeMillis() + 60 * 60 * 1000
+    }
+
     fun currentBuild(ctx: Context): Int = try {
         PackageInfoCompat.getLongVersionCode(ctx.packageManager.getPackageInfo(ctx.packageName, 0)).toInt()
     } catch (e: Exception) {
@@ -37,11 +48,14 @@ object Updater {
 
     /** Devuelve la última versión publicada, o null si hay error. */
     fun latest(): UpdateInfo? {
-        val conn = URL(API).openConnection() as HttpURLConnection
+        // El parámetro t evita que GitHub o el sistema devuelvan una respuesta vieja en caché
+        val conn = URL("$API?t=${System.currentTimeMillis()}").openConnection() as HttpURLConnection
         return try {
             conn.connectTimeout = 8000
             conn.readTimeout = 8000
+            conn.useCaches = false
             conn.setRequestProperty("Accept", "application/vnd.github+json")
+            conn.setRequestProperty("Cache-Control", "no-cache")
             if (conn.responseCode != 200) return null
             val json = JSONObject(conn.inputStream.bufferedReader().readText())
             val build = json.optString("tag_name").removePrefix("build-").toIntOrNull() ?: return null
@@ -185,7 +199,7 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                     Prefs.save()
                     onDismiss()
                 }) { Text(tr("Omitir")) }
-                TextButton(enabled = !busy, onClick = onDismiss) { Text(tr("Más tarde")) }
+                TextButton(enabled = !busy, onClick = { Updater.snooze(info.build); onDismiss() }) { Text(tr("Más tarde")) }
             }
         },
     )
