@@ -1,19 +1,31 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Monitor Root: administrador de tareas para Android con root</title>
-<meta name="description" content="Monitor Root es un monitor del sistema gratuito para Android con root, con el estilo del administrador de tareas de Windows 11: procesos, CPU, GPU, RAM, disco, red, batería y temperaturas en tiempo real.">
-<meta name="keywords" content="monitor root, monitor root android, administrador de tareas android, task manager android root, monitor del sistema android, magisk, kernelsu, cpu, gpu, temperatura, procesos">
+<title>Monitor Root: task manager for rooted Android</title>
+<meta name="description" content="Monitor Root is a free system monitor for rooted Android, styled after the Windows 11 Task Manager: processes, CPU, GPU, RAM, disk, network, battery and temperatures in real time.">
+<meta name="keywords" content="monitor root, monitor root android, android task manager, root task manager, android system monitor, magisk, kernelsu, cpu, gpu, temperature, processes">
 <meta name="author" content="kevxngg">
 <link rel="canonical" href="https://kevxngg.github.io/monitor-root/">
+<link rel="alternate" hreflang="en" href="https://kevxngg.github.io/monitor-root/">
+<link rel="alternate" hreflang="es" href="https://kevxngg.github.io/monitor-root/es/">
+<link rel="alternate" hreflang="x-default" href="https://kevxngg.github.io/monitor-root/">
 <meta name="theme-color" content="#117DBB">
+<script>
+// Si el navegador está en español (o ya elegiste español antes), abre la versión en español.
+(function () {
+  try {
+    var saved = localStorage.getItem("lang");
+    if (saved === "es" || (!saved && /^es\b/i.test(navigator.language || ""))) location.replace("es/");
+  } catch (e) {}
+})();
+</script>
 <meta property="og:type" content="website">
-<meta property="og:title" content="Monitor Root: administrador de tareas para Android con root">
-<meta property="og:description" content="Procesos, CPU, GPU, RAM, disco, red, batería y temperaturas en tiempo real, con el estilo de Windows 11.">
+<meta property="og:title" content="Monitor Root: task manager for rooted Android">
+<meta property="og:description" content="Processes, CPU, GPU, RAM, disk, network, battery and temperatures in real time, styled after Windows 11.">
 <meta property="og:url" content="https://kevxngg.github.io/monitor-root/">
-<meta property="og:locale" content="es_ES">
+<meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23117DBB'/%3E%3Cg transform='translate(3.6 3.6) scale(.7)' fill='white'%3E%3Cpath d='M21 8c-1.45 0-2.26 1.44-1.93 2.51l-3.55 3.56c-.3-.09-.74-.09-1.04 0l-2.55-2.55C12.27 10.45 11.46 9 10 9c-1.45 0-2.27 1.44-1.93 2.52l-4.56 4.55C2.44 15.74 1 16.55 1 18c0 1.1.9 2 2 2 1.45 0 2.26-1.44 1.93-2.51l4.55-4.56c.3.09.74.09 1.04 0l2.55 2.55C12.73 16.55 13.54 18 15 18c1.45 0 2.27-1.44 1.93-2.52l3.56-3.55C21.56 12.26 23 11.45 23 10c0-1.1-.9-2-2-2z'/%3E%3Cpath d='M15 9l.94-2.07L18 6l-2.06-.93L15 3l-.92 2.07L12 6l2.08.93zM3.5 11L4 9l2-.5L4 8l-.5-2L3 8l-2 .5L3 9z'/%3E%3C/g%3E%3C/svg%3E">
 <script type="application/ld+json">
@@ -21,9 +33,9 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Monitor Root",
-  "operatingSystem": "Android 8.0 o superior (con root permanente o temporal)",
+  "operatingSystem": "Android 8.0 or later (permanent or temporary root)",
   "applicationCategory": "UtilitiesApplication",
-  "description": "Monitor del sistema para Android con root, con el estilo del administrador de tareas de Windows 11.",
+  "description": "System monitor for rooted Android, styled after the Windows 11 Task Manager.",
   "url": "https://kevxngg.github.io/monitor-root/",
   "downloadUrl": "https://github.com/kevxngg/monitor-root/releases/latest/download/MonitorRoot.apk",
   "softwareHelp": "https://github.com/kevxngg/monitor-root",
@@ -401,10 +413,11 @@ footer a { color: var(--sub); }
       <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-logo"/></svg></span>
       Monitor Root
     </a>
-    <nav aria-label="Secciones">
-      <a class="optional" href="#funciones">Funciones</a>
-      <a class="optional" href="#instalacion">Instalación</a>
+    <nav aria-label="Sections">
+      <a class="optional" href="#features">Features</a>
+      <a class="optional" href="#install">Install</a>
       <a href="https://github.com/kevxngg/monitor-root">GitHub</a>
+      <a href="es/" lang="es" hreflang="es" onclick="try{localStorage.setItem('lang','es')}catch(e){}">Español</a>
     </nav>
   </div>
 </header>
@@ -430,85 +443,85 @@ footer a { color: var(--sub); }
   <div class="hero">
     <div>
       <h1>Monitor Root</h1>
-      <p class="lede">El administrador de tareas para Android con root.</p>
-      <p class="desc">Mira qué está usando tu teléfono en tiempo real: procesos, CPU, GPU, memoria, disco, red, batería y temperaturas. Con el diseño del administrador de tareas de Windows 11 y gratis.</p>
+      <p class="lede">The task manager for rooted Android.</p>
+      <p class="desc">See what your phone is using in real time: processes, CPU, GPU, memory, disk, network, battery and temperatures. With the look of the Windows 11 Task Manager, and free.</p>
       <div class="actions">
         <a class="btn primary" href="https://github.com/kevxngg/monitor-root/releases/latest/download/MonitorRoot.apk">
-          <svg aria-hidden="true"><use href="#i-down"/></svg>Descargar APK
+          <svg aria-hidden="true"><use href="#i-down"/></svg>Download APK
         </a>
         <a class="btn" href="https://github.com/kevxngg/monitor-root">
-          <svg aria-hidden="true"><use href="#i-gh"/></svg>Ver en GitHub
+          <svg aria-hidden="true"><use href="#i-gh"/></svg>View on GitHub
         </a>
       </div>
-      <p class="version" id="version">Requiere Android 8.0 o superior con root permanente o temporal.</p>
+      <p class="version" id="version">Requires Android 8.0 or later with permanent or temporary root.</p>
     </div>
 
     <!-- Ilustración animada de la pestaña Rendimiento (no es una captura) -->
-    <div class="window" role="img" aria-label="Ilustración de la pestaña Rendimiento de Monitor Root con una gráfica de CPU en movimiento">
-      <div class="window-bar"><span class="logo"><svg viewBox="0 0 24 24"><use href="#i-logo"/></svg></span>Rendimiento</div>
+    <div class="window" role="img" aria-label="Illustration of the Monitor Root Performance tab with a moving CPU graph">
+      <div class="window-bar"><span class="logo"><svg viewBox="0 0 24 24"><use href="#i-logo"/></svg></span>Performance</div>
       <div class="window-body">
         <div class="side">
-          <div class="res on"><canvas data-key="cpu" width="104" height="68"></canvas><div><b>CPU</b><span id="s-cpu">12% 1,80 GHz</span></div></div>
-          <div class="res"><canvas data-key="mem" width="104" height="68"></canvas><div><b>Memoria</b><span id="s-mem">3,4/7,4 GB (46%)</span></div></div>
-          <div class="res"><canvas data-key="disk" width="104" height="68"></canvas><div><b>Disco 0</b><span id="s-disk">UFS 2%</span></div></div>
+          <div class="res on"><canvas data-key="cpu" width="104" height="68"></canvas><div><b>CPU</b><span id="s-cpu">12% 1.80 GHz</span></div></div>
+          <div class="res"><canvas data-key="mem" width="104" height="68"></canvas><div><b>Memory</b><span id="s-mem">3.4/7.4 GB (46%)</span></div></div>
+          <div class="res"><canvas data-key="disk" width="104" height="68"></canvas><div><b>Disk 0</b><span id="s-disk">UFS 2%</span></div></div>
           <div class="res"><canvas data-key="wifi" width="104" height="68"></canvas><div><b>Wi‑Fi</b><span id="s-wifi">E: 48 R: 920 Kbps</span></div></div>
           <div class="res"><canvas data-key="gpu" width="104" height="68"></canvas><div><b>GPU 0</b><span id="s-gpu">Adreno 610 8%</span></div></div>
         </div>
         <div class="detail">
           <div class="detail-head"><strong>CPU</strong><span>Snapdragon</span></div>
-          <div class="axis"><span>% de uso</span><span>100%</span></div>
+          <div class="axis"><span>% Utilization</span><span>100%</span></div>
           <canvas id="big" width="800" height="340"></canvas>
-          <div class="axis"><span>60 segundos</span><span>0</span></div>
+          <div class="axis"><span>60 seconds</span><span>0</span></div>
           <div class="stats">
-            <div>Uso<b id="b-use">12%</b></div>
-            <div>Velocidad<b id="b-speed">1,80 GHz</b></div>
-            <div>Procesos<b id="b-proc">612</b></div>
+            <div>Utilization<b id="b-use">12%</b></div>
+            <div>Speed<b id="b-speed">1.80 GHz</b></div>
+            <div>Processes<b id="b-proc">612</b></div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <section id="funciones" aria-labelledby="t-funciones">
-    <h2 id="t-funciones">Todo lo del administrador de tareas, en tu teléfono</h2>
-    <p class="section-intro">Las mismas secciones que conoces de Windows 11, adaptadas a Android. El acceso root permite ver y controlar todos los procesos del sistema, no solo los de tus apps.</p>
+  <section id="features" aria-labelledby="t-funciones">
+    <h2 id="t-funciones">Everything from the Task Manager, on your phone</h2>
+    <p class="section-intro">The same sections you know from Windows 11, adapted to Android. Root access lets you see and control every system process, not just your apps.</p>
     <div class="settings-list">
-      <div class="setting"><svg aria-hidden="true"><use href="#i-grid"/></svg><div><h3>Procesos</h3><p>Apps, procesos en segundo plano y de Android con su uso de CPU, memoria y disco. Finaliza tareas o activa el modo de eficiencia.</p></div></div>
-      <div class="setting"><svg aria-hidden="true"><use href="#i-pulse"/></svg><div><h3>Rendimiento</h3><p>Gráficas de 60 segundos de CPU (general o por núcleo), memoria, disco, Wi‑Fi, datos móviles, GPU y temperatura.</p></div></div>
-      <div class="setting"><svg aria-hidden="true"><use href="#i-history"/></svg><div><h3>Historial de aplicaciones</h3><p>Tiempo de uso, tiempo de CPU y datos de Wi‑Fi y móviles de cada app en las últimas 24 horas, 7 o 30 días.</p></div></div>
-      <div class="setting"><svg aria-hidden="true"><use href="#i-speed"/></svg><div><h3>Aplicaciones de arranque</h3><p>Ve qué apps se inician solas al encender el teléfono y deshabilítalas.</p></div></div>
-      <div class="setting"><svg aria-hidden="true"><use href="#i-people"/></svg><div><h3>Usuarios</h3><p>Consumo por usuario y perfil de trabajo, con opción de cambiar de usuario o detenerlo.</p></div></div>
-      <div class="setting"><svg aria-hidden="true"><use href="#i-list"/></svg><div><h3>Detalles</h3><p>Lista completa por PID: cambia la prioridad o la afinidad de núcleos, suspende procesos o finaliza el árbol completo.</p></div></div>
-      <div class="setting"><svg aria-hidden="true"><use href="#i-puzzle"/></svg><div><h3>Servicios</h3><p>Servicios nativos de Android y de las apps, con opciones para iniciarlos, detenerlos y reiniciarlos.</p></div></div>
-      <div class="setting"><svg aria-hidden="true"><use href="#i-update"/></svg><div><h3>Actualizaciones automáticas</h3><p>La app te avisa cuando hay una versión nueva y se instala sola con un toque, sin pasar por el navegador.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-grid"/></svg><div><h3>Processes</h3><p>Apps, background and Android processes with their CPU, memory and disk usage. End tasks or turn on efficiency mode.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-pulse"/></svg><div><h3>Performance</h3><p>60-second graphs for CPU (overall or per core), memory, disk, Wi‑Fi, mobile data, GPU and temperature.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-history"/></svg><div><h3>App history</h3><p>Usage time, CPU time, and Wi‑Fi and mobile data for each app over the last 24 hours, 7 or 30 days.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-speed"/></svg><div><h3>Startup apps</h3><p>See which apps start on their own when the phone turns on, and disable them.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-people"/></svg><div><h3>Users</h3><p>Usage per user and work profile, with options to switch to or stop a user.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-list"/></svg><div><h3>Details</h3><p>Full list by PID: change priority or core affinity, suspend processes or end the whole process tree.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-puzzle"/></svg><div><h3>Services</h3><p>Native Android and app services, with options to start, stop and restart them.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-update"/></svg><div><h3>Automatic updates</h3><p>The app tells you when there's a new version and installs it with one tap, without going through the browser.</p></div></div>
     </div>
   </section>
 
-  <section id="instalacion" aria-labelledby="t-instalacion">
-    <h2 id="t-instalacion">Instalación</h2>
-    <p class="section-intro">Necesitas un teléfono con root, permanente (Magisk, KernelSU o APatch) o temporal. Son cuatro pasos.</p>
+  <section id="install" aria-labelledby="t-instalacion">
+    <h2 id="t-instalacion">Installation</h2>
+    <p class="section-intro">You need a rooted phone, with permanent root (Magisk, KernelSU or APatch) or temporary root. It takes four steps.</p>
     <ol class="steps">
-      <li><div><strong>Descarga la APK</strong><span>Desde el botón de arriba o en la sección Releases del repositorio.</span></div></li>
-      <li><div><strong>Permite instalar apps desconocidas</strong><span>Android te lo pedirá la primera vez para tu navegador o gestor de archivos.</span></div></li>
-      <li><div><strong>Abre Monitor Root y concede root</strong><span>Acepta el aviso de tu gestor de root. Si usas root temporal, actívalo antes de abrir la app.</span></div></li>
-      <li><div><strong>Listo</strong><span>Las siguientes versiones llegan con un aviso dentro de la app.</span></div></li>
+      <li><div><strong>Download the APK</strong><span>From the button above or the Releases section of the repository.</span></div></li>
+      <li><div><strong>Allow installing unknown apps</strong><span>Android asks for this the first time, for your browser or file manager.</span></div></li>
+      <li><div><strong>Open Monitor Root and grant root</strong><span>Accept your root manager's prompt. If you use temporary root, enable it before opening the app.</span></div></li>
+      <li><div><strong>Done</strong><span>Future versions arrive with an in-app prompt.</span></div></li>
     </ol>
   </section>
 
   <section aria-labelledby="t-req">
     <div class="two-col">
       <div>
-        <h2 id="t-req">Requisitos</h2>
+        <h2 id="t-req">Requirements</h2>
         <ul class="req">
-          <li>Android 8.0 o superior.</li>
-          <li>Root permanente con Magisk, KernelSU o APatch, o root temporal.</li>
-          <li>Funciona con procesadores Qualcomm Snapdragon, MediaTek y Exynos.</li>
-          <li>Ocupa poco más de 1 MB.</li>
+          <li>Android 8.0 or later.</li>
+          <li>Permanent root with Magisk, KernelSU or APatch, or temporary root.</li>
+          <li>Works with Qualcomm Snapdragon, MediaTek and Exynos processors.</li>
+          <li>Takes up just over 1 MB.</li>
         </ul>
       </div>
       <div>
-        <h2>Idiomas</h2>
-        <ul class="langs" aria-label="Idiomas disponibles">
+        <h2>Languages</h2>
+        <ul class="langs" aria-label="Available languages">
           <li lang="es">Español</li><li lang="en">English</li><li lang="fr">Français</li><li lang="pt">Português</li>
           <li lang="de">Deutsch</li><li lang="it">Italiano</li><li lang="ru">Русский</li><li lang="ar" dir="rtl">العربية</li>
           <li lang="zh">中文</li><li lang="ja">日本語</li><li lang="ko">한국어</li>
@@ -518,26 +531,26 @@ footer a { color: var(--sub); }
   </section>
 
   <section id="novedades" aria-labelledby="t-novedades">
-    <h2 id="t-novedades">Novedades</h2>
-    <p class="section-intro">Cambios de la última versión publicada.</p>
+    <h2 id="t-novedades">What's new</h2>
+    <p class="section-intro">The latest published version.</p>
     <div class="notes" id="notes">
-      <p class="meta">Puedes ver todas las versiones en <a href="https://github.com/kevxngg/monitor-root/releases">Releases</a>.</p>
+      <p class="meta">See every version and its changelog in <a href="https://github.com/kevxngg/monitor-root/releases">Releases</a>.</p>
     </div>
   </section>
 
   <section aria-labelledby="t-faq">
-    <h2 id="t-faq">Preguntas frecuentes</h2>
-    <details><summary>¿Funciona sin root?</summary><p>No. Desde Android 8, las apps normales no pueden ver los procesos de otras apps ni leer sensores como la carga de la GPU. Monitor Root usa root para leer esos datos directamente del sistema.</p></details>
-    <details><summary>¿Funciona con root temporal?</summary><p>Sí. La app funciona igual mientras el root temporal esté activo. Como ese tipo de root se pierde al reiniciar el teléfono, después de cada reinicio tienes que volver a activarlo para que la app lea los datos del sistema e instale actualizaciones sola.</p></details>
-    <details><summary>¿Es gratis?</summary><p>Sí, es gratis, sin anuncios y el código está publicado en GitHub.</p></details>
-    <details><summary>¿Puede dañar mi teléfono?</summary><p>Ver información es seguro. Finalizar procesos o servicios del sistema puede hacer que el teléfono se reinicie, por eso la app te pide confirmación antes de hacerlo.</p></details>
-    <details><summary>¿Por qué no aparece la temperatura de la GPU?</summary><p>Algunos procesadores no tienen un sensor de temperatura propio para la GPU. En ese caso la app muestra la del procesador e indica "(SoC)".</p></details>
-    <details><summary>¿Cómo informo un problema?</summary><p>Abre un reporte en <a href="https://github.com/kevxngg/monitor-root/issues/new">GitHub Issues</a>. En la app, en Configuración, Acerca de, puedes copiar la información de tu dispositivo para incluirla.</p></details>
+    <h2 id="t-faq">FAQ</h2>
+    <details><summary>Does it work without root?</summary><p>No. Since Android 8, regular apps can't see other apps' processes or read sensors like GPU load. Monitor Root uses root to read that data directly from the system.</p></details>
+    <details><summary>Does it work with temporary root?</summary><p>Yes. The app works the same while temporary root is active. Because that kind of root is lost when the phone restarts, you need to enable it again after every restart so the app can read system data and install updates on its own.</p></details>
+    <details><summary>Is it free?</summary><p>Yes. It's free, has no ads, and the code is published on GitHub.</p></details>
+    <details><summary>Can it damage my phone?</summary><p>Viewing information is safe. Ending system processes or services can restart the phone, so the app asks for confirmation first.</p></details>
+    <details><summary>Why doesn't the GPU temperature show up?</summary><p>Some processors don't have their own GPU temperature sensor. In that case the app shows the processor temperature and marks it "(SoC)".</p></details>
+    <details><summary>How do I report a problem?</summary><p>Open a report in <a href="https://github.com/kevxngg/monitor-root/issues/new">GitHub Issues</a>. In the app, under Settings, About, you can copy your device information to include it.</p></details>
   </section>
 </main>
 
 <footer>
-  Monitor Root es un proyecto de <a href="https://github.com/kevxngg">kevxngg</a>. No está afiliado a Microsoft.
+  Monitor Root is a project by <a href="https://github.com/kevxngg">kevxngg</a>. Not affiliated with Microsoft.
 </footer>
 
 <script>
@@ -590,7 +603,7 @@ footer a { color: var(--sub); }
 
   var big = document.getElementById("big");
   var minis = document.querySelectorAll(".res canvas");
-  function fmt(n) { return n.toFixed(2).replace(".", ","); }
+  function fmt(n) { return n.toFixed(2); }
   function render() {
     css = getComputedStyle(document.documentElement);
     draw(big, series.cpu.data, color("--cpu"), true);
@@ -600,7 +613,7 @@ footer a { color: var(--sub); }
     document.getElementById("b-use").textContent = Math.round(cpu) + "%";
     document.getElementById("b-speed").textContent = fmt(ghz) + " GHz";
     document.getElementById("s-cpu").textContent = Math.round(cpu) + "% " + fmt(ghz) + " GHz";
-    document.getElementById("s-mem").textContent = "3,4/7,4 GB (" + Math.round(series.mem.data[N - 1]) + "%)";
+    document.getElementById("s-mem").textContent = "3.4/7.4 GB (" + Math.round(series.mem.data[N - 1]) + "%)";
     document.getElementById("s-disk").textContent = "UFS " + Math.round(series.disk.data[N - 1]) + "%";
     document.getElementById("s-gpu").textContent = "Adreno 610 " + Math.round(series.gpu.data[N - 1]) + "%";
   }
@@ -615,19 +628,10 @@ footer a { color: var(--sub); }
     .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
     .then(function (rel) {
       var build = (rel.tag_name || "").replace("build-", "");
-      var date = new Date(rel.published_at).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
-      document.getElementById("version").textContent = "Última versión: build " + build + ", publicada el " + date + ". Requiere Android 8.0 o superior con root permanente o temporal.";
+      var date = new Date(rel.published_at).toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" });
+      document.getElementById("version").textContent = "Latest version: build " + build + ", released " + date + ". Requires Android 8.0 or later with permanent or temporary root.";
       var box = document.getElementById("notes");
-      var html = '<p class="meta">Build ' + build + ", " + date + '. Puedes ver todas las versiones en <a href="https://github.com/kevxngg/monitor-root/releases">Releases</a>.</p>';
-      var inList = false;
-      (rel.body || "").split(/\r?\n/).forEach(function (line) {
-        var t = line.trim();
-        var esc = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        if (/^#+\s/.test(t)) { if (inList) { html += "</ul>"; inList = false; } html += "<h3>" + esc.replace(/^#+\s*/, "") + "</h3>"; }
-        else if (/^[-*]\s/.test(t)) { if (!inList) { html += "<ul>"; inList = true; } html += "<li>" + esc.slice(2) + "</li>"; }
-        else if (t) { if (inList) { html += "</ul>"; inList = false; } html += "<p>" + esc + "</p>"; }
-      });
-      if (inList) html += "</ul>";
+      var html = '<p class="meta">Build ' + build + ", released " + date + '.</p><p>See the full changelog in <a href="' + rel.html_url + '">Releases</a>.</p>';
       box.innerHTML = html;
     })
     .catch(function () { /* se queda el texto con el enlace a Releases */ });

@@ -1,94 +1,96 @@
 # Monitor Root
 
-**El administrador de tareas para Android con root.** Monitor Root te muestra qué está usando tu teléfono en tiempo real (procesos, CPU, GPU, memoria, disco, red, batería y temperaturas), con el diseño del administrador de tareas de Windows 11.
+**English** | [Español](README.es.md)
 
-**[Descargar la última versión (APK)](https://github.com/kevxngg/monitor-root/releases/latest/download/MonitorRoot.apk)** · [Sitio web](https://kevxngg.github.io/monitor-root/) · [Todas las versiones](https://github.com/kevxngg/monitor-root/releases)
+**The task manager for rooted Android.** Monitor Root shows what your phone is using in real time (processes, CPU, GPU, memory, disk, network, battery and temperatures), with the look of the Windows 11 Task Manager.
 
-## Capturas
+**[Download the latest version (APK)](https://github.com/kevxngg/monitor-root/releases/latest/download/MonitorRoot.apk)** · [Website](https://kevxngg.github.io/monitor-root/) · [All releases](https://github.com/kevxngg/monitor-root/releases)
+
+## Screenshots
 
 <table>
   <tr>
-    <td align="center"><img src="docs/img/procesos.jpg" width="240" alt="Pestaña Procesos"><br><sub>Procesos</sub></td>
-    <td align="center"><img src="docs/img/rendimiento-cpu.jpg" width="240" alt="Rendimiento de la CPU"><br><sub>Rendimiento: CPU</sub></td>
-    <td align="center"><img src="docs/img/procesadores-logicos.jpg" width="240" alt="Uso por procesador lógico"><br><sub>Procesadores lógicos</sub></td>
+    <td align="center"><img src="docs/img/procesos.jpg" width="240" alt="Processes tab"><br><sub>Processes</sub></td>
+    <td align="center"><img src="docs/img/rendimiento-cpu.jpg" width="240" alt="CPU performance"><br><sub>Performance: CPU</sub></td>
+    <td align="center"><img src="docs/img/procesadores-logicos.jpg" width="240" alt="Usage per logical processor"><br><sub>Logical processors</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/gpu.jpg" width="240" alt="Rendimiento de la GPU"><br><sub>Rendimiento: GPU</sub></td>
-    <td align="center"><img src="docs/img/historial.jpg" width="240" alt="Historial de aplicaciones"><br><sub>Historial de aplicaciones</sub></td>
+    <td align="center"><img src="docs/img/gpu.jpg" width="240" alt="GPU performance"><br><sub>Performance: GPU</sub></td>
+    <td align="center"><img src="docs/img/historial.jpg" width="240" alt="App history"><br><sub>App history</sub></td>
     <td></td>
   </tr>
 </table>
 
-## Funciones
+## Features
 
-### Procesos
-- Apps, procesos en segundo plano y procesos de Android, separados por grupos.
-- Uso de CPU, memoria y disco de cada uno, resaltado según cuánto consumen.
-- Las apps con varios procesos se pueden expandir para verlos uno por uno.
-- **Finalizar tarea** y **modo de eficiencia**, que baja la prioridad de una app y la limita en segundo plano.
+### Processes
+- Apps, background processes and Android processes, split into groups.
+- CPU, memory and disk usage for each one, highlighted by how much they use.
+- Apps with several processes can be expanded to see each one.
+- **End task** and **efficiency mode**, which lowers an app's priority and limits it in the background.
 
-### Rendimiento
-- Gráficas de los últimos 60 segundos de CPU, memoria, disco, Wi‑Fi, datos móviles, GPU y temperatura.
-- CPU: uso general o por procesador lógico, frecuencia de cada núcleo, procesos, subprocesos y tiempo activo.
-- Memoria: en uso, disponible, en caché, ZRAM y composición de la memoria.
-- GPU: modelo real del chip, uso, frecuencia y temperatura (Adreno, Mali y otros).
-- Batería: carga, temperatura, corriente, voltaje, estado y salud, junto con todos los sensores de temperatura.
+### Performance
+- 60-second graphs for CPU, memory, disk, Wi‑Fi, mobile data, GPU and temperature.
+- CPU: overall or per logical processor, frequency of each core, processes, threads and up time.
+- Memory: in use, available, cached, ZRAM and memory composition.
+- GPU: real chip model, utilization, frequency and temperature (Adreno, Mali and others).
+- Battery: charge, temperature, current, voltage, status and health, plus every temperature sensor.
 
-### Más secciones
-- **Historial de aplicaciones:** tiempo de uso, tiempo de CPU y datos de Wi‑Fi y móviles por app.
-- **Aplicaciones de arranque:** las apps que se inician con el teléfono, con opción de deshabilitarlas.
-- **Usuarios:** consumo por usuario o perfil de trabajo.
-- **Detalles:** lista completa por PID con prioridad, afinidad de núcleos, suspender, finalizar árbol de procesos y propiedades.
-- **Servicios:** servicios nativos de Android y de las apps, con opciones para iniciarlos, detenerlos y reiniciarlos.
-- **Ejecutar nueva tarea:** abre una app por su nombre o ejecuta un comando, con o sin root.
+### More sections
+- **App history:** usage time, CPU time, and Wi‑Fi and mobile data per app.
+- **Startup apps:** apps that start with the phone, with an option to disable them.
+- **Users:** usage per user or work profile.
+- **Details:** full list by PID with priority, core affinity, suspend, end process tree and properties.
+- **Services:** native Android and app services, with options to start, stop and restart them.
+- **Run new task:** open an app by name or run a command, with or without root.
 
-### Configuración
-- 11 idiomas: español, inglés, francés, portugués, alemán, italiano, ruso, árabe, chino, japonés y coreano.
-- Tema claro, oscuro o según el sistema.
-- Página de inicio y velocidad de actualización de los datos.
-- Actualizaciones automáticas: aviso dentro de la app y notificación con el botón **Actualizar ahora**.
+### Settings
+- 11 languages: English, Spanish, French, Portuguese, German, Italian, Russian, Arabic, Chinese, Japanese and Korean.
+- Light, dark or system theme.
+- Start page and data refresh speed.
+- Automatic updates: in-app prompt and a notification with an **Update now** button.
 
-## Requisitos
+## Requirements
 
-- Android 8.0 o superior.
-- Root permanente con **Magisk**, **KernelSU** o **APatch**, o **root temporal** (el que se activa con una herramienta sin desbloquear el bootloader).
-- Procesadores Qualcomm Snapdragon, MediaTek o Exynos.
+- Android 8.0 or later.
+- Permanent root with **Magisk**, **KernelSU** or **APatch**, or **temporary root** (enabled with a tool, without unlocking the bootloader).
+- Qualcomm Snapdragon, MediaTek or Exynos processors.
 
-## Instalación
+## Installation
 
-1. Descarga la APK desde el enlace de arriba.
-2. Ábrela y, si Android lo pide, permite instalar apps desconocidas para tu navegador o gestor de archivos.
-3. Abre Monitor Root y acepta el aviso de tu gestor de root. Si usas root temporal, actívalo antes de abrir la app.
-4. Las siguientes versiones llegarán con un aviso dentro de la app y se instalan con un toque.
+1. Download the APK from the link above.
+2. Open it and, if Android asks, allow your browser or file manager to install unknown apps.
+3. Open Monitor Root and accept your root manager's prompt. If you use temporary root, enable it before opening the app.
+4. Future versions arrive with an in-app prompt and install with one tap.
 
-## Permisos y privacidad
+## Permissions and privacy
 
-- **Root:** se usa para leer los procesos y sensores del sistema y para las acciones que tú eliges (finalizar procesos, cambiar prioridades, instalar actualizaciones).
-- **Internet:** solo se usa para comprobar si hay una versión nueva en este repositorio de GitHub.
-- **Estadísticas de uso:** para el historial de aplicaciones. Los datos se quedan en tu teléfono.
-- La app no tiene anuncios ni envía tus datos a ningún servidor.
+- **Root:** used to read system processes and sensors, and for the actions you choose (ending processes, changing priorities, installing updates).
+- **Internet:** only used to check this GitHub repository for a new version.
+- **Usage statistics:** for app history. The data stays on your phone.
+- The app has no ads and doesn't send your data to any server.
 
-## Preguntas frecuentes
+## FAQ
 
-**¿Funciona sin root?**
-No. Desde Android 8, las apps normales no pueden ver los procesos de otras apps ni leer sensores como la carga de la GPU.
+**Does it work without root?**
+No. Since Android 8, regular apps can't see other apps' processes or read sensors like GPU load.
 
-**¿Funciona con root temporal?**
-Sí. La app funciona igual mientras el root temporal esté activo. Como ese tipo de root se pierde al reiniciar el teléfono, después de cada reinicio tienes que volver a activarlo. Mientras no esté activo, la app no puede leer los datos del sistema ni instalar actualizaciones sola.
+**Does it work with temporary root?**
+Yes. The app works the same while temporary root is active. Because that kind of root is lost when the phone restarts, you need to enable it again after every restart. Until it's active, the app can't read system data or install updates on its own.
 
-**¿Puede dañar mi teléfono?**
-Ver información es seguro. Finalizar procesos o servicios del sistema puede hacer que el teléfono se reinicie, por eso la app pide confirmación antes.
+**Can it damage my phone?**
+Viewing information is safe. Ending system processes or services can restart the phone, so the app asks for confirmation first.
 
-**¿Por qué la temperatura de la GPU dice "(SoC)"?**
-Algunos procesadores no tienen un sensor propio para la GPU. En ese caso se muestra la temperatura del procesador, que está en el mismo chip.
+**Why does the GPU temperature say "(SoC)"?**
+Some processors don't have their own GPU sensor. In that case the app shows the processor temperature, which is on the same chip.
 
-## Informar un problema
+## Report a problem
 
-Abre un reporte en [Issues](https://github.com/kevxngg/monitor-root/issues/new). En la app, en **Configuración → Acerca de**, puedes copiar la información de tu dispositivo para incluirla en el reporte.
+Open a report in [Issues](https://github.com/kevxngg/monitor-root/issues/new). In the app, under **Settings → About**, you can copy your device information to include it in the report.
 
-## Compilar desde el código
+## Build from source
 
-El proyecto está hecho en Kotlin con Jetpack Compose.
+The project is written in Kotlin with Jetpack Compose.
 
 ```bash
 git clone https://github.com/kevxngg/monitor-root.git
@@ -96,10 +98,10 @@ cd monitor-root
 gradle assembleRelease
 ```
 
-La APK queda en `app/build/outputs/apk/release/`.
+The APK ends up in `app/build/outputs/apk/release/`.
 
-## Autor
+## Author
 
-Hecho por **[kevxngg](https://github.com/kevxngg)**.
+Made by **[kevxngg](https://github.com/kevxngg)**.
 
-Monitor Root no está afiliado a Microsoft. Windows es una marca de Microsoft Corporation.
+Monitor Root is not affiliated with Microsoft. Windows is a trademark of Microsoft Corporation.
