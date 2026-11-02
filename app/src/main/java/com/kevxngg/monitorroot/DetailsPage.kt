@@ -56,7 +56,7 @@ fun DetailsPage(
     }
     val selected = rows.firstOrNull { it.pid == selPid }
 
-    // Llegada desde "Ir a detalles"
+    // Llegada desde tr("Ir a detalles")
     LaunchedEffect(focusPid, rows.isNotEmpty()) {
         val pid = focusPid ?: return@LaunchedEffect
         val idx = rows.indexOfFirst { it.pid == pid }
@@ -70,27 +70,27 @@ fun DetailsPage(
     fun menuFor(p: ProcInfo): List<MenuEntry> {
         val suspended = p.state == 'T' || p.state == 't'
         return listOf(
-            MenuEntry("Finalizar tarea", Icons.Outlined.Block) { confirmEnd = p to false },
-            MenuEntry("Finalizar árbol de procesos", Icons.Outlined.AccountTree) { confirmEnd = p to true },
-            MenuEntry(if (suspended) "Reanudar proceso" else "Suspender proceso", if (suspended) Icons.Outlined.PlayArrow else Icons.Outlined.Pause) {
+            MenuEntry(tr("Finalizar tarea"), Icons.Outlined.Block) { confirmEnd = p to false },
+            MenuEntry(tr("Finalizar árbol de procesos"), Icons.Outlined.AccountTree) { confirmEnd = p to true },
+            MenuEntry(if (suspended) tr("Reanudar proceso") else tr("Suspender proceso"), if (suspended) Icons.Outlined.PlayArrow else Icons.Outlined.Pause) {
                 scope.launch(Dispatchers.IO) { Actions.kill(listOf(p.pid), if (suspended) "CONT" else "STOP") }
             },
-            MenuEntry("Establecer prioridad", Icons.Outlined.LowPriority) { prio = p },
-            MenuEntry("Establecer afinidad", Icons.Outlined.Memory) { affinity = p },
-            MenuEntry("Buscar en línea", Icons.Outlined.Search) { searchOnline(ctx, p.pkg ?: p.name) },
-            MenuEntry("Propiedades", Icons.Outlined.Description) { props = p },
+            MenuEntry(tr("Establecer prioridad"), Icons.Outlined.LowPriority) { prio = p },
+            MenuEntry(tr("Establecer afinidad"), Icons.Outlined.Memory) { affinity = p },
+            MenuEntry(tr("Buscar en línea"), Icons.Outlined.Search) { searchOnline(ctx, p.pkg ?: p.name) },
+            MenuEntry(tr("Propiedades"), Icons.Outlined.Description) { props = p },
         )
     }
 
     val cols = listOf(
         Col("pid", "PID", 64.dp),
-        Col("state", "Estado", 104.dp, end = false),
-        Col("user", "Nombre de usuario", 130.dp, end = false),
+        Col("state", tr("Estado"), 104.dp, end = false),
+        Col("user", tr("Nombre de usuario"), 130.dp, end = false),
         Col("cpu", "CPU", 52.dp),
-        Col("mem", "Memoria", 86.dp),
-        Col("threads", "Subprocesos", 96.dp),
-        Col("prio", "Prioridad", 170.dp, end = false),
-        Col("disk", "Disco", 84.dp),
+        Col("mem", tr("Memoria"), 86.dp),
+        Col("threads", tr("Subprocesos"), 96.dp),
+        Col("prio", tr("Prioridad"), 170.dp, end = false),
+        Col("disk", tr("Disco"), 84.dp),
     )
 
     fun cells(p: ProcInfo) = listOf(
@@ -105,15 +105,15 @@ fun DetailsPage(
     )
 
     Column(Modifier.fillMaxSize()) {
-        PageHeader("Detalles") {
-            CmdButton(Icons.Outlined.AddBox, "Ejecutar nueva tarea", onClick = onRun)
-            CmdButton(Icons.Outlined.Block, "Finalizar tarea", enabled = selected != null) { selected?.let { confirmEnd = it to false } }
-            CmdMore(selected?.let { menuFor(it).drop(1) } ?: listOf(MenuEntry("Selecciona un proceso", enabled = false) {}))
+        PageHeader(tr("Detalles")) {
+            CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
+            CmdButton(Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null) { selected?.let { confirmEnd = it to false } }
+            CmdMore(selected?.let { menuFor(it).drop(1) } ?: listOf(MenuEntry(tr("Selecciona un proceso"), enabled = false) {}))
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val nameW = nameWidth(maxWidth, cols, 160.dp)
             Column(Modifier.fillMaxSize()) {
-                TableHeader("Nombre", nameW, cols, h, sortId, asc) { id ->
+                TableHeader(tr("Nombre"), nameW, cols, h, sortId, asc) { id ->
                     if (sortId == id) asc = !asc else {
                         sortId = id; asc = id == "name" || id == "pid" || id == "user"
                     }
@@ -143,10 +143,10 @@ fun DetailsPage(
 
     confirmEnd?.let { (p, tree) ->
         ConfirmDialog(
-            title = if (tree) "¿Finalizar el árbol de procesos de ${p.name}?" else "¿Finalizar ${p.name}?",
-            text = if (tree) "Se finalizará este proceso y todos los que inició. Si son procesos del sistema, el teléfono puede reiniciarse."
-            else "Si finalizas un proceso del sistema, el teléfono puede volverse inestable o reiniciarse.",
-            confirm = if (tree) "Finalizar árbol de procesos" else "Finalizar proceso",
+            title = if (tree) tr("¿Finalizar el árbol de procesos de %s?", p.name) else tr("¿Finalizar %s?", p.name),
+            text = if (tree) tr("Se finalizará este proceso y todos los que inició. Si son procesos del sistema, el teléfono puede reiniciarse.")
+            else tr("Si finalizas un proceso del sistema, el teléfono puede volverse inestable o reiniciarse."),
+            confirm = if (tree) tr("Finalizar árbol de procesos") else tr("Finalizar proceso"),
             onConfirm = {
                 val pids = if (tree) Actions.tree(p.pid, s.processes) else listOf(p.pid)
                 scope.launch(Dispatchers.IO) { Actions.kill(pids) }

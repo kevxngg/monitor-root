@@ -49,9 +49,9 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
             val (apps, bg) = appRows(procs)
             val rows = (apps + bg + nativeRows(procs)).sortedByDescending { it.cpu }
             val name = when {
-                uid == -1 -> "Sistema (root y servicios)"
-                names[uid] != null -> "${names[uid]} (usuario $uid)"
-                else -> "Usuario $uid"
+                uid == -1 -> tr("Sistema (root y servicios)")
+                names[uid] != null -> "${names[uid]} (${tr("Usuario")} $uid)"
+                else -> tr("Usuario %d", uid)
             }
             UserGroup(uid, name, rows)
         }.sortedBy { if (it.id == -1) Int.MAX_VALUE else it.id }
@@ -59,30 +59,30 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
     val selUser = selKey?.removePrefix("user:")?.toIntOrNull()
 
     val cols = listOf(
-        Col("state", "Estado", 90.dp, end = false),
+        Col("state", tr("Estado"), 90.dp, end = false),
         Col("cpu", "CPU", 64.dp, "%.0f%%".format(s.cpuTotal)),
-        Col("mem", "Memoria", 88.dp, "%.0f%%".format(s.mem.usedPct)),
-        Col("disk", "Disco", 84.dp, "%.0f%%".format(s.disk?.activePct ?: 0f)),
+        Col("mem", tr("Memoria"), 88.dp, "%.0f%%".format(s.mem.usedPct)),
+        Col("disk", tr("Disco"), 84.dp, "%.0f%%".format(s.disk?.activePct ?: 0f)),
     )
 
     Column(Modifier.fillMaxSize()) {
-        PageHeader("Usuarios") {
-            CmdButton(Icons.Outlined.AddBox, "Ejecutar nueva tarea", onClick = onRun)
-            CmdButton(Icons.Outlined.SwitchAccount, "Cambiar a", enabled = selUser != null && selUser >= 0) {
+        PageHeader(tr("Usuarios")) {
+            CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
+            CmdButton(Icons.Outlined.SwitchAccount, tr("Cambiar a"), enabled = selUser != null && selUser >= 0) {
                 val u = selUser ?: return@CmdButton
                 val action: () -> Unit = { scope.launch(Dispatchers.IO) { RootShell.run("am switch-user $u") } }
-                confirm = "¿Cambiar al usuario $u?" to action
+                confirm = tr("¿Cambiar al usuario %d?", u) to action
             }
-            CmdButton(Icons.Outlined.Logout, "Detener usuario", enabled = selUser != null && selUser > 0) {
+            CmdButton(Icons.Outlined.Logout, tr("Detener usuario"), enabled = selUser != null && selUser > 0) {
                 val u = selUser ?: return@CmdButton
                 val action: () -> Unit = { scope.launch(Dispatchers.IO) { RootShell.run("am stop-user -f $u") } }
-                confirm = "¿Detener el usuario $u? Se cerrarán todas sus apps." to action
+                confirm = tr("¿Detener el usuario %d? Se cerrarán todas sus apps.", u) to action
             }
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val nameW = nameWidth(maxWidth, cols)
             Column(Modifier.fillMaxSize()) {
-                TableHeader("Usuario", nameW, cols, h, "cpu", false) {}
+                TableHeader(tr("Usuario"), nameW, cols, h, "cpu", false) {}
                 LazyColumn(Modifier.fillMaxSize()) {
                     groups.forEach { g ->
                         item(key = "user:${g.id}") {
@@ -90,7 +90,7 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
                             TableRow(
                                 nameW, cols,
                                 listOf(
-                                    Cell("Activo"),
+                                    Cell(tr("Activo")),
                                     Cell("%.1f %%".format(g.cpu), heat = g.cpu / 50f),
                                     Cell(formatKb(g.rssKb), heat = if (s.mem.totalKb > 0) g.rssKb * 2f / s.mem.totalKb else 0f),
                                     Cell(formatMBs(g.diskBps), heat = g.diskBps / 20_971_520f),
@@ -116,7 +116,7 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                 TableRow(
                                     nameW, cols,
                                     listOf(
-                                        Cell(if (r.suspended) "Suspendido" else ""),
+                                        Cell(if (r.suspended) tr("Suspendido") else ""),
                                         Cell("%.1f %%".format(r.cpu), heat = r.cpu / 50f),
                                         Cell(formatKb(r.rssKb), heat = if (s.mem.totalKb > 0) r.rssKb * 6f / s.mem.totalKb else 0f),
                                         Cell(formatMBs(r.diskBps), heat = r.diskBps / 20_971_520f),
@@ -143,6 +143,6 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
     }
 
     confirm?.let { (text, action) ->
-        ConfirmDialog("Usuarios", text, "Aceptar", onConfirm = action, onDismiss = { confirm = null })
+        ConfirmDialog(tr("Usuarios"), text, tr("Aceptar"), onConfirm = action, onDismiss = { confirm = null })
     }
 }

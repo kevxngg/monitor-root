@@ -119,35 +119,35 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
     val maxMobile = rows.maxOfOrNull { it.mobileBytes }?.coerceAtLeast(1L) ?: 1L
 
     val cols = listOf(
-        Col("fg", "Tiempo de uso", 104.dp),
-        Col("cpu", "Tiempo de CPU", 104.dp),
+        Col("fg", tr("Tiempo de uso"), 104.dp),
+        Col("cpu", tr("Tiempo de CPU"), 104.dp),
         Col("wifi", "Wi‑Fi", 90.dp),
-        Col("mobile", "Datos móviles", 108.dp),
+        Col("mobile", tr("Datos móviles"), 108.dp),
     )
 
     Column(Modifier.fillMaxSize()) {
-        PageHeader("Historial de aplicaciones") {
-            CmdButton(Icons.Outlined.AddBox, "Ejecutar nueva tarea", onClick = onRun)
-            CmdButton(Icons.Outlined.Refresh, "Actualizar") { reload++ }
-            CmdMore(PERIODS.mapIndexed { i, (label, _) -> MenuEntry(label, checked = period == i) { period = i } })
+        PageHeader(tr("Historial de aplicaciones")) {
+            CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
+            CmdButton(Icons.Outlined.Refresh, tr("Actualizar")) { reload++ }
+            CmdMore(PERIODS.mapIndexed { i, (label, _) -> MenuEntry(tr(label), checked = period == i) { period = i } })
         }
-        val since = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+        val since = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, I18n.locale())
             .format(Date(System.currentTimeMillis() - PERIODS[period].second * 24 * 3600 * 1000))
         Text(
-            "Uso de recursos desde el $since para el usuario actual.",
+            tr("Uso de recursos desde el %s para el usuario actual.", since),
             fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
         )
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val nameW = nameWidth(maxWidth, cols)
             Column(Modifier.fillMaxSize()) {
-                TableHeader("Nombre", nameW, cols, h, sortId, asc) { id ->
+                TableHeader(tr("Nombre"), nameW, cols, h, sortId, asc) { id ->
                     if (sortId == id) asc = !asc else {
                         sortId = id; asc = id == "name"
                     }
                 }
                 when {
-                    data == null -> EmptyText("Leyendo estadísticas de uso…")
-                    rows.isEmpty() -> EmptyText("No hay datos. Si es la primera vez, toca Actualizar.")
+                    data == null -> EmptyText(tr("Leyendo estadísticas de uso…"))
+                    rows.isEmpty() -> EmptyText(tr("No hay datos. Si es la primera vez, toca Actualizar."))
                     else -> LazyColumn(Modifier.fillMaxSize()) {
                         items(rows, key = { it.pkg }) { r ->
                             val cpu = cpuSec[r.pkg] ?: 0L
@@ -167,11 +167,11 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                     WinMenu(
                                         menuPkg == r.pkg, { menuPkg = null },
                                         listOf(
-                                            MenuEntry("Abrir", Icons.Outlined.OpenInNew) {
+                                            MenuEntry(tr("Abrir"), Icons.Outlined.OpenInNew) {
                                                 Apps.pm()?.getLaunchIntentForPackage(r.pkg)?.let { ctx.startActivity(it) }
                                             },
-                                            MenuEntry("Información de la app", Icons.Outlined.Info) { openAppInfo(ctx, r.pkg) },
-                                            MenuEntry("Buscar en línea", Icons.Outlined.Search) { searchOnline(ctx, r.label) },
+                                            MenuEntry(tr("Información de la app"), Icons.Outlined.Info) { openAppInfo(ctx, r.pkg) },
+                                            MenuEntry(tr("Buscar en línea"), Icons.Outlined.Search) { searchOnline(ctx, r.label) },
                                         ),
                                     )
                                 },

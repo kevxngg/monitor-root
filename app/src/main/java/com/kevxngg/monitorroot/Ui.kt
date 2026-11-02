@@ -184,7 +184,7 @@ fun CmdMore(entries: List<MenuEntry>) {
     var open by remember { mutableStateOf(false) }
     Box {
         Box(Modifier.clip(RoundedCornerShape(4.dp)).clickable { open = true }.padding(7.dp)) {
-            Icon(Icons.Outlined.MoreHoriz, "Más", tint = win.text, modifier = Modifier.size(18.dp))
+            Icon(Icons.Outlined.MoreHoriz, tr("Más"), tint = win.text, modifier = Modifier.size(18.dp))
         }
         WinMenu(open, { open = false }, entries)
     }
@@ -361,7 +361,7 @@ fun ConfirmDialog(title: String, text: String, confirm: String, onConfirm: () ->
         title = { Text(title, fontSize = 18.sp) },
         text = { Text(text, fontSize = 14.sp) },
         confirmButton = { TextButton(onClick = { onDismiss(); onConfirm() }) { Text(confirm) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar")) } },
     )
 }
 
@@ -372,32 +372,32 @@ fun PropertiesDialog(p: ProcInfo, uptimeSec: Long, onDismiss: () -> Unit) {
     LaunchedEffect(p.pid) { info = withContext(Dispatchers.IO) { Actions.properties(p.pid) } }
     val started = (uptimeSec - p.startTicks / 100).coerceAtLeast(0)
     val base = listOf(
-        "Nombre" to p.name,
+        tr("Nombre") to p.name,
         "PID" to p.pid.toString(),
-        "Proceso padre (PPID)" to p.ppid.toString(),
-        "Usuario" to p.user,
-        "Estado" to stateText(p.state),
-        "Prioridad" to "${priorityText(p.nice)} (nice ${p.nice})",
-        "Subprocesos" to p.threads.toString(),
-        "Memoria" to formatKb(p.rssKb),
-        "Tiempo de CPU" to formatDuration(p.cpuTicks / 100),
-        "En ejecución desde hace" to formatUptime(started),
-    ) + listOfNotNull(p.pkg?.let { "Paquete" to it })
+        tr("Proceso padre (PPID)") to p.ppid.toString(),
+        tr("Usuario") to p.user,
+        tr("Estado") to stateText(p.state),
+        tr("Prioridad") to "${priorityText(p.nice)} (nice ${p.nice})",
+        tr("Subprocesos") to p.threads.toString(),
+        tr("Memoria") to formatKb(p.rssKb),
+        tr("Tiempo de CPU") to formatDuration(p.cpuTicks / 100),
+        tr("En ejecución desde hace") to formatUptime(started),
+    ) + listOfNotNull(p.pkg?.let { tr("Paquete") to it })
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Propiedades", fontSize = 18.sp) },
+        title = { Text(tr("Propiedades"), fontSize = 18.sp) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                (base + (info ?: emptyList())).forEach { (k, v) ->
+                (base + (info ?: emptyList()).map { (k, v) -> tr(k) to v }).forEach { (k, v) ->
                     Column {
                         Text(k, fontSize = 11.sp, color = win.sub)
                         Text(v.ifBlank { "—" }, fontSize = 13.sp, color = win.text)
                     }
                 }
-                if (info == null) Text("Cargando…", fontSize = 12.sp, color = win.sub)
+                if (info == null) Text(tr("Cargando…"), fontSize = 12.sp, color = win.sub)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Cerrar")) } },
     )
 }
 
@@ -406,7 +406,7 @@ fun PriorityDialog(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
     val win = LocalWin.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Establecer prioridad", fontSize = 18.sp) },
+        title = { Text(tr("Establecer prioridad"), fontSize = 18.sp) },
         text = {
             Column {
                 PRIORITIES.forEach { (label, value) ->
@@ -414,13 +414,13 @@ fun PriorityDialog(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).clickable { onDismiss(); onPick(value) }.padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(selected = priorityText(current) == label, onClick = { onDismiss(); onPick(value) })
-                        Text(label, fontSize = 14.sp, color = win.text)
+                        RadioButton(selected = priorityText(current) == tr(label), onClick = { onDismiss(); onPick(value) })
+                        Text(tr(label), fontSize = 14.sp, color = win.text)
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar")) } },
     )
 }
 
@@ -432,15 +432,15 @@ fun AffinityDialog(pid: Int, cores: Int, onDismiss: () -> Unit) {
     val m = mask
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Afinidad del procesador", fontSize = 18.sp) },
+        title = { Text(tr("Afinidad del procesador"), fontSize = 18.sp) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text("¿Qué núcleos pueden ejecutar este proceso?", fontSize = 13.sp, color = win.sub)
+                Text(tr("¿Qué núcleos pueden ejecutar este proceso?"), fontSize = 13.sp, color = win.sub)
                 if (m != null) {
                     val all = (1L shl cores) - 1
                     Row(Modifier.fillMaxWidth().clickable { mask = if ((m and all) == all) 1L else all }, verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = (m and all) == all, onCheckedChange = { mask = if (it) all else 1L })
-                        Text("<Todos los procesadores>", fontSize = 14.sp, color = win.text)
+                        Text(tr("<Todos los procesadores>"), fontSize = 14.sp, color = win.text)
                     }
                     for (i in 0 until cores) {
                         val bit = 1L shl i
@@ -460,8 +460,8 @@ fun AffinityDialog(pid: Int, cores: Int, onDismiss: () -> Unit) {
                     onDismiss()
                     Thread { Actions.setAffinity(pid, v) }.start()
                 },
-            ) { Text("Aceptar") }
+            ) { Text(tr("Aceptar")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar")) } },
     )
 }

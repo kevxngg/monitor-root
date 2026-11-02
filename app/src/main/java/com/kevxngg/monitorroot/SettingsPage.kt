@@ -38,66 +38,75 @@ fun SettingsPage() {
     var found by remember { mutableStateOf<UpdateInfo?>(null) }
     found?.let { UpdateDialog(it) { found = null } }
     Column(Modifier.fillMaxSize()) {
-        PageHeader("Configuración") {}
+        PageHeader(tr("Configuración")) {}
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            SectionLabel("General")
-            SettingCard(Icons.Outlined.Palette, "Tema de la aplicación", "Elige la apariencia de la app") {
-                WinDropdown(listOf("Usar configuración del sistema", "Claro", "Oscuro"), Prefs.theme) {
+            SectionLabel(tr("General"))
+            SettingCard(Icons.Outlined.Language, tr("Idioma"), tr("Idioma de la aplicación")) {
+                val codes = listOf("") + I18n.LANGS.map { it.first }
+                val names = listOf(tr("Usar idioma del sistema")) + I18n.LANGS.map { it.second }
+                WinDropdown(names, codes.indexOf(Prefs.language).coerceAtLeast(0)) {
+                    Prefs.language = codes[it]
+                    Prefs.save()
+                    I18n.apply(Prefs.language)
+                }
+            }
+            SettingCard(Icons.Outlined.Palette, tr("Tema de la aplicación"), tr("Elige la apariencia de la app")) {
+                WinDropdown(listOf(tr("Usar configuración del sistema"), tr("Claro"), tr("Oscuro")), Prefs.theme) {
                     Prefs.theme = it; Prefs.save()
                 }
             }
-            SettingCard(Icons.Outlined.Home, "Página de inicio predeterminada", "La página que se abre al iniciar la app") {
-                WinDropdown(Page.entries.filter { it != Page.SETTINGS }.map { it.title }, Prefs.startPage) {
+            SettingCard(Icons.Outlined.Home, tr("Página de inicio predeterminada"), tr("La página que se abre al iniciar la app")) {
+                WinDropdown(Page.entries.filter { it != Page.SETTINGS }.map { tr(it.title) }, Prefs.startPage) {
                     Prefs.startPage = it; Prefs.save()
                 }
             }
-            SettingCard(Icons.Outlined.Speed, "Velocidad de actualización en tiempo real", "Cada cuánto se actualizan los datos") {
-                WinDropdown(listOf("Alta (0,5 s)", "Normal (1 s)", "Baja (4 s)", "En pausa"), Prefs.speed) {
+            SettingCard(Icons.Outlined.Speed, tr("Velocidad de actualización en tiempo real"), tr("Cada cuánto se actualizan los datos")) {
+                WinDropdown(listOf(tr("Alta (0,5 s)"), tr("Normal (1 s)"), tr("Baja (4 s)"), tr("En pausa")), Prefs.speed) {
                     Prefs.speed = it; Prefs.save()
                 }
             }
             Spacer(Modifier.height(8.dp))
-            SectionLabel("Opciones de vista")
-            SettingCard(Icons.Outlined.Category, "Agrupar por tipo", "Separa aplicaciones, procesos en segundo plano y de Android") {
+            SectionLabel(tr("Opciones de vista"))
+            SettingCard(Icons.Outlined.Category, tr("Agrupar por tipo"), tr("Separa aplicaciones, procesos en segundo plano y de Android")) {
                 WinSwitch(Prefs.groupByType) { Prefs.groupByType = it; Prefs.save() }
             }
-            SettingCard(Icons.Outlined.Badge, "Mostrar nombres de paquete", "Muestra com.ejemplo.app en lugar del nombre de la app") {
+            SettingCard(Icons.Outlined.Badge, tr("Mostrar nombres de paquete"), tr("Muestra com.ejemplo.app en lugar del nombre de la app")) {
                 WinSwitch(Prefs.showPackageNames) { Prefs.showPackageNames = it; Prefs.save() }
             }
             Spacer(Modifier.height(8.dp))
-            SectionLabel("Modo de eficiencia")
-            SettingCard(Icons.Outlined.Eco, "Apps en modo de eficiencia", "${Prefs.efficiency.size} apps con prioridad baja") {
+            SectionLabel(tr("Modo de eficiencia"))
+            SettingCard(Icons.Outlined.Eco, tr("Apps en modo de eficiencia"), tr("%d apps con prioridad baja", Prefs.efficiency.size)) {
                 TextButton(enabled = Prefs.efficiency.isNotEmpty(), onClick = { Prefs.efficiency = emptySet(); Prefs.save() }) {
-                    Text("Quitar todas")
+                    Text(tr("Quitar todas"))
                 }
             }
             Spacer(Modifier.height(8.dp))
-            SectionLabel("Actualizaciones")
-            SettingCard(Icons.Outlined.SystemUpdate, "Buscar actualizaciones al abrir", "Avisa cuando hay una versión nueva en GitHub") {
+            SectionLabel(tr("Actualizaciones"))
+            SettingCard(Icons.Outlined.SystemUpdate, tr("Buscar actualizaciones al abrir"), tr("Avisa cuando hay una versión nueva en GitHub")) {
                 WinSwitch(Prefs.autoUpdate) { Prefs.autoUpdate = it; Prefs.save() }
             }
-            SettingCard(Icons.Outlined.Update, "Buscar ahora", checkMsg ?: "Build instalada: $build") {
+            SettingCard(Icons.Outlined.Update, tr("Buscar ahora"), checkMsg ?: tr("Build instalada: %d", build)) {
                 TextButton(enabled = !checking, onClick = {
                     checking = true
-                    checkMsg = "Buscando…"
+                    checkMsg = tr("Buscando…")
                     scope.launch {
                         val info = withContext(Dispatchers.IO) { Updater.check(ctx.applicationContext, ignoreSkipped = true) }
                         checking = false
                         if (info != null) {
                             found = info
-                            checkMsg = "Build ${info.build} disponible"
+                            checkMsg = tr("Build %d disponible", info.build)
                         } else {
-                            checkMsg = "Ya tienes la última versión (build $build)"
+                            checkMsg = tr("Ya tienes la última versión (build %d)", build)
                         }
                     }
-                }) { Text("Buscar") }
+                }) { Text(tr("Buscar")) }
             }
             Spacer(Modifier.height(8.dp))
-            SectionLabel("Acerca de")
-            SettingCard(Icons.Outlined.Info, "Monitor Root · build $build", "Monitor del sistema para Android con root") {}
+            SectionLabel(tr("Acerca de"))
+            SettingCard(Icons.Outlined.Info, "Monitor Root · build $build", tr("Monitor del sistema para Android con root")) {}
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -217,17 +226,17 @@ fun RunTaskDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Crear nueva tarea", fontSize = 18.sp) },
+        title = { Text(tr("Crear nueva tarea"), fontSize = 18.sp) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Escribe el nombre de una app para abrirla, o un comando para ejecutarlo.",
+                    tr("Escribe el nombre de una app para abrirla, o un comando para ejecutarlo."),
                     fontSize = 13.sp, color = win.sub,
                 )
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it; output = null },
-                    label = { Text("Abrir") },
+                    label = { Text(tr("Abrir")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -246,9 +255,9 @@ fun RunTaskDialog(onDismiss: () -> Unit) {
                 }
                 Row(Modifier.fillMaxWidth().clickable { admin = !admin }, verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = admin, onCheckedChange = { admin = it })
-                    Text("Crear esta tarea con privilegios de administrador (root)", fontSize = 13.sp, color = win.text)
+                    Text(tr("Crear esta tarea con privilegios de administrador (root)"), fontSize = 13.sp, color = win.text)
                 }
-                if (running) Text("Ejecutando…", fontSize = 12.sp, color = win.sub)
+                if (running) Text(tr("Ejecutando…"), fontSize = 12.sp, color = win.sub)
                 output?.let {
                     Text(
                         it, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = win.text,
@@ -257,7 +266,7 @@ fun RunTaskDialog(onDismiss: () -> Unit) {
                 }
             }
         },
-        confirmButton = { TextButton(enabled = !running && text.isNotBlank(), onClick = { submit() }) { Text("Aceptar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } },
+        confirmButton = { TextButton(enabled = !running && text.isNotBlank(), onClick = { submit() }) { Text(tr("Aceptar")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cerrar")) } },
     )
 }

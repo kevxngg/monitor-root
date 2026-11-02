@@ -47,7 +47,7 @@ private fun loadNative(): List<Service> {
         val running = st == "running"
         Service(
             key = "init:$name", name = name, pid = if (running) pids[name] else null,
-            description = "Servicio nativo de Android",
+            description = tr("Servicio nativo de Android"),
             running = running,
             group = "init",
             native = true,
@@ -71,7 +71,7 @@ private fun loadAppServices(): List<Service> {
                 key = "app:u$user:$c", name = short, pid = pid,
                 description = Apps.meta(pkg)?.label ?: pkg,
                 running = true,
-                group = if (user == 0) pkg else "$pkg (usuario $user)",
+                group = if (user == 0) pkg else "$pkg (${tr("Usuario")} $user)",
                 native = false,
                 component = c,
             )
@@ -132,11 +132,11 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
 
     fun act(sv: Service, verb: String) {
         val title = when (verb) {
-            "start" -> "¿Iniciar ${sv.name}?"
-            "stop" -> "¿Detener ${sv.name}?"
-            else -> "¿Reiniciar ${sv.name}?"
+            "start" -> tr("¿Iniciar %s?", sv.name)
+            "stop" -> tr("¿Detener %s?", sv.name)
+            else -> tr("¿Reiniciar %s?", sv.name)
         }
-        val warn = if (sv.native) "\n\nEs un servicio del sistema: detenerlo puede dejar el teléfono inestable o hacer que se reinicie." else ""
+        val warn = if (sv.native) tr("\n\nEs un servicio del sistema: detenerlo puede dejar el teléfono inestable o hacer que se reinicie.") else ""
         val action: () -> Unit = {
             scope.launch(Dispatchers.IO) {
                 val n = Actions.q(sv.name)
@@ -155,47 +155,47 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
     }
 
     fun menuFor(sv: Service) = listOfNotNull(
-        if (sv.native) MenuEntry("Iniciar", Icons.Outlined.PlayArrow, enabled = !sv.running) { act(sv, "start") } else null,
-        MenuEntry("Detener", Icons.Outlined.Stop, enabled = sv.running) { act(sv, "stop") },
-        if (sv.native) MenuEntry("Reiniciar", Icons.Outlined.RestartAlt, enabled = sv.running) { act(sv, "restart") } else null,
-        sv.pid?.let { p -> MenuEntry("Ir a detalles", Icons.Outlined.FormatListBulleted) { onGoDetails(p) } },
-        MenuEntry("Buscar en línea", Icons.Outlined.Search) { searchOnline(ctx, "Android ${sv.name}") },
+        if (sv.native) MenuEntry(tr("Iniciar"), Icons.Outlined.PlayArrow, enabled = !sv.running) { act(sv, "start") } else null,
+        MenuEntry(tr("Detener"), Icons.Outlined.Stop, enabled = sv.running) { act(sv, "stop") },
+        if (sv.native) MenuEntry(tr("Reiniciar"), Icons.Outlined.RestartAlt, enabled = sv.running) { act(sv, "restart") } else null,
+        sv.pid?.let { p -> MenuEntry(tr("Ir a detalles"), Icons.Outlined.FormatListBulleted) { onGoDetails(p) } },
+        MenuEntry(tr("Buscar en línea"), Icons.Outlined.Search) { searchOnline(ctx, "Android ${sv.name}") },
     )
 
     val cols = listOf(
         Col("pid", "PID", 64.dp),
-        Col("desc", "Descripción", 190.dp, end = false),
-        Col("state", "Estado", 110.dp, end = false),
-        Col("group", "Grupo", 200.dp, end = false),
+        Col("desc", tr("Descripción"), 190.dp, end = false),
+        Col("state", tr("Estado"), 110.dp, end = false),
+        Col("group", tr("Grupo"), 200.dp, end = false),
     )
 
     Column(Modifier.fillMaxSize()) {
-        PageHeader("Servicios") {
-            CmdButton(Icons.Outlined.AddBox, "Ejecutar nueva tarea", onClick = onRun)
-            CmdButton(Icons.Outlined.PlayArrow, "Iniciar", enabled = selected != null && selected.native && !selected.running) {
+        PageHeader(tr("Servicios")) {
+            CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
+            CmdButton(Icons.Outlined.PlayArrow, tr("Iniciar"), enabled = selected != null && selected.native && !selected.running) {
                 selected?.let { act(it, "start") }
             }
-            CmdButton(Icons.Outlined.Stop, "Detener", enabled = selected?.running == true) { selected?.let { act(it, "stop") } }
-            CmdButton(Icons.Outlined.RestartAlt, "Reiniciar", enabled = selected != null && selected.native && selected.running) {
+            CmdButton(Icons.Outlined.Stop, tr("Detener"), enabled = selected?.running == true) { selected?.let { act(it, "stop") } }
+            CmdButton(Icons.Outlined.RestartAlt, tr("Reiniciar"), enabled = selected != null && selected.native && selected.running) {
                 selected?.let { act(it, "restart") }
             }
             CmdMore(
                 listOf(
-                    MenuEntry("Mostrar solo en ejecución", checked = onlyRunning) { onlyRunning = !onlyRunning },
-                    MenuEntry("Actualizar", Icons.Outlined.Refresh) { reload++ },
+                    MenuEntry(tr("Mostrar solo en ejecución"), checked = onlyRunning) { onlyRunning = !onlyRunning },
+                    MenuEntry(tr("Actualizar"), Icons.Outlined.Refresh) { reload++ },
                 )
             )
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val nameW = nameWidth(maxWidth, cols, 160.dp)
             Column(Modifier.fillMaxSize()) {
-                TableHeader("Nombre", nameW, cols, h, sortId, asc) { id ->
+                TableHeader(tr("Nombre"), nameW, cols, h, sortId, asc) { id ->
                     if (sortId == id) asc = !asc else {
                         sortId = id; asc = true
                     }
                 }
                 if (native == null) {
-                    EmptyText("Leyendo servicios…")
+                    EmptyText(tr("Leyendo servicios…"))
                 } else {
                     LazyColumn(Modifier.fillMaxSize()) {
                         items(rows, key = { it.key }) { sv ->
@@ -204,7 +204,7 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
                                 listOf(
                                     Cell(sv.pid?.toString() ?: ""),
                                     Cell(sv.description),
-                                    Cell(if (sv.running) "En ejecución" else "Detenido"),
+                                    Cell(if (sv.running) tr("En ejecución") else tr("Detenido")),
                                     Cell(sv.group),
                                 ),
                                 h,
@@ -229,6 +229,6 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
     }
 
     confirm?.let { (text, action) ->
-        ConfirmDialog("Servicios", text, "Aceptar", onConfirm = action, onDismiss = { confirm = null })
+        ConfirmDialog(tr("Servicios"), text, tr("Aceptar"), onConfirm = action, onDismiss = { confirm = null })
     }
 }

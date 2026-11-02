@@ -134,13 +134,13 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
 
     fun start() {
         busy = true
-        status = "Descargando…"
+        status = tr("Descargando…")
         progress = 0f
         scope.launch {
             val ok = withContext(Dispatchers.IO) {
                 try {
                     val f = Updater.download(ctx, info.apkUrl) { p -> progress = p }
-                    status = "Instalando… la app se cerrará y volverá a abrirse."
+                    status = tr("Instalando… la app se cerrará y volverá a abrirse.")
                     Updater.install(ctx, f)
                 } catch (e: Exception) {
                     false
@@ -149,23 +149,23 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
             if (!ok) {
                 busy = false
                 progress = null
-                status = "No se pudo instalar automáticamente. Puedes descargarla desde el navegador."
+                status = tr("No se pudo instalar automáticamente. Puedes descargarla desde el navegador.")
             }
         }
     }
 
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text("Hay una nueva versión", fontSize = 18.sp) },
+        title = { Text(tr("Hay una nueva versión"), fontSize = 18.sp) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Build ${info.build} disponible (tienes la build $current)" +
+                    tr("Build %d disponible (tienes la build %d)", info.build, current) +
                         if (info.sizeBytes > 0) " · ${formatBytes(info.sizeBytes)}" else "",
                     fontSize = 13.sp, color = win.sub,
                 )
                 if (info.notes.isNotBlank()) {
-                    Text("Novedades", fontSize = 13.sp, color = win.text)
+                    Text(tr("Novedades"), fontSize = 13.sp, color = win.text)
                     Text(info.notes.trim(), fontSize = 13.sp, color = win.text)
                 }
                 progress?.let { p ->
@@ -175,19 +175,19 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(enabled = !busy, onClick = { start() }) { Text("Actualizar ahora") }
+            TextButton(enabled = !busy, onClick = { start() }) { Text(tr("Actualizar ahora")) }
         },
         dismissButton = {
             Row {
                 if (!busy && status != null) {
-                    TextButton(onClick = { Updater.openInBrowser(ctx, info.apkUrl) }) { Text("Navegador") }
+                    TextButton(onClick = { Updater.openInBrowser(ctx, info.apkUrl) }) { Text(tr("Navegador")) }
                 }
                 TextButton(enabled = !busy, onClick = {
                     Prefs.skippedBuild = info.build
                     Prefs.save()
                     onDismiss()
-                }) { Text("Omitir") }
-                TextButton(enabled = !busy, onClick = onDismiss) { Text("Más tarde") }
+                }) { Text(tr("Omitir")) }
+                TextButton(enabled = !busy, onClick = onDismiss) { Text(tr("Más tarde")) }
             }
         },
     )
