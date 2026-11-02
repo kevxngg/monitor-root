@@ -3,6 +3,14 @@ package com.kevxngg.monitorroot
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.net.ConnectivityManager
+import android.os.Build
+import android.provider.Settings
+import android.util.Log
+import java.io.IOException
+import java.net.UnknownHostException
+import java.net.SocketTimeoutException
+import javax.net.ssl.SSLException
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.pm.PackageInfoCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -22,7 +31,28 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-class UpdateInfo(val build: Int, val title: String, val notes: String, val apkUrl: String, val sizeBytes: Long)
+data class UpdateInfo(val build: Int, val title: String, val notes: String, val apkUrl: String, val sizeBytes: Long)
+
+sealed interface UpdateResult {
+    data class Success(val info: UpdateInfo) : UpdateResult
+    data class Failure(val reason: UpdateFailure, val privateDns: Boolean) : UpdateResult
+}
+
+enum class UpdateFailure { DNS, TIMEOUT, TLS, HTTP, DATA, NETWORK }
+
+fun UpdateResult.Failure.message(): String {
+    val detail = tr(when (reason) {
+        UpdateFailure.DNS -> "No se pudo resolver la dirección de GitHub."
+        UpdateFailure.TIMEOUT -> "GitHub tardó demasiado en responder."
+        UpdateFailure.TLS -> "No se pudo establecer una conexión segura con GitHub. Revisa la fecha y hora del teléfono."
+        UpdateFailure.HTTP -> "GitHub rechazó la consulta o no está disponible. Inténtalo más tarde."
+        UpdateFailure.DATA -> "La información de actualización recibida no es válida."
+        UpdateFailure.NETWORK -> "No se pudo conectar con GitHub. Revisa la conexión de esta aplicación."
+    })
+    return if (privateDns && reason in setOf(UpdateFailure.DNS, UpdateFailure.TIMEOUT, UpdateFailure.TLS, UpdateFailure.NETWORK)) {
+        detail + "\n" + tr("Hay DNS privado activo y podría estar relacionado. Prueba DNS automático o desactívalo temporalmente y vuelve a buscar.")
+    } else detail
+}
 
 /** Busca nuevas versiones en las Releases de GitHub y las instala con root. */
 object Updater {
@@ -50,11 +80,9 @@ object Updater {
     // que no tiene el límite de 60 consultas por hora de la API.
     private const val FEED = "https://github.com/kevxngg/monitor-root/releases/latest/download/update.json"
 
-    /** true si la última comprobación falló (sin conexión, GitHub no respondió…). */
-    @Volatile var lastFailed = false
-        private set
+    private class HttpFailure(val status: Int) : IOException("HTTP $status")
 
-    private fun get(url: String): String? {
+    private fun get(url: String): String {
         val conn = URL(url).openConnection() as HttpURLConnection
         return try {
             conn.connectTimeout = 8000
@@ -62,61 +90,97 @@ object Updater {
             conn.useCaches = false
             conn.instanceFollowRedirects = true
             conn.setRequestProperty("Cache-Control", "no-cache")
-            conn.setRequestProperty("Accept", "application/vnd.github+json")
-            if (conn.responseCode != 200) null else conn.inputStream.bufferedReader().readText()
-        } catch (e: Exception) {
-            null
+            conn.setRequestProperty("User-Agent", "MonitorRoot-Android")
+            conn.setRequestProperty("Accept", "application/json")
+            val code = conn.responseCode
+            if (code != 200) throw HttpFailure(code)
+            conn.inputStream.bufferedReader().use { it.readText() }
         } finally {
             conn.disconnect()
         }
     }
 
-    private fun fromFeed(): UpdateInfo? = try {
-        get("$FEED?t=${System.currentTimeMillis()}")?.let { text ->
-            val j = JSONObject(text)
-            val build = j.getInt("build")
-            UpdateInfo(build, "Monitor Root (build $build)", j.optString("notes"), j.getString("apk"), j.optLong("size"))
-        }
-    } catch (e: Exception) {
-        null
+    private fun validated(info: UpdateInfo): UpdateInfo {
+        require(info.build > 0)
+        val url = URL(info.apkUrl)
+        require(url.protocol == "https" && url.host == "github.com" &&
+            url.path.startsWith("/kevxngg/monitor-root/releases/download/") && url.path.endsWith(".apk"))
+        return info
     }
 
-    /** Respaldo: la API de GitHub (por si una versión antigua no tiene update.json). */
-    private fun fromApi(): UpdateInfo? = try {
-        get("$API?t=${System.currentTimeMillis()}")?.let { text ->
-            val json = JSONObject(text)
-            val build = json.optString("tag_name").removePrefix("build-").toIntOrNull()
-            val assets = json.optJSONArray("assets")
-            var found: UpdateInfo? = null
-            if (build != null && assets != null) {
-                for (i in 0 until assets.length()) {
-                    val a = assets.getJSONObject(i)
-                    if (a.optString("name").endsWith(".apk")) {
-                        found = UpdateInfo(build, json.optString("name"), json.optString("body"), a.optString("browser_download_url"), a.optLong("size"))
-                        break
-                    }
-                }
+    private fun fromFeed(): UpdateInfo {
+        val j = JSONObject(get("$FEED?t=${System.currentTimeMillis()}"))
+        val build = j.getInt("build")
+        return validated(UpdateInfo(build, "Monitor Root (build $build)", j.optString("notes"), j.getString("apk"), j.optLong("size")))
+    }
+
+    private fun fromApi(): UpdateInfo {
+        val json = JSONObject(get("$API?t=${System.currentTimeMillis()}"))
+        val build = json.getString("tag_name").removePrefix("build-").toInt()
+        val assets = json.getJSONArray("assets")
+        for (i in 0 until assets.length()) {
+            val a = assets.getJSONObject(i)
+            if (a.optString("name") == "MonitorRoot.apk") {
+                return validated(UpdateInfo(build, json.optString("name"), json.optString("body"), a.getString("browser_download_url"), a.optLong("size")))
             }
-            found
         }
-    } catch (e: Exception) {
-        null
+        error("Release has no MonitorRoot.apk")
     }
 
-    /** Devuelve la última versión publicada, o null si hay error. */
-    fun latest(): UpdateInfo? {
-        val info = fromFeed() ?: fromApi()
-        lastFailed = info == null
-        return info
+    private fun reason(e: Exception): UpdateFailure = when (e) {
+        is UnknownHostException -> UpdateFailure.DNS
+        is SocketTimeoutException -> UpdateFailure.TIMEOUT
+        is SSLException -> UpdateFailure.TLS
+        is HttpFailure -> UpdateFailure.HTTP
+        is IOException -> UpdateFailure.NETWORK
+        else -> UpdateFailure.DATA
     }
 
-    /** Hay actualización si la publicada es más nueva que la instalada (y no se omitió). */
-    fun check(ctx: Context, ignoreSkipped: Boolean = false): UpdateInfo? {
-        val info = latest() ?: return null
-        if (info.build <= currentBuild(ctx)) return null
-        if (!ignoreSkipped && info.build <= Prefs.skippedBuild) return null
-        return info
+    fun failure(ctx: Context, e: Exception) = UpdateResult.Failure(reason(e), privateDnsActive(ctx))
+
+    fun privateDnsActive(ctx: Context): Boolean = try {
+        if (Build.VERSION.SDK_INT < 28) false else {
+            val cm = ctx.getSystemService(ConnectivityManager::class.java)
+            val network = cm?.activeNetwork
+            val active = network?.let { cm?.getLinkProperties(it)?.isPrivateDnsActive } == true
+            // Strict DNS can be configured but not yet connected.
+            active || Settings.Global.getString(ctx.contentResolver, "private_dns_mode") == "hostname"
+        }
+    } catch (_: Exception) { false }
+
+    /** A result belongs to this request; simultaneous checks cannot overwrite it. */
+    @Synchronized
+    fun fetch(ctx: Context): UpdateResult {
+        val failures = mutableListOf<UpdateFailure>()
+        for (source in listOf(::fromFeed, ::fromApi)) {
+            try {
+                val info = source()
+                val j = JSONObject().put("build", info.build).put("title", info.title)
+                    .put("notes", info.notes).put("apk", info.apkUrl).put("size", info.sizeBytes)
+                ctx.getSharedPreferences("updates", Context.MODE_PRIVATE).edit().putString("latest", j.toString()).apply()
+                return UpdateResult.Success(info)
+            } catch (e: Exception) {
+                Log.w("MonitorRootUpdater", "Update source failed: ${e.javaClass.simpleName}: ${e.message}")
+                failures += reason(e)
+            }
+        }
+        val reason = failures.firstOrNull { it in setOf(UpdateFailure.DNS, UpdateFailure.TLS, UpdateFailure.TIMEOUT, UpdateFailure.NETWORK) }
+            ?: failures.last()
+        return UpdateResult.Failure(reason, privateDnsActive(ctx))
     }
+
+    fun cached(ctx: Context): UpdateInfo? = try {
+        val text = ctx.getSharedPreferences("updates", Context.MODE_PRIVATE).getString("latest", null)
+        if (text == null) null else {
+            val j = JSONObject(text)
+            validated(UpdateInfo(j.getInt("build"), j.optString("title"), j.optString("notes"), j.getString("apk"), j.optLong("size")))
+        }
+    } catch (_: Exception) { null }
+
+    fun isRequired(ctx: Context, info: UpdateInfo) = UpdatePolicy.isRequired(currentBuild(ctx), info.build)
+
+    fun isOffered(ctx: Context, info: UpdateInfo, ignoreSkipped: Boolean = false): Boolean =
+        UpdatePolicy.isOffered(currentBuild(ctx), info.build, Prefs.skippedBuild, ignoreSkipped)
 
     fun download(ctx: Context, url: String, onProgress: (Float) -> Unit): File {
         val file = File(ctx.cacheDir, "update.apk")
@@ -125,6 +189,8 @@ object Updater {
         conn.readTimeout = 30000
         conn.instanceFollowRedirects = true
         try {
+            val code = conn.responseCode
+            if (code != 200) throw HttpFailure(code)
             val total = conn.contentLengthLong
             conn.inputStream.use { input ->
                 file.outputStream().use { out ->
@@ -168,7 +234,7 @@ object Updater {
 }
 
 @Composable
-fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
+fun UpdateDialog(info: UpdateInfo, required: Boolean = false, onDismiss: () -> Unit) {
     val win = LocalWin.current
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -182,26 +248,35 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
         status = tr("Descargando…")
         progress = 0f
         scope.launch {
+            var failureMessage: String? = null
             val ok = withContext(Dispatchers.IO) {
                 try {
                     val f = Updater.download(ctx, info.apkUrl) { p -> progress = p }
                     status = tr("Instalando… la app se cerrará y volverá a abrirse.")
                     Updater.install(ctx, f)
                 } catch (e: Exception) {
+                    failureMessage = Updater.failure(ctx, e).message()
                     false
                 }
             }
             if (!ok) {
                 busy = false
                 progress = null
-                status = tr("No se pudo instalar automáticamente. Puedes descargarla desde el navegador.")
+                status = listOfNotNull(failureMessage, tr("No se pudo instalar automáticamente. Puedes descargarla desde el navegador.")).joinToString("\n")
+            } else {
+                // A successful replacement closes this process. If it stays alive,
+                // restore the controls so a failed root install cannot trap the user.
+                delay(30_000)
+                busy = false
+                progress = null
+                status = tr("La instalación no se ha completado. Puedes reintentar o descargar desde el navegador.")
             }
         }
     }
 
     AlertDialog(
-        onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text(tr("Hay una nueva versión"), fontSize = 18.sp) },
+        onDismissRequest = { if (!busy && !required) onDismiss() },
+        title = { Text(tr(if (required) "Actualización obligatoria" else "Hay una nueva versión"), fontSize = 18.sp) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -209,6 +284,7 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                         if (info.sizeBytes > 0) " · ${formatBytes(info.sizeBytes)}" else "",
                     fontSize = 13.sp, color = win.sub,
                 )
+                if (required) Text(tr("Tienes al menos tres builds de atraso. Actualiza para continuar usando Monitor Root."), fontSize = 13.sp)
                 if (info.notes.isNotBlank()) ReleaseNotes(info.notes)
                 progress?.let { p ->
                     LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth(), color = win.accent)
@@ -221,15 +297,15 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
         },
         dismissButton = {
             Row {
-                if (!busy && status != null) {
+                if (!busy && (status != null || required)) {
                     TextButton(onClick = { Updater.openInBrowser(ctx, info.apkUrl) }) { Text(tr("Navegador")) }
                 }
-                TextButton(enabled = !busy, onClick = {
+                if (!required) TextButton(enabled = !busy, onClick = {
                     Prefs.skippedBuild = info.build
                     Prefs.save()
                     onDismiss()
                 }) { Text(tr("Omitir")) }
-                TextButton(enabled = !busy, onClick = { Updater.snooze(info.build); onDismiss() }) { Text(tr("Más tarde")) }
+                if (!required) TextButton(enabled = !busy, onClick = { Updater.snooze(info.build); onDismiss() }) { Text(tr("Más tarde")) }
             }
         },
     )

@@ -8,9 +8,8 @@ import android.content.Intent
 import android.os.SystemClock
 
 /**
- * Revisión de actualizaciones en segundo plano cada 5 minutos con AlarmManager.
- * Es más rápida que WorkManager (mínimo 15 min). Con root, la app se saca de las
- * restricciones de batería para que Android no retrase las alarmas.
+ * Solicita una revisión mediante una alarma con intervalo nominal de 5 minutos.
+ * Android puede retrasar la alarma y el trabajo, incluso con exención de batería.
  */
 class UpdateAlarm : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
@@ -21,15 +20,9 @@ class UpdateAlarm : BroadcastReceiver() {
                 return
             }
         }
-        val pending = goAsync()
-        Thread {
-            try {
-                UpdateWorker.runCheck(app)
-            } finally {
-                schedule(app)
-                pending.finish()
-            }
-        }.start()
+        // The receiver only schedules work: network requests may exceed its time limit.
+        UpdateWorker.enqueueNow(app)
+        schedule(app)
     }
 
     companion object {
