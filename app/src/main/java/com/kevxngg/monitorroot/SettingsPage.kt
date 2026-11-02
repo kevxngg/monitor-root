@@ -30,6 +30,13 @@ import kotlinx.coroutines.withContext
 @Composable
 fun SettingsPage() {
     val win = LocalWin.current
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val build = remember { Updater.currentBuild(ctx) }
+    var checking by remember { mutableStateOf(false) }
+    var checkMsg by remember { mutableStateOf<String?>(null) }
+    var found by remember { mutableStateOf<UpdateInfo?>(null) }
+    found?.let { UpdateDialog(it) { found = null } }
     Column(Modifier.fillMaxSize()) {
         PageHeader("Configuración") {}
         Column(
@@ -68,8 +75,29 @@ fun SettingsPage() {
                 }
             }
             Spacer(Modifier.height(8.dp))
+            SectionLabel("Actualizaciones")
+            SettingCard(Icons.Outlined.SystemUpdate, "Buscar actualizaciones al abrir", "Avisa cuando hay una versión nueva en GitHub") {
+                WinSwitch(Prefs.autoUpdate) { Prefs.autoUpdate = it; Prefs.save() }
+            }
+            SettingCard(Icons.Outlined.Update, "Buscar ahora", checkMsg ?: "Build instalada: $build") {
+                TextButton(enabled = !checking, onClick = {
+                    checking = true
+                    checkMsg = "Buscando…"
+                    scope.launch {
+                        val info = withContext(Dispatchers.IO) { Updater.check(ctx.applicationContext, ignoreSkipped = true) }
+                        checking = false
+                        if (info != null) {
+                            found = info
+                            checkMsg = "Build ${info.build} disponible"
+                        } else {
+                            checkMsg = "Ya tienes la última versión (build $build)"
+                        }
+                    }
+                }) { Text("Buscar") }
+            }
+            Spacer(Modifier.height(8.dp))
             SectionLabel("Acerca de")
-            SettingCard(Icons.Outlined.Info, "Monitor Root 2.0", "Monitor del sistema para Android con root") {}
+            SettingCard(Icons.Outlined.Info, "Monitor Root · build $build", "Monitor del sistema para Android con root") {}
             Spacer(Modifier.height(16.dp))
         }
     }

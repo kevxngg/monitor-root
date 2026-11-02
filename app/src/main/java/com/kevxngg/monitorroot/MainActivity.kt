@@ -126,6 +126,12 @@ fun Shell() {
     var query by remember { mutableStateOf("") }
     var runOpen by remember { mutableStateOf(false) }
     var focusPid by remember { mutableStateOf<Int?>(null) }
+    var update by remember { mutableStateOf<UpdateInfo?>(null) }
+
+    // Al abrir la app, busca si hay una versión nueva en GitHub
+    LaunchedEffect(Unit) {
+        if (Prefs.autoUpdate) update = withContext(Dispatchers.IO) { Updater.check(context.applicationContext) }
+    }
 
     // Lectura periódica (solo con la app en pantalla)
     LaunchedEffect(Unit) {
@@ -208,6 +214,7 @@ fun Shell() {
     }
 
     if (runOpen) RunTaskDialog { runOpen = false }
+    update?.let { UpdateDialog(it) { update = null } }
 }
 
 @Composable
