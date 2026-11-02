@@ -51,7 +51,7 @@ private fun sideData(r: Res, s: Snapshot, h: History): SideData = when (r) {
     )
     Res.TEMP -> SideData(
         h["temp"], 100f, s.batt.level?.let { "${tr("Batería")} $it%" } ?: tr("Batería"),
-        s.thermals.firstOrNull()?.let { tr("Máx. %.0f °C", it.celsius) } ?: "—",
+        s.mainTempC?.let { "CPU %.0f °C".format(it) } ?: "—",
     )
 }
 
@@ -153,7 +153,7 @@ private fun SideItem(r: Res, selected: Boolean, d: SideData, modifier: Modifier,
         TaskGraph(d.values, d.max, color, Modifier.size(64.dp, 44.dp), second = d.second, grid = false)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-            Text(tr(r.title), fontSize = 14.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (r == Res.TEMP) tr("Temperatura") else tr(r.title), fontSize = 14.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(d.line1.ifEmpty { " " }, fontSize = 11.sp, color = win.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(d.line2.ifEmpty { " " }, fontSize = 11.sp, color = win.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -492,8 +492,8 @@ private fun TempDetail(s: Snapshot, h: History) {
     val win = LocalWin.current
     val color = Res.TEMP.color(win)
     val b = s.batt
-    DetailHeader(tr("Batería y temperatura"), s.thermals.firstOrNull()?.name ?: "")
-    BigGraph(tr("°C del sensor más caliente"), "100 °C", h["temp"], 100f, color)
+    DetailHeader(tr("Batería y temperatura"), s.mainTempName ?: "")
+    BigGraph(tr("Temperatura del procesador"), "100 °C", h["temp"], 100f, color)
     StatsBlock(
         listOf(
             tr("Máxima") to (s.thermals.firstOrNull()?.let { "%.1f °C".format(it.celsius) } ?: "—"),
