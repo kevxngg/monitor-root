@@ -4,6 +4,21 @@
 
 **[Descargar la última versión (APK)](https://github.com/kevxngg/monitor-root/releases/latest/download/MonitorRoot.apk)** · [Sitio web](https://kevxngg.github.io/monitor-root/) · [Todas las versiones](https://github.com/kevxngg/monitor-root/releases)
 
+## Capturas
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/img/procesos.jpg" width="240" alt="Pestaña Procesos"><br><sub>Procesos</sub></td>
+    <td align="center"><img src="docs/img/rendimiento-cpu.jpg" width="240" alt="Rendimiento de la CPU"><br><sub>Rendimiento: CPU</sub></td>
+    <td align="center"><img src="docs/img/procesadores-logicos.jpg" width="240" alt="Uso por procesador lógico"><br><sub>Procesadores lógicos</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/img/gpu.jpg" width="240" alt="Rendimiento de la GPU"><br><sub>Rendimiento: GPU</sub></td>
+    <td align="center"><img src="docs/img/historial.jpg" width="240" alt="Historial de aplicaciones"><br><sub>Historial de aplicaciones</sub></td>
+    <td></td>
+  </tr>
+</table>
+
 ## Funciones
 
 ### Procesos
