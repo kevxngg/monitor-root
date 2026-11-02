@@ -37,6 +37,11 @@ fun SettingsPage() {
     var checkMsg by remember { mutableStateOf<String?>(null) }
     var found by remember { mutableStateOf<UpdateInfo?>(null) }
     found?.let { UpdateDialog(it) { found = null } }
+    var showAbout by remember { mutableStateOf(false) }
+    if (showAbout) {
+        AboutPage(build) { showAbout = false }
+        return
+    }
     Column(Modifier.fillMaxSize()) {
         PageHeader(tr("Configuración")) {}
         Column(
@@ -107,7 +112,7 @@ fun SettingsPage() {
             }
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Acerca de"))
-            AboutSection(build)
+            AboutEntry { showAbout = true }
             Spacer(Modifier.height(16.dp))
         }
     }

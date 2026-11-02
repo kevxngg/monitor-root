@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -146,7 +147,7 @@ fun Shell() {
                         UpdateWorker.cancelNotification(context.applicationContext)
                     }
                 }
-                delay(2 * 60 * 1000L)
+                delay(60 * 1000L)
             }
         }
     }
@@ -243,7 +244,7 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
         Modifier.fillMaxWidth().height(48.dp).padding(start = 12.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Outlined.Insights, null, tint = win.accent, modifier = Modifier.size(18.dp))
+        Icon(Icons.Filled.Insights, null, tint = win.accent, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
         if (!compact) {
             Text("Monitor Root", fontSize = 12.sp, color = win.text)

@@ -26,36 +26,86 @@ import java.util.concurrent.TimeUnit
 class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
 
     override suspend fun doWork(): Result {
-        val ctx = applicationContext
-        Prefs.init(ctx)
-        I18n.init(ctx)
-        if (!Prefs.autoUpdate) return Result.success()
-        val info = Updater.check(ctx) ?: return Result.success()
-        val sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
-        if (sp.getInt("notified", 0) >= info.build) return Result.success()
-        if (notify(ctx, info)) sp.edit().putInt("notified", info.build).apply()
+        runCheck(applicationContext)
         return Result.success()
     }
 
     companion object {
-        private const val CHANNEL = "updates"
+        private const val CHANNEL = "app_updates"
         private const val NOTIF_ID = 1001
         private const val WORK = "update-check"
 
+        /** Busca una versión nueva y, si la hay y no se avisó antes, muestra la notificación. */
+        @Synchronized
+        fun runCheck(ctx: Context) {
+            Prefs.init(ctx)
+            I18n.init(ctx)
+            if (!Prefs.autoUpdate) return
+            val info = Updater.check(ctx) ?: return
+            val sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            if (sp.getInt("notified", 0) >= info.build) return
+            if (notify(ctx, info)) sp.edit().putInt("notified", info.build).apply()
+        }
+
         fun schedule(ctx: Context) {
+            UpdateAlarm.schedule(ctx)
             val req = PeriodicWorkRequestBuilder<UpdateWorker>(15, TimeUnit.MINUTES)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()
             WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.KEEP, req)
         }
 
-        /** Con root se concede el permiso de notificaciones sin preguntar (Android 13+). */
+        /**
+         * Con root: concede el permiso de notificaciones y quita las restricciones de
+         * batería para que las revisiones en segundo plano no se retrasen.
+         */
         fun prepare(ctx: Context) {
+            val p = ctx.packageName
+            val cmds = mutableListOf(
+                "cmd deviceidle whitelist +$p",
+                "appops set $p RUN_IN_BACKGROUND allow",
+                "appops set $p RUN_ANY_IN_BACKGROUND allow",
+                "am set-standby-bucket $p active",
+            )
             if (Build.VERSION.SDK_INT >= 33 &&
                 ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-            ) {
-                RootShell.run("pm grant ${ctx.packageName} android.permission.POST_NOTIFICATIONS")
+            ) cmds.add("pm grant $p android.permission.POST_NOTIFICATIONS")
+            RootShell.run(cmds.joinToString("; "))
+        }
+
+        private fun channel(ctx: Context) {
+            if (Build.VERSION.SDK_INT >= 26) {
+                ctx.getSystemService(NotificationManager::class.java).createNotificationChannel(
+                    NotificationChannel(CHANNEL, tr("Actualizaciones"), NotificationManager.IMPORTANCE_HIGH)
+                )
             }
+        }
+
+        fun showProgress(ctx: Context) {
+            channel(ctx)
+            val n = NotificationCompat.Builder(ctx, CHANNEL)
+                .setSmallIcon(R.drawable.ic_fg)
+                .setContentTitle(tr("Descargando…"))
+                .setProgress(0, 0, true)
+                .setOngoing(true)
+                .build()
+            try { NotificationManagerCompat.from(ctx).notify(NOTIF_ID, n) } catch (_: SecurityException) {}
+        }
+
+        fun showFailed(ctx: Context, url: String) {
+            channel(ctx)
+            val browser = PendingIntent.getActivity(
+                ctx, 2, Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            val n = NotificationCompat.Builder(ctx, CHANNEL)
+                .setSmallIcon(R.drawable.ic_fg)
+                .setContentTitle(tr("Hay una nueva versión"))
+                .setContentText(tr("No se pudo instalar automáticamente. Puedes descargarla desde el navegador."))
+                .setContentIntent(browser)
+                .setAutoCancel(true)
+                .build()
+            try { NotificationManagerCompat.from(ctx).notify(NOTIF_ID, n) } catch (_: SecurityException) {}
         }
 
         fun cancelNotification(ctx: Context) {
@@ -66,12 +116,11 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             if (Build.VERSION.SDK_INT >= 33 &&
                 ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
             ) return false
-            val nm = ctx.getSystemService(NotificationManager::class.java)
-            if (Build.VERSION.SDK_INT >= 26) {
-                nm.createNotificationChannel(
-                    NotificationChannel(CHANNEL, tr("Actualizaciones"), NotificationManager.IMPORTANCE_DEFAULT)
-                )
-            }
+            channel(ctx)
+            val install = PendingIntent.getBroadcast(
+                ctx, 1, Intent(ctx, InstallUpdateReceiver::class.java).putExtra("apk", info.apkUrl),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
             val open = PendingIntent.getActivity(
                 ctx, 0,
                 Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
@@ -90,6 +139,8 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
                     tr("Build %d disponible", info.build) + if (firstLines.isNotEmpty()) "\n" + firstLines else ""
                 ))
                 .setContentIntent(open)
+                .addAction(0, tr("Actualizar ahora"), install)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .build()
             return try {
