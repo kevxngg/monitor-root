@@ -46,38 +46,68 @@ object Updater {
         0
     }
 
-    /** Devuelve la última versión publicada, o null si hay error. */
-    fun latest(): UpdateInfo? {
-        // El parámetro t evita que GitHub o el sistema devuelvan una respuesta vieja en caché
-        val conn = URL("$API?t=${System.currentTimeMillis()}").openConnection() as HttpURLConnection
+    // Archivo que se publica junto a cada APK. Se descarga desde la CDN de GitHub,
+    // que no tiene el límite de 60 consultas por hora de la API.
+    private const val FEED = "https://github.com/kevxngg/monitor-root/releases/latest/download/update.json"
+
+    /** true si la última comprobación falló (sin conexión, GitHub no respondió…). */
+    @Volatile var lastFailed = false
+        private set
+
+    private fun get(url: String): String? {
+        val conn = URL(url).openConnection() as HttpURLConnection
         return try {
             conn.connectTimeout = 8000
             conn.readTimeout = 8000
             conn.useCaches = false
-            conn.setRequestProperty("Accept", "application/vnd.github+json")
+            conn.instanceFollowRedirects = true
             conn.setRequestProperty("Cache-Control", "no-cache")
-            if (conn.responseCode != 200) return null
-            val json = JSONObject(conn.inputStream.bufferedReader().readText())
-            val build = json.optString("tag_name").removePrefix("build-").toIntOrNull() ?: return null
-            val assets = json.optJSONArray("assets") ?: return null
-            for (i in 0 until assets.length()) {
-                val a = assets.getJSONObject(i)
-                if (a.optString("name").endsWith(".apk")) {
-                    return UpdateInfo(
-                        build = build,
-                        title = json.optString("name"),
-                        notes = json.optString("body"),
-                        apkUrl = a.optString("browser_download_url"),
-                        sizeBytes = a.optLong("size"),
-                    )
-                }
-            }
-            null
+            conn.setRequestProperty("Accept", "application/vnd.github+json")
+            if (conn.responseCode != 200) null else conn.inputStream.bufferedReader().readText()
         } catch (e: Exception) {
             null
         } finally {
             conn.disconnect()
         }
+    }
+
+    private fun fromFeed(): UpdateInfo? = try {
+        get("$FEED?t=${System.currentTimeMillis()}")?.let { text ->
+            val j = JSONObject(text)
+            val build = j.getInt("build")
+            UpdateInfo(build, "Monitor Root (build $build)", j.optString("notes"), j.getString("apk"), j.optLong("size"))
+        }
+    } catch (e: Exception) {
+        null
+    }
+
+    /** Respaldo: la API de GitHub (por si una versión antigua no tiene update.json). */
+    private fun fromApi(): UpdateInfo? = try {
+        get("$API?t=${System.currentTimeMillis()}")?.let { text ->
+            val json = JSONObject(text)
+            val build = json.optString("tag_name").removePrefix("build-").toIntOrNull()
+            val assets = json.optJSONArray("assets")
+            var found: UpdateInfo? = null
+            if (build != null && assets != null) {
+                for (i in 0 until assets.length()) {
+                    val a = assets.getJSONObject(i)
+                    if (a.optString("name").endsWith(".apk")) {
+                        found = UpdateInfo(build, json.optString("name"), json.optString("body"), a.optString("browser_download_url"), a.optLong("size"))
+                        break
+                    }
+                }
+            }
+            found
+        }
+    } catch (e: Exception) {
+        null
+    }
+
+    /** Devuelve la última versión publicada, o null si hay error. */
+    fun latest(): UpdateInfo? {
+        val info = fromFeed() ?: fromApi()
+        lastFailed = info == null
+        return info
     }
 
     /** Hay actualización si la publicada es más nueva que la instalada (y no se omitió). */

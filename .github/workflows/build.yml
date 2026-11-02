@@ -29,6 +29,21 @@ jobs:
       - name: Renombrar APK
         run: cp app/build/outputs/apk/release/app-release.apk MonitorRoot.apk
 
+      - name: Datos de actualización (update.json)
+        run: |
+          python3 - <<'PY'
+          import json, os
+          build = int(os.environ["GITHUB_RUN_NUMBER"])
+          repo = os.environ["GITHUB_REPOSITORY"]
+          data = {
+              "build": build,
+              "notes": open("RELEASE_NOTES.md", encoding="utf-8").read(),
+              "apk": f"https://github.com/{repo}/releases/download/build-{build}/MonitorRoot.apk",
+              "size": os.path.getsize("MonitorRoot.apk"),
+          }
+          json.dump(data, open("update.json", "w", encoding="utf-8"), ensure_ascii=False)
+          PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: MonitorRoot
@@ -39,5 +54,7 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: Monitor Root (build ${{ github.run_number }})
-          files: MonitorRoot.apk
+          files: |
+            MonitorRoot.apk
+            update.json
           body_path: RELEASE_NOTES.md
