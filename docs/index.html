@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Monitor Root: administrador de tareas para Android con root</title>
+<meta name="description" content="Monitor Root es un monitor del sistema gratuito para Android con root, con el estilo del administrador de tareas de Windows 11: procesos, CPU, GPU, RAM, disco, red, batería y temperaturas en tiempo real.">
+<meta name="keywords" content="monitor root, monitor root android, administrador de tareas android, task manager android root, monitor del sistema android, magisk, kernelsu, cpu, gpu, temperatura, procesos">
+<meta name="author" content="kevxngg">
+<link rel="canonical" href="https://kevxngg.github.io/monitor-root/">
+<meta name="theme-color" content="#117DBB">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Monitor Root: administrador de tareas para Android con root">
+<meta property="og:description" content="Procesos, CPU, GPU, RAM, disco, red, batería y temperaturas en tiempo real, con el estilo de Windows 11.">
+<meta property="og:url" content="https://kevxngg.github.io/monitor-root/">
+<meta property="og:locale" content="es_ES">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23117DBB'/%3E%3Cg transform='translate(3.6 3.6) scale(.7)' fill='white'%3E%3Cpath d='M21 8c-1.45 0-2.26 1.44-1.93 2.51l-3.55 3.56c-.3-.09-.74-.09-1.04 0l-2.55-2.55C12.27 10.45 11.46 9 10 9c-1.45 0-2.27 1.44-1.93 2.52l-4.56 4.55C2.44 15.74 1 16.55 1 18c0 1.1.9 2 2 2 1.45 0 2.26-1.44 1.93-2.51l4.55-4.56c.3.09.74.09 1.04 0l2.55 2.55C12.73 16.55 13.54 18 15 18c1.45 0 2.27-1.44 1.93-2.52l3.56-3.55C21.56 12.26 23 11.45 23 10c0-1.1-.9-2-2-2z'/%3E%3Cpath d='M15 9l.94-2.07L18 6l-2.06-.93L15 3l-.92 2.07L12 6l2.08.93zM3.5 11L4 9l2-.5L4 8l-.5-2L3 8l-2 .5L3 9z'/%3E%3C/g%3E%3C/svg%3E">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Monitor Root",
+  "operatingSystem": "Android 8.0 o superior (con root)",
+  "applicationCategory": "UtilitiesApplication",
+  "description": "Monitor del sistema para Android con root, con el estilo del administrador de tareas de Windows 11.",
+  "url": "https://kevxngg.github.io/monitor-root/",
+  "downloadUrl": "https://github.com/kevxngg/monitor-root/releases/latest/download/MonitorRoot.apk",
+  "softwareHelp": "https://github.com/kevxngg/monitor-root",
+  "inLanguage": ["es", "en", "fr", "pt", "de", "it", "ru", "ar", "zh", "ja", "ko"],
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "kevxngg", "url": "https://github.com/kevxngg" }
+}
+</script>
+<style>
+:root {
+  --mica: #EEF2F7;
+  --surface: #FFFFFF;
+  --panel: #F9F9F9;
+  --text: #1B1B1B;
+  --sub: #5F6368;
+  --line: #E1E4E8;
+  --accent: #005FB8;
+  --accent-text: #FFFFFF;
+  --hover: #E8EBEF;
+  --cpu: #0E7DB6;
+  --mem: #5B48C2;
+  --disk: #3F8F0E;
+  --wifi: #B4387F;
+  --gpu: #7B3FB8;
+  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, Roboto, "Noto Sans", sans-serif;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mica: #1C1C1C;
+    --surface: #2B2B2B;
+    --panel: #272727;
+    --text: #FFFFFF;
+    --sub: #A8A8A8;
+    --line: #3A3A3A;
+    --accent: #60CDFF;
+    --accent-text: #00243A;
+    --hover: #333333;
+    --cpu: #3FB8CC;
+    --mem: #8C8FF0;
+    --disk: #6CCB5F;
+    --wifi: #E37AC4;
+    --gpu: #B58CF0;
+    color-scheme: dark;
+  }
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: calc(64px + env(safe-area-inset-top, 0px)); }
+body {
+  margin: 0;
+  background: var(--mica);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+img, svg { max-width: 100%; }
+
+/* ---------- Barra de título ---------- */
+.titlebar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--mica);
+  border-bottom: 1px solid var(--line);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 11;
+  background: var(--mica);
+}
+.titlebar-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  height: 56px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+}
+.logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #117DBB;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.logo svg { width: 64%; height: 64%; fill: #fff; }
+.titlebar nav { margin-left: auto; display: flex; gap: 4px; }
+.titlebar nav a {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 4px;
+}
+.titlebar nav a:hover { background: var(--hover); }
+@media (max-width: 560px) {
+  .titlebar nav a.optional { display: none; }
+}
+
+/* ---------- Hero ---------- */
+main { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 48px;
+  align-items: center;
+  padding: 64px 0 72px;
+}
+.hero h1 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(40px, 6vw, 64px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+}
+.hero .lede {
+  font-size: 20px;
+  line-height: 1.4;
+  margin: 0 0 16px;
+  max-width: 30ch;
+}
+.hero p.desc { color: var(--sub); margin: 0 0 28px; max-width: 46ch; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 18px;
+  border-radius: 4px;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+}
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn svg { width: 18px; height: 18px; fill: currentColor; }
+.version { margin-top: 14px; font-size: 13px; color: var(--sub); min-height: 1.4em; }
+
+/* ---------- Ventana de rendimiento (ilustración en vivo) ---------- */
+.window {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 24px 60px -24px rgba(0, 40, 80, 0.35);
+  overflow: hidden;
+}
+.window-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--sub);
+  background: var(--mica);
+  border-bottom: 1px solid var(--line);
+}
+.window-bar .logo { width: 16px; height: 16px; border-radius: 4px; }
+.window-body { display: grid; grid-template-columns: 170px 1fr; min-height: 300px; }
+.side { padding: 8px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.res {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  border-radius: 4px;
+  position: relative;
+}
+.res.on { background: var(--hover); }
+.res.on::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.res canvas { width: 52px; height: 34px; display: block; }
+.res b { display: block; font-weight: 400; font-size: 13px; }
+.res span { display: block; font-size: 11px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detail { padding: 14px 16px 16px; min-width: 0; }
+.detail-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.detail-head strong { font-family: var(--display); font-size: 26px; font-weight: 600; }
+.detail-head span { font-size: 12px; color: var(--sub); text-align: right; }
+.axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--sub); margin: 8px 0 3px; }
+#big { width: 100%; height: 170px; display: block; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.stats div { font-size: 11px; color: var(--sub); }
+.stats div b { display: block; font-size: 19px; font-weight: 400; color: var(--text); }
+@media (max-width: 880px) {
+  .hero { grid-template-columns: 1fr; gap: 36px; padding: 40px 0 56px; }
+}
+@media (max-width: 520px) {
+  .window-body { grid-template-columns: 1fr; }
+  .side { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .res { min-width: 150px; }
+}
+
+/* ---------- Secciones ---------- */
+section { padding: 56px 0; border-top: 1px solid var(--line); }
+h2 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(26px, 3.4vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+.section-intro { color: var(--sub); margin: 0 0 28px; max-width: 62ch; }
+
+/* Lista estilo "Configuración" de Windows 11 */
+.settings-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.setting {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.setting:nth-child(odd) { border-right: 1px solid var(--line); }
+.setting:nth-last-child(-n+2) { border-bottom: 0; }
+.setting svg { width: 22px; height: 22px; fill: var(--accent); margin-top: 2px; }
+.setting h3 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+.setting p { margin: 0; color: var(--sub); font-size: 14px; }
+@media (max-width: 720px) {
+  .settings-list { grid-template-columns: 1fr; }
+  .setting:nth-child(odd) { border-right: 0; }
+  .setting:nth-last-child(2) { border-bottom: 1px solid var(--line); }
+}
+
+/* Pasos de instalación (secuencia real) */
+.steps { list-style: none; counter-reset: step; padding: 0; margin: 0; display: grid; gap: 14px; max-width: 720px; }
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.steps li::before {
+  content: counter(step);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--accent);
+}
+.steps strong { display: block; }
+.steps span { color: var(--sub); font-size: 15px; }
+
+.two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+@media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+.req { margin: 0; padding-left: 20px; }
+.req li { margin-bottom: 6px; }
+.langs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.langs li {
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 14px;
+}
+
+/* Novedades */
+.notes {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px 24px;
+  max-width: 760px;
+}
+.notes h3 { font-size: 15px; margin: 14px 0 6px; }
+.notes h3:first-child { margin-top: 0; }
+.notes ul { margin: 0; padding-left: 20px; }
+.notes li { margin-bottom: 6px; }
+.notes .meta { font-size: 13px; color: var(--sub); margin: 0 0 12px; }
+
+/* Preguntas */
+details {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  max-width: 760px;
+}
+summary { cursor: pointer; padding: 14px 18px; font-weight: 600; list-style-position: outside; }
+details p { margin: 0; padding: 0 18px 16px; color: var(--sub); }
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 28px 20px 40px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--sub);
+}
+footer a { color: var(--sub); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="titlebar">
+  <div class="titlebar-inner">
+    <a class="brand" href="#">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-logo"/></svg></span>
+      Monitor Root
+    </a>
+    <nav aria-label="Secciones">
+      <a class="optional" href="#funciones">Funciones</a>
+      <a class="optional" href="#instalacion">Instalación</a>
+      <a href="https://github.com/kevxngg/monitor-root">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-logo" viewBox="0 0 24 24"><path d="M21 8c-1.45 0-2.26 1.44-1.93 2.51l-3.55 3.56c-.3-.09-.74-.09-1.04 0l-2.55-2.55C12.27 10.45 11.46 9 10 9c-1.45 0-2.27 1.44-1.93 2.52l-4.56 4.55C2.44 15.74 1 16.55 1 18c0 1.1.9 2 2 2 1.45 0 2.26-1.44 1.93-2.51l4.55-4.56c.3.09.74.09 1.04 0l2.55 2.55C12.73 16.55 13.54 18 15 18c1.45 0 2.27-1.44 1.93-2.52l3.56-3.55C21.56 12.26 23 11.45 23 10c0-1.1-.9-2-2-2z"/><path d="M15 9l.94-2.07L18 6l-2.06-.93L15 3l-.92 2.07L12 6l2.08.93zM3.5 11L4 9l2-.5L4 8l-.5-2L3 8l-2 .5L3 9z"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm14-9h-4V3H9v8H5l7 7 7-7z"/></symbol>
+    <symbol id="i-gh" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm8-2h8v8h-8v-8zm2 2v4h4v-4h-4z"/></symbol>
+    <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 13h4l2-5 4 10 2-5h6v-2h-4.7L15 15.2 11 5.2 7.6 11H3z"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9L9 12H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8H12z"/></symbol>
+    <symbol id="i-speed" viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zM10.59 15.41a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm0-6a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm0 12a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z"/></symbol>
+    <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/></symbol>
+    <symbol id="i-lang" viewBox="0 0 24 24"><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/></symbol>
+    <symbol id="i-update" viewBox="0 0 24 24"><path d="M21 10.12h-6.78l2.74-2.82a7.03 7.03 0 0 0-9.88-.1 6.88 6.88 0 0 0 0 9.8 7.02 7.02 0 0 0 9.88 0A6.5 6.5 0 0 0 19 12.1h2a8.67 8.67 0 0 1-2.64 6.36 9.05 9.05 0 0 1-12.72 0A8.84 8.84 0 0 1 5.62 5.9a8.98 8.98 0 0 1 12.65 0L21 3v7.12zM12.5 8v4.25l3.5 2.08-.72 1.21L11 13V8h1.5z"/></symbol>
+  </defs>
+</svg>
+
+<main>
+  <div class="hero">
+    <div>
+      <h1>Monitor Root</h1>
+      <p class="lede">El administrador de tareas para Android con root.</p>
+      <p class="desc">Mira qué está usando tu teléfono en tiempo real: procesos, CPU, GPU, memoria, disco, red, batería y temperaturas. Con el diseño del administrador de tareas de Windows 11 y gratis.</p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/kevxngg/monitor-root/releases/latest/download/MonitorRoot.apk">
+          <svg aria-hidden="true"><use href="#i-down"/></svg>Descargar APK
+        </a>
+        <a class="btn" href="https://github.com/kevxngg/monitor-root">
+          <svg aria-hidden="true"><use href="#i-gh"/></svg>Ver en GitHub
+        </a>
+      </div>
+      <p class="version" id="version">Requiere Android 8.0 o superior con root.</p>
+    </div>
+
+    <!-- Ilustración animada de la pestaña Rendimiento (no es una captura) -->
+    <div class="window" role="img" aria-label="Ilustración de la pestaña Rendimiento de Monitor Root con una gráfica de CPU en movimiento">
+      <div class="window-bar"><span class="logo"><svg viewBox="0 0 24 24"><use href="#i-logo"/></svg></span>Rendimiento</div>
+      <div class="window-body">
+        <div class="side">
+          <div class="res on"><canvas data-key="cpu" width="104" height="68"></canvas><div><b>CPU</b><span id="s-cpu">12% 1,80 GHz</span></div></div>
+          <div class="res"><canvas data-key="mem" width="104" height="68"></canvas><div><b>Memoria</b><span id="s-mem">3,4/7,4 GB (46%)</span></div></div>
+          <div class="res"><canvas data-key="disk" width="104" height="68"></canvas><div><b>Disco 0</b><span id="s-disk">UFS 2%</span></div></div>
+          <div class="res"><canvas data-key="wifi" width="104" height="68"></canvas><div><b>Wi‑Fi</b><span id="s-wifi">E: 48 R: 920 Kbps</span></div></div>
+          <div class="res"><canvas data-key="gpu" width="104" height="68"></canvas><div><b>GPU 0</b><span id="s-gpu">Adreno 610 8%</span></div></div>
+        </div>
+        <div class="detail">
+          <div class="detail-head"><strong>CPU</strong><span>Snapdragon</span></div>
+          <div class="axis"><span>% de uso</span><span>100%</span></div>
+          <canvas id="big" width="800" height="340"></canvas>
+          <div class="axis"><span>60 segundos</span><span>0</span></div>
+          <div class="stats">
+            <div>Uso<b id="b-use">12%</b></div>
+            <div>Velocidad<b id="b-speed">1,80 GHz</b></div>
+            <div>Procesos<b id="b-proc">612</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="funciones" aria-labelledby="t-funciones">
+    <h2 id="t-funciones">Todo lo del administrador de tareas, en tu teléfono</h2>
+    <p class="section-intro">Las mismas secciones que conoces de Windows 11, adaptadas a Android. El acceso root permite ver y controlar todos los procesos del sistema, no solo los de tus apps.</p>
+    <div class="settings-list">
+      <div class="setting"><svg aria-hidden="true"><use href="#i-grid"/></svg><div><h3>Procesos</h3><p>Apps, procesos en segundo plano y de Android con su uso de CPU, memoria y disco. Finaliza tareas o activa el modo de eficiencia.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-pulse"/></svg><div><h3>Rendimiento</h3><p>Gráficas de 60 segundos de CPU (general o por núcleo), memoria, disco, Wi‑Fi, datos móviles, GPU y temperatura.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-history"/></svg><div><h3>Historial de aplicaciones</h3><p>Tiempo de uso, tiempo de CPU y datos de Wi‑Fi y móviles de cada app en las últimas 24 horas, 7 o 30 días.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-speed"/></svg><div><h3>Aplicaciones de arranque</h3><p>Ve qué apps se inician solas al encender el teléfono y deshabilítalas.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-people"/></svg><div><h3>Usuarios</h3><p>Consumo por usuario y perfil de trabajo, con opción de cambiar de usuario o detenerlo.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-list"/></svg><div><h3>Detalles</h3><p>Lista completa por PID: cambia la prioridad o la afinidad de núcleos, suspende procesos o finaliza el árbol completo.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-puzzle"/></svg><div><h3>Servicios</h3><p>Servicios nativos de Android y de las apps, con opciones para iniciarlos, detenerlos y reiniciarlos.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-update"/></svg><div><h3>Actualizaciones automáticas</h3><p>La app te avisa cuando hay una versión nueva y se instala sola con un toque, sin pasar por el navegador.</p></div></div>
+    </div>
+  </section>
+
+  <section id="instalacion" aria-labelledby="t-instalacion">
+    <h2 id="t-instalacion">Instalación</h2>
+    <p class="section-intro">Necesitas un teléfono con root. Si ya usas Magisk, KernelSU o APatch, son cuatro pasos.</p>
+    <ol class="steps">
+      <li><div><strong>Descarga la APK</strong><span>Desde el botón de arriba o en la sección Releases del repositorio.</span></div></li>
+      <li><div><strong>Permite instalar apps desconocidas</strong><span>Android te lo pedirá la primera vez para tu navegador o gestor de archivos.</span></div></li>
+      <li><div><strong>Abre Monitor Root y concede root</strong><span>Acepta el aviso de tu gestor de root. Sin root la app no puede leer los procesos del sistema.</span></div></li>
+      <li><div><strong>Listo</strong><span>Las siguientes versiones llegan con un aviso dentro de la app.</span></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="t-req">
+    <div class="two-col">
+      <div>
+        <h2 id="t-req">Requisitos</h2>
+        <ul class="req">
+          <li>Android 8.0 o superior.</li>
+          <li>Root con Magisk, KernelSU o APatch.</li>
+          <li>Funciona con procesadores Qualcomm Snapdragon, MediaTek y Exynos.</li>
+          <li>Ocupa poco más de 1 MB.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Idiomas</h2>
+        <ul class="langs" aria-label="Idiomas disponibles">
+          <li lang="es">Español</li><li lang="en">English</li><li lang="fr">Français</li><li lang="pt">Português</li>
+          <li lang="de">Deutsch</li><li lang="it">Italiano</li><li lang="ru">Русский</li><li lang="ar" dir="rtl">العربية</li>
+          <li lang="zh">中文</li><li lang="ja">日本語</li><li lang="ko">한국어</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="novedades" aria-labelledby="t-novedades">
+    <h2 id="t-novedades">Novedades</h2>
+    <p class="section-intro">Cambios de la última versión publicada.</p>
+    <div class="notes" id="notes">
+      <p class="meta">Puedes ver todas las versiones en <a href="https://github.com/kevxngg/monitor-root/releases">Releases</a>.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="t-faq">
+    <h2 id="t-faq">Preguntas frecuentes</h2>
+    <details><summary>¿Funciona sin root?</summary><p>No. Desde Android 8, las apps normales no pueden ver los procesos de otras apps ni leer sensores como la carga de la GPU. Monitor Root usa root para leer esos datos directamente del sistema.</p></details>
+    <details><summary>¿Es gratis?</summary><p>Sí, es gratis, sin anuncios y el código está publicado en GitHub.</p></details>
+    <details><summary>¿Puede dañar mi teléfono?</summary><p>Ver información es seguro. Finalizar procesos o servicios del sistema puede hacer que el teléfono se reinicie, por eso la app te pide confirmación antes de hacerlo.</p></details>
+    <details><summary>¿Por qué no aparece la temperatura de la GPU?</summary><p>Algunos procesadores no tienen un sensor de temperatura propio para la GPU. En ese caso la app muestra la del procesador e indica "(SoC)".</p></details>
+    <details><summary>¿Cómo informo un problema?</summary><p>Abre un reporte en <a href="https://github.com/kevxngg/monitor-root/issues/new">GitHub Issues</a>. En la app, en Configuración, Acerca de, puedes copiar la información de tu dispositivo para incluirla.</p></details>
+  </section>
+</main>
+
+<footer>
+  Monitor Root es un proyecto de <a href="https://github.com/kevxngg">kevxngg</a>. No está afiliado a Microsoft.
+</footer>
+
+<script>
+(function () {
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var css = getComputedStyle(document.documentElement);
+  function color(name) { return css.getPropertyValue(name).trim(); }
+  var colors = { cpu: "--cpu", mem: "--mem", disk: "--disk", wifi: "--wifi", gpu: "--gpu" };
+  var N = 60;
+
+  // Valores simulados que se mueven como un teléfono real en reposo
+  function walk(start, min, max, jitter, spike) {
+    var v = start, out = [];
+    for (var i = 0; i < N; i++) out.push(next());
+    function next() {
+      v += (Math.random() - 0.5) * jitter;
+      if (Math.random() < spike) v += Math.random() * (max - min) * 0.5;
+      v = Math.max(min, Math.min(max, v * 0.92 + start * 0.08));
+      return v;
+    }
+    return { data: out, next: function () { out.push(next()); out.shift(); } };
+  }
+  var series = {
+    cpu: walk(14, 3, 95, 8, 0.08),
+    mem: walk(46, 44, 50, 0.6, 0),
+    disk: walk(2, 0, 60, 3, 0.05),
+    wifi: walk(20, 0, 90, 12, 0.1),
+    gpu: walk(6, 0, 70, 6, 0.06)
+  };
+
+  function draw(canvas, values, c, grid) {
+    var ctx = canvas.getContext("2d"), w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    if (grid) {
+      ctx.strokeStyle = c; ctx.globalAlpha = 0.16; ctx.lineWidth = 1;
+      for (var i = 1; i < 10; i++) { var y = Math.round(h * i / 10) + 0.5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+      for (var j = 1; j < 20; j++) { var x = Math.round(w * j / 20) + 0.5; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+    }
+    var step = w / (N - 1);
+    ctx.beginPath();
+    values.forEach(function (v, i) { var x = i * step, y = h - (v / 100) * h; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+    ctx.globalAlpha = document.documentElement.style.colorScheme === "dark" || matchMedia("(prefers-color-scheme: dark)").matches ? 0.35 : 0.2;
+    ctx.fillStyle = c; ctx.fill();
+    ctx.globalAlpha = 1; ctx.beginPath();
+    values.forEach(function (v, i) { var x = i * step, y = h - (v / 100) * h; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.strokeStyle = c; ctx.lineWidth = grid ? 2 : 1.5; ctx.stroke();
+    ctx.lineWidth = grid ? 2 : 1.5; ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+  }
+
+  var big = document.getElementById("big");
+  var minis = document.querySelectorAll(".res canvas");
+  function fmt(n) { return n.toFixed(2).replace(".", ","); }
+  function render() {
+    css = getComputedStyle(document.documentElement);
+    draw(big, series.cpu.data, color("--cpu"), true);
+    minis.forEach(function (cv) { var k = cv.dataset.key; draw(cv, series[k].data, color(colors[k]), false); });
+    var cpu = series.cpu.data[N - 1];
+    var ghz = 1.2 + cpu / 100 * 1.6;
+    document.getElementById("b-use").textContent = Math.round(cpu) + "%";
+    document.getElementById("b-speed").textContent = fmt(ghz) + " GHz";
+    document.getElementById("s-cpu").textContent = Math.round(cpu) + "% " + fmt(ghz) + " GHz";
+    document.getElementById("s-mem").textContent = "3,4/7,4 GB (" + Math.round(series.mem.data[N - 1]) + "%)";
+    document.getElementById("s-disk").textContent = "UFS " + Math.round(series.disk.data[N - 1]) + "%";
+    document.getElementById("s-gpu").textContent = "Adreno 610 " + Math.round(series.gpu.data[N - 1]) + "%";
+  }
+  render();
+  if (!reduce) {
+    setInterval(function () { Object.keys(series).forEach(function (k) { series[k].next(); }); render(); }, 1000);
+  }
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+  // Última versión publicada y sus notas
+  fetch("https://api.github.com/repos/kevxngg/monitor-root/releases/latest")
+    .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+    .then(function (rel) {
+      var build = (rel.tag_name || "").replace("build-", "");
+      var date = new Date(rel.published_at).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
+      document.getElementById("version").textContent = "Última versión: build " + build + ", publicada el " + date + ". Requiere Android 8.0 o superior con root.";
+      var box = document.getElementById("notes");
+      var html = '<p class="meta">Build ' + build + ", " + date + '. Puedes ver todas las versiones en <a href="https://github.com/kevxngg/monitor-root/releases">Releases</a>.</p>';
+      var inList = false;
+      (rel.body || "").split(/\r?\n/).forEach(function (line) {
+        var t = line.trim();
+        var esc = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        if (/^#+\s/.test(t)) { if (inList) { html += "</ul>"; inList = false; } html += "<h3>" + esc.replace(/^#+\s*/, "") + "</h3>"; }
+        else if (/^[-*]\s/.test(t)) { if (!inList) { html += "<ul>"; inList = true; } html += "<li>" + esc.slice(2) + "</li>"; }
+        else if (t) { if (inList) { html += "</ul>"; inList = false; } html += "<p>" + esc + "</p>"; }
+      });
+      if (inList) html += "</ul>";
+      box.innerHTML = html;
+    })
+    .catch(function () { /* se queda el texto con el enlace a Releases */ });
+})();
+</script>
+</body>
+</html>

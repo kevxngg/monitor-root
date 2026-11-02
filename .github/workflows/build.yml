@@ -3,6 +3,11 @@ name: Compilar APK
 on:
   push:
     branches: [ main ]
+    # Cambios solo en la web, el README o el propio flujo no generan una versión nueva de la app
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - '.github/**'
   workflow_dispatch:
 
 permissions:
