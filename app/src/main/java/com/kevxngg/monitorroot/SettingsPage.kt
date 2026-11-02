@@ -28,7 +28,7 @@ import kotlinx.coroutines.withContext
 // ===================== CONFIGURACIÓN =====================
 
 @Composable
-fun SettingsPage() {
+fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
     val win = LocalWin.current
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -98,14 +98,18 @@ fun SettingsPage() {
                     checking = true
                     checkMsg = tr("Buscando…")
                     scope.launch {
-                        val info = withContext(Dispatchers.IO) { Updater.check(ctx.applicationContext, ignoreSkipped = true) }
+                        val result = withContext(Dispatchers.IO) { Updater.fetch(ctx.applicationContext) }
                         checking = false
-                        if (info != null) {
-                            found = info
-                            checkMsg = tr("Build %d disponible", info.build)
-                        } else {
-                            checkMsg = if (Updater.lastFailed) tr("No se pudo comprobar. Revisa tu conexión e inténtalo de nuevo.")
-                            else tr("Ya tienes la última versión (build %d)", build)
+                        when (result) {
+                            is UpdateResult.Success -> {
+                                val info = result.info
+                                onVerified(info)
+                                if (Updater.isOffered(ctx, info, ignoreSkipped = true)) {
+                                    if (!Updater.isRequired(ctx, info)) found = info
+                                    checkMsg = tr("Build %d disponible", info.build)
+                                } else checkMsg = tr("Ya tienes la última versión (build %d)", build)
+                            }
+                            is UpdateResult.Failure -> checkMsg = result.message()
                         }
                     }
                 }) { Text(tr("Buscar")) }

@@ -10,6 +10,9 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.ExistingWorkPolicy
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -26,8 +29,7 @@ import java.util.concurrent.TimeUnit
 class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
 
     override suspend fun doWork(): Result {
-        runCheck(applicationContext)
-        return Result.success()
+        return if (runCheck(applicationContext)) Result.success() else Result.retry()
     }
 
     companion object {
@@ -37,14 +39,26 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
 
         /** Busca una versión nueva y, si la hay y no se avisó antes, muestra la notificación. */
         @Synchronized
-        fun runCheck(ctx: Context) {
+        fun runCheck(ctx: Context): Boolean {
             Prefs.init(ctx)
             I18n.init(ctx)
-            if (!Prefs.autoUpdate) return
-            val info = Updater.check(ctx) ?: return
+            if (!Prefs.autoUpdate) return true
+            val result = Updater.fetch(ctx)
+            if (result is UpdateResult.Failure) return false
+            val info = (result as UpdateResult.Success).info
+            if (!Updater.isOffered(ctx, info)) return true
             val sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
-            if (sp.getInt("notified", 0) >= info.build) return
+            if (sp.getInt("notified", 0) >= info.build) return true
             if (notify(ctx, info)) sp.edit().putInt("notified", info.build).apply()
+            return true
+        }
+
+        fun enqueueNow(ctx: Context) {
+            val req = OneTimeWorkRequestBuilder<UpdateWorker>()
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .build()
+            WorkManager.getInstance(ctx).enqueueUniqueWork("update-check-now", ExistingWorkPolicy.KEEP, req)
         }
 
         fun schedule(ctx: Context) {
@@ -116,7 +130,10 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             if (Build.VERSION.SDK_INT >= 33 &&
                 ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
             ) return false
+            if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) return false
             channel(ctx)
+            val manager = ctx.getSystemService(NotificationManager::class.java)
+            if (Build.VERSION.SDK_INT >= 26 && manager.getNotificationChannel(CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE) return false
             val install = PendingIntent.getBroadcast(
                 ctx, 1, Intent(ctx, InstallUpdateReceiver::class.java).putExtra("apk", info.apkUrl),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,

@@ -1,5 +1,9 @@
 # Monitor Root
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 kevxngg.
+
 **English** | [Español](README.es.md)
 
 **The task manager for rooted Android.** Monitor Root shows what your phone is using in real time (processes, CPU, GPU, memory, disk, network, battery and temperatures), with the look of the Windows 11 Task Manager.
@@ -48,7 +52,9 @@
 - 11 languages: English, Spanish, French, Portuguese, German, Italian, Russian, Arabic, Chinese, Japanese and Korean.
 - Light, dark or system theme.
 - Start page and data refresh speed.
-- Automatic updates: in-app prompt and a notification with an **Update now** button.
+- Automatic updates: in-app prompt and a notification with an **Update now** button. Checks use GitHub; Android may delay background checks, so notifications are not instantaneous.
+- Failed checks show the type of error and indicate when active private DNS may be related. The app does not change the phone’s DNS.
+- An update is required when three build numbers behind (for example: installed 10, published 13). Build numbers can skip when GitHub Actions builds fail. The last verified release is retained; a network failure without previous release information does not lock the app. This policy starts applying after installing a version that includes it.
 
 ## Requirements
 

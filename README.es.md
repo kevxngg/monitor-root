@@ -1,5 +1,9 @@
 # Monitor Root
 
+[![Licencia: MIT](https://img.shields.io/badge/Licencia-MIT-blue.svg)](LICENSE)
+
+Código disponible bajo la [licencia MIT](LICENSE). Copyright (c) 2026 kevxngg.
+
 [English](README.md) | **Español**
 
 **El administrador de tareas para Android con root.** Monitor Root te muestra qué está usando tu teléfono en tiempo real (procesos, CPU, GPU, memoria, disco, red, batería y temperaturas), con el diseño del administrador de tareas de Windows 11.
@@ -48,7 +52,9 @@
 - 11 idiomas: español, inglés, francés, portugués, alemán, italiano, ruso, árabe, chino, japonés y coreano.
 - Tema claro, oscuro o según el sistema.
 - Página de inicio y velocidad de actualización de los datos.
-- Actualizaciones automáticas: aviso dentro de la app y notificación con el botón **Actualizar ahora**.
+- Actualizaciones automáticas: aviso dentro de la app y notificación con el botón **Actualizar ahora**. Las consultas usan GitHub; Android puede retrasar las revisiones en segundo plano, por lo que el aviso no es instantáneo.
+- Si falla una consulta, la app indica el tipo de error y avisa si hay DNS privado activo que podría estar relacionado. No modifica el DNS del teléfono.
+- Con tres builds de atraso se requiere actualizar para continuar (por ejemplo: instalada 10, publicada 13). El límite se calcula con los números de build, que pueden saltar si falla una compilación de GitHub Actions. Se conserva la última versión comprobada; un fallo de red sin información previa no bloquea la app. Esta regla empieza a aplicarse al instalar una versión que la incluya.
 
 ## Requisitos
 

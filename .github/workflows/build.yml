@@ -29,8 +29,8 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Compilar
-        run: gradle assembleRelease --no-daemon --stacktrace
+      - name: Probar y compilar
+        run: gradle testDebugUnitTest assembleRelease --no-daemon --stacktrace
 
       - name: Renombrar APK
         run: cp app/build/outputs/apk/release/app-release.apk MonitorRoot.apk

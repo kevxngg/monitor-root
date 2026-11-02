@@ -281,3 +281,14 @@ Copiar información	Copy information	Copier les informations	Copiar informaçõe
 Información copiada	Information copied	Informations copiées	Informações copiadas	Informationen kopiert	Informazioni copiate	Сведения скопированы	تم نسخ المعلومات	信息已复制	情報をコピーしました	정보가 복사됨
 Útil al informar un problema	Useful when reporting a problem	Utile pour signaler un problème	Útil ao relatar um problema	Hilfreich beim Melden eines Problems	Utile per segnalare un problema	Пригодится при отправке отчёта о проблеме	مفيد عند الإبلاغ عن مشكلة	报告问题时很有用	問題を報告するときに役立ちます	문제를 신고할 때 유용함
 Usuario copiado	Username copied	Nom d’utilisateur copié	Usuário copiado	Benutzername kopiert	Nome utente copiato	Имя пользователя скопировано	تم نسخ اسم المستخدم	已复制用户名	ユーザー名をコピーしました	사용자 이름이 복사됨
+No se pudo resolver la dirección de GitHub.	Could not resolve the GitHub address.
+GitHub tardó demasiado en responder.	GitHub took too long to respond.
+No se pudo establecer una conexión segura con GitHub. Revisa la fecha y hora del teléfono.	Could not establish a secure connection to GitHub. Check the date and time on your phone.
+GitHub rechazó la consulta o no está disponible. Inténtalo más tarde.	GitHub rejected the request or is unavailable. Try again later.
+La información de actualización recibida no es válida.	The update information received is invalid.
+No se pudo conectar con GitHub. Revisa la conexión de esta aplicación.	Could not connect to GitHub. Check the network access for this app.
+Hay DNS privado activo y podría estar relacionado. Prueba DNS automático o desactívalo temporalmente y vuelve a buscar.	Private DNS is active and may be related. Try automatic DNS or disable it temporarily, then check again.
+Actualización obligatoria	Update required
+Tienes al menos tres builds de atraso. Actualiza para continuar usando Monitor Root.	You are at least three builds behind. Update to continue using Monitor Root.
+Actualiza Monitor Root para continuar.	Update Monitor Root to continue.
+La instalación no se ha completado. Puedes reintentar o descargar desde el navegador.	Installation has not completed. You can retry or download in your browser.

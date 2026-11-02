@@ -133,23 +133,35 @@ fun Shell() {
     var runOpen by remember { mutableStateOf(false) }
     var focusPid by remember { mutableStateOf<Int?>(null) }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
+    var latestInfo by remember { mutableStateOf(Updater.cached(context)) }
 
-    // Al abrir la app, busca si hay una versión nueva en GitHub
-    // Busca actualizaciones cada vez que vuelves a la app y cada 2 minutos mientras está abierta
+    // Check on resume and once a minute while visible, including the required-version policy.
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) { UpdateWorker.prepare(context.applicationContext) }
         (context as LifecycleOwner).repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
-                if (Prefs.autoUpdate && update == null) {
-                    val info = withContext(Dispatchers.IO) { Updater.check(context.applicationContext) }
-                    if (info != null && !Updater.isSnoozed(info.build)) {
-                        update = info
-                        UpdateWorker.cancelNotification(context.applicationContext)
+                // Always verify the supported version, even when optional alerts are disabled.
+                when (val result = withContext(Dispatchers.IO) { Updater.fetch(context.applicationContext) }) {
+                    is UpdateResult.Success -> {
+                        val info = result.info
+                        latestInfo = info
+                        if (Prefs.autoUpdate && update == null && Updater.isOffered(context, info) && !Updater.isSnoozed(info.build)) {
+                            update = info
+                            UpdateWorker.cancelNotification(context.applicationContext)
+                        }
                     }
+                    is UpdateResult.Failure -> Unit // Preserve the last verified policy while offline.
                 }
                 delay(60 * 1000L)
             }
         }
+    }
+
+    val required = latestInfo?.takeIf { Updater.isRequired(context, it) }
+    if (required != null) {
+        CenterText(tr("Actualiza Monitor Root para continuar."))
+        UpdateDialog(required, required = true) {}
+        return
     }
 
     // Lectura periódica (solo con la app en pantalla)
@@ -210,7 +222,7 @@ fun Shell() {
                                     Page.SERVICES -> ServicesPage(s, query, onRun) { pid ->
                                         focusPid = pid; page = Page.DETAILS
                                     }
-                                    Page.SETTINGS -> SettingsPage()
+                                    Page.SETTINGS -> SettingsPage { latestInfo = it }
                                 }
                             }
                         }
