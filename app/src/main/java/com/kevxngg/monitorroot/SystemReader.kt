@@ -402,8 +402,17 @@ class SystemReader(context: Context) {
         val batt = BattInfo(
             level = sys[BAT + "capacity"]?.toIntOrNull(),
             tempC = sys[BAT + "temp"]?.toFloatOrNull()?.div(10f),
+            // Cada fabricante usa un signo distinto: se normaliza según el estado
+            // (+ cargando, − descargando).
             currentMa = sys[BAT + "current_now"]?.toLongOrNull()
-                ?.let { if (abs(it) > 10_000) (it / 1000).toInt() else it.toInt() },
+                ?.let { if (abs(it) > 10_000) (it / 1000).toInt() else it.toInt() }
+                ?.let {
+                    when (sys[BAT + "status"]) {
+                        "Charging" -> abs(it)
+                        "Discharging" -> -abs(it)
+                        else -> it
+                    }
+                },
             status = when (sys[BAT + "status"]) {
                 "Charging" -> "Cargando"
                 "Discharging" -> "Descargando"

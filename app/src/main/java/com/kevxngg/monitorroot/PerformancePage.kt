@@ -499,7 +499,7 @@ private fun TempDetail(s: Snapshot, h: History) {
             tr("Máxima") to (s.thermals.firstOrNull()?.let { "%.1f °C".format(it.celsius) } ?: "—"),
             tr("Batería") to (b.tempC?.let { "%.1f °C".format(it) } ?: "—"),
             tr("Carga") to (b.level?.let { "$it%" } ?: "—"),
-            tr("Corriente") to (b.currentMa?.let { "$it mA" } ?: "—"),
+            tr("Corriente") to (b.currentMa?.let { if (it > 0) "+$it mA" else "$it mA" } ?: "—"),
             tr("Voltaje") to (b.voltageMv?.let { "%.2f V".format(it / 1000f) } ?: "—"),
             tr("Estado") to (b.status?.let { tr(it) } ?: "—"),
         ),
