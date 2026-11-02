@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -19,7 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,81 +63,157 @@ private fun rootManager(): String? {
     }
 }
 
+/** Logo de la app (el mismo que el icono del lanzador). */
 @Composable
-fun AboutSection(build: Int) {
+fun AppLogo(size: Int) {
+    Box(
+        Modifier.size(size.dp).clip(RoundedCornerShape((size / 4).dp)).background(Color(0xFF117DBB)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(Icons.Filled.Insights, null, tint = Color.White, modifier = Modifier.size((size * 0.56f).dp))
+    }
+}
+
+private fun appVersion(ctx: Context): String = try {
+    ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: ""
+} catch (e: Exception) {
+    ""
+}
+
+/** Fila de Configuración: "Monitor Root · versión" → abre la página Acerca de. */
+@Composable
+fun AboutEntry(onOpen: () -> Unit) {
     val win = LocalWin.current
     val ctx = LocalContext.current
-    val version = remember {
-        try {
-            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: ""
-        } catch (e: Exception) {
-            ""
+    val version = remember { appVersion(ctx) }
+    AboutCard {
+        Row(
+            Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppLogo(40)
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Monitor Root", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+                Text("${tr("Versión")} $version", fontSize = 12.sp, color = win.sub)
+            }
+            @Suppress("DEPRECATION")
+            Icon(Icons.Outlined.KeyboardArrowRight, null, tint = win.sub, modifier = Modifier.size(20.dp))
         }
     }
+}
+
+/** Página completa de información de Monitor Root. */
+@Composable
+fun AboutPage(build: Int, onBack: () -> Unit) {
+    val win = LocalWin.current
+    val ctx = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    val version = remember { appVersion(ctx) }
     var root by remember { mutableStateOf<String?>(null) }
+    var copied by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { root = withContext(Dispatchers.IO) { rootManager() } }
+    BackHandler(onBack = onBack)
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // ---- Cabecera de la app ----
-        AboutCard {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xFF117DBB)),
-                    contentAlignment = Alignment.Center,
+    val device = listOf(
+        Triple(Icons.Outlined.PhoneAndroid, tr("Dispositivo"), "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}"),
+        Triple(Icons.Outlined.Android, "Android", "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"),
+        Triple(Icons.Outlined.Memory, tr("Procesador"), socName()),
+        Triple(Icons.Outlined.DeveloperBoard, "GPU", GlInfo.renderer ?: "—"),
+        Triple(Icons.Outlined.Terminal, tr("Kernel"), System.getProperty("os.version") ?: "—"),
+        Triple(Icons.Outlined.AdminPanelSettings, tr("Gestor de root"), root ?: "—"),
+    )
+
+    Column(Modifier.fillMaxSize()) {
+        // Barra superior con botón de volver
+        Row(
+            Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onBack).padding(10.dp)) {
+                @Suppress("DEPRECATION")
+                Icon(Icons.Outlined.ArrowBack, tr("Volver"), tint = win.text, modifier = Modifier.size(20.dp))
+            }
+            Text(tr("Acerca de"), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+        }
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // ---- Cabecera ----
+            Column(
+                Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                AppLogo(80)
+                Spacer(Modifier.height(12.dp))
+                Text("Monitor Root", fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+                Text("${tr("Versión")} $version", fontSize = 13.sp, color = win.sub)
+                Spacer(Modifier.height(6.dp))
+                Text(tr("Monitor del sistema para Android con root"), fontSize = 13.sp, color = win.text)
+            }
+
+            // ---- Proyecto ----
+            SectionTitle(tr("Proyecto"))
+            AboutCard {
+                AboutRow(Icons.Outlined.Person, tr("Desarrollador"), DEV) { open(ctx, "https://github.com/$DEV") }
+                AboutDivider()
+                AboutRow(Icons.Outlined.Code, tr("Repositorio"), REPO.removePrefix("https://")) { open(ctx, REPO) }
+                AboutDivider()
+                AboutRow(Icons.Outlined.History, tr("Registro de cambios"), tr("Ver todas las versiones")) { open(ctx, "$REPO/releases") }
+                AboutDivider()
+                AboutRow(Icons.Outlined.BugReport, tr("Informar un problema"), "GitHub Issues") { open(ctx, "$REPO/issues/new") }
+            }
+
+            // ---- Redes sociales ----
+            SectionTitle(tr("Redes sociales"))
+            AboutCard {
+                SOCIALS.forEachIndexed { i, (name, user, url) ->
+                    if (i > 0) AboutDivider()
+                    AboutRow(Icons.Outlined.AlternateEmail, name, user) { open(ctx, url) }
+                }
+            }
+
+            // ---- Dispositivo (útil al informar un problema) ----
+            SectionTitle(tr("Información del dispositivo"))
+            AboutCard {
+                device.forEachIndexed { i, (icon, title, value) ->
+                    if (i > 0) AboutDivider()
+                    AboutRow(icon, title, value)
+                }
+                AboutDivider()
+                Row(
+                    Modifier.fillMaxWidth().clickable {
+                        val text = "Monitor Root $version\n" + device.joinToString("\n") { "${it.second}: ${it.third}" }
+                        clipboard.setText(AnnotatedString(text))
+                        copied = true
+                    }.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Outlined.Insights, null, tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                Spacer(Modifier.width(16.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Monitor Root", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = win.text)
-                    Text("${tr("Versión")} $version", fontSize = 13.sp, color = win.sub)
-                    Spacer(Modifier.height(4.dp))
-                    Text(tr("Monitor del sistema para Android con root"), fontSize = 13.sp, color = win.text)
+                    Icon(Icons.Outlined.ContentCopy, null, tint = win.accent, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(if (copied) tr("Información copiada") else tr("Copiar información"), fontSize = 14.sp, color = win.accent)
+                        Text(tr("Útil al informar un problema"), fontSize = 12.sp, color = win.sub)
+                    }
                 }
             }
-        }
 
-        // ---- Proyecto ----
-        AboutCard {
-            AboutRow(Icons.Outlined.Person, tr("Desarrollador"), DEV) { open(ctx, "https://github.com/$DEV") }
-            AboutDivider()
-            AboutRow(Icons.Outlined.Code, tr("Repositorio"), REPO.removePrefix("https://")) { open(ctx, REPO) }
-            AboutDivider()
-            AboutRow(Icons.Outlined.History, tr("Registro de cambios"), tr("Ver todas las versiones")) { open(ctx, "$REPO/releases") }
-            AboutDivider()
-            AboutRow(Icons.Outlined.BugReport, tr("Informar un problema"), "GitHub Issues") { open(ctx, "$REPO/issues/new") }
+            Text(
+                "Monitor Root · build $build · © ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} $DEV",
+                fontSize = 11.sp, color = win.sub, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            )
         }
-
-        // ---- Redes sociales ----
-        Text(tr("Redes sociales"), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
-        AboutCard {
-            SOCIALS.forEachIndexed { i, (name, user, url) ->
-                if (i > 0) AboutDivider()
-                AboutRow(Icons.Outlined.AlternateEmail, name, user) { open(ctx, url) }
-            }
-        }
-
-        // ---- Dispositivo ----
-        Text(tr("Información del dispositivo"), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
-        AboutCard {
-            AboutRow(Icons.Outlined.PhoneAndroid, tr("Dispositivo"), "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}")
-            AboutDivider()
-            AboutRow(Icons.Outlined.Android, "Android", "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-            AboutDivider()
-            AboutRow(Icons.Outlined.Memory, tr("Procesador"), socName())
-            AboutDivider()
-            AboutRow(Icons.Outlined.DeveloperBoard, "GPU", GlInfo.renderer ?: "—")
-            AboutDivider()
-            AboutRow(Icons.Outlined.Terminal, tr("Kernel"), System.getProperty("os.version") ?: "—")
-            AboutDivider()
-            AboutRow(Icons.Outlined.AdminPanelSettings, tr("Gestor de root"), root ?: "—")
-        }
-        Text(
-            "Monitor Root · build $build · © ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} $DEV",
-            fontSize = 11.sp, color = win.sub,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        )
     }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = LocalWin.current.text,
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
+    )
 }
 
 @Composable
