@@ -112,6 +112,8 @@ object Prefs {
     var groupByType by mutableStateOf(true)
     var showPackageNames by mutableStateOf(false)
     var efficiency by mutableStateOf(setOf<String>())
+    var autoUpdate by mutableStateOf(true)
+    var skippedBuild by mutableIntStateOf(0)
 
     fun init(ctx: Context) {
         val p = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
@@ -122,6 +124,8 @@ object Prefs {
         groupByType = p.getBoolean("group", true)
         showPackageNames = p.getBoolean("pkgNames", false)
         efficiency = p.getStringSet("eff", emptySet())?.toSet() ?: emptySet()
+        autoUpdate = p.getBoolean("autoUpdate", true)
+        skippedBuild = p.getInt("skipped", 0)
     }
 
     fun save() {
@@ -132,6 +136,8 @@ object Prefs {
             ?.putBoolean("group", groupByType)
             ?.putBoolean("pkgNames", showPackageNames)
             ?.putStringSet("eff", efficiency)
+            ?.putBoolean("autoUpdate", autoUpdate)
+            ?.putInt("skipped", skippedBuild)
             ?.apply()
     }
 
