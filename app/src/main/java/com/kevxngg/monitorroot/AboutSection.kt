@@ -62,6 +62,7 @@ private fun open(ctx: Context, url: String) {
 }
 
 private fun rootManager(): String? {
+    if (RootShell.mode == RootShell.Mode.SYSTEM || RootShell.isSystemApp) return tr("App del sistema (sin root)")
     val out = RootShell.run(
         "magisk -c 2>/dev/null || /data/adb/ksud -V 2>/dev/null || /data/adb/apd -V 2>/dev/null"
     ).firstOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: return null
@@ -104,7 +105,7 @@ fun AboutEntry(onOpen: () -> Unit) {
             AppLogo(40)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text("Monitor Root", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+                Text("Monitor", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = win.text)
                 Text("${tr("Versión")} $version", fontSize = 12.sp, color = win.sub)
             }
             @Suppress("DEPRECATION")
@@ -158,7 +159,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
             ) {
                 AppLogo(80)
                 Spacer(Modifier.height(12.dp))
-                Text("Monitor Root", fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+                Text("Monitor", fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = win.text)
                 Text("${tr("Versión")} $version", fontSize = 13.sp, color = win.sub)
                 Spacer(Modifier.height(6.dp))
                 Text(tr("Monitor del sistema para Android con root"), fontSize = 13.sp, color = win.text)
@@ -203,7 +204,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
                 AboutDivider()
                 Row(
                     Modifier.fillMaxWidth().clickable {
-                        val text = "Monitor Root $version\n" + device.joinToString("\n") { "${it.second}: ${it.third}" }
+                        val text = "Monitor $version\n" + device.joinToString("\n") { "${it.second}: ${it.third}" }
                         clipboard.setText(AnnotatedString(text))
                         copied = true
                     }.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -219,7 +220,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
             }
 
             Text(
-                "Monitor Root · build $build · © ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} $DEV",
+                "Monitor · build $build · © ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} $DEV",
                 fontSize = 11.sp, color = win.sub, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
             )

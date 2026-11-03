@@ -111,7 +111,7 @@ object Updater {
     private fun fromFeed(): UpdateInfo {
         val j = JSONObject(get("$FEED?t=${System.currentTimeMillis()}"))
         val build = j.getInt("build")
-        return validated(UpdateInfo(build, "Monitor Root (build $build)", j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0)))
+        return validated(UpdateInfo(build, "Monitor (build $build)", j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0)))
     }
 
     private fun fromApi(): UpdateInfo {
@@ -284,7 +284,7 @@ fun UpdateDialog(info: UpdateInfo, required: Boolean = false, onDismiss: () -> U
                         if (info.sizeBytes > 0) " · ${formatBytes(info.sizeBytes)}" else "",
                     fontSize = 13.sp, color = win.sub,
                 )
-                if (required) Text(tr("Esta versión ya no es compatible. Actualiza para continuar usando Monitor Root."), fontSize = 13.sp)
+                if (required) Text(tr("Esta versión ya no es compatible. Actualiza para continuar usando Monitor."), fontSize = 13.sp)
                 if (info.notes.isNotBlank()) ReleaseNotes(info.notes)
                 progress?.let { p ->
                     LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth(), color = win.accent)

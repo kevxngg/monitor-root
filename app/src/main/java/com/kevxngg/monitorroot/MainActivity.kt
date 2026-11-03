@@ -137,7 +137,7 @@ fun Shell() {
     var runOpen by remember { mutableStateOf(false) }
     var focusPid by remember { mutableStateOf<Int?>(null) }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
-    var latestInfo by remember { mutableStateOf(Updater.cached(context)) }
+    var latestInfo by remember { mutableStateOf(if (BuildConfig.SYSTEM_BUILD) null else Updater.cached(context)) }
 
     // Check on resume and once a minute while visible, including the required-version policy.
     LaunchedEffect(Unit) {
@@ -146,6 +146,8 @@ fun Shell() {
             // Si el modo juego estaba activo, se asegura de que siga funcionando
             if (Prefs.gameMode) GameMode.start(context.applicationContext)
         }
+        // En la edición para ROMs, la app se actualiza junto con la ROM
+        if (BuildConfig.SYSTEM_BUILD) return@LaunchedEffect
         (context as LifecycleOwner).repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
                 // Always verify the supported version, even when optional alerts are disabled.
@@ -168,7 +170,7 @@ fun Shell() {
 
     val required = latestInfo?.takeIf { Updater.isRequired(context, it) }
     if (required != null) {
-        CenterText(tr("Actualiza Monitor Root para continuar."))
+        CenterText(tr("Actualiza Monitor para continuar."))
         UpdateDialog(required, required = true) {}
         return
     }
@@ -280,7 +282,7 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
         Icon(Icons.Filled.Insights, null, tint = win.accent, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
         if (!compact) {
-            Text("Monitor Root", fontSize = 12.sp, color = win.text)
+            Text("Monitor", fontSize = 12.sp, color = win.text)
             Spacer(Modifier.weight(1f))
         }
         Row(

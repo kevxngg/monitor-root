@@ -9,6 +9,7 @@ on:
       - 'README.md'
       - 'README.es.md'
       - '.github/**'
+      - 'rom/**'
   workflow_dispatch:
 
 permissions:
@@ -32,7 +33,7 @@ jobs:
       - name: Probar y compilar
         run: |
           set -o pipefail
-          gradle testDebugUnitTest assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+          gradle testStandardDebugUnitTest assembleStandardRelease assembleSystemRelease --no-daemon --stacktrace 2>&1 | tee build.log
 
       - name: Mostrar errores de compilación
         if: failure()
@@ -40,7 +41,9 @@ jobs:
           grep -E "^e: |error:|What went wrong" -A 2 build.log | head -40 | while IFS= read -r line; do echo "::error::$line"; done
 
       - name: Renombrar APK
-        run: cp app/build/outputs/apk/release/app-release.apk MonitorRoot.apk
+        run: |
+          cp app/build/outputs/apk/standard/release/app-standard-release.apk MonitorRoot.apk
+          cp app/build/outputs/apk/system/release/app-system-release.apk MonitorRoot-system.apk
 
       - name: Datos de actualización (update.json)
         run: |
@@ -63,7 +66,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: MonitorRoot
-          path: MonitorRoot.apk
+          path: |
+            MonitorRoot.apk
+            MonitorRoot-system.apk
 
       - name: Publicar en Releases
         uses: softprops/action-gh-release@v2
@@ -72,5 +77,6 @@ jobs:
           name: Monitor Root (build ${{ github.run_number }})
           files: |
             MonitorRoot.apk
+            MonitorRoot-system.apk
             update.json
           body_path: RELEASE_NOTES.md

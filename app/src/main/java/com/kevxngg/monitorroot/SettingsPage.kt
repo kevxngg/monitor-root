@@ -138,7 +138,7 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
             SettingCard(
                 Icons.Outlined.Tune, tr("Botón de ajustes rápidos"),
                 if (Build.VERSION.SDK_INT >= 33) tr("Enciende o apaga el monitor flotante desde el panel de notificaciones.")
-                else tr("Edita el panel de ajustes rápidos y arrastra el botón Monitor Root."),
+                else tr("Edita el panel de ajustes rápidos y arrastra el botón Monitor."),
             ) {
                 if (Build.VERSION.SDK_INT >= 33) TextButton(onClick = { addTile(ctx) }) { Text(tr("Añadir")) }
             }
@@ -182,32 +182,34 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            SectionLabel(tr("Actualizaciones"))
-            SettingCard(Icons.Outlined.SystemUpdate, tr("Buscar actualizaciones al abrir"), tr("Avisa cuando hay una versión nueva en GitHub")) {
-                WinSwitch(Prefs.autoUpdate) { Prefs.autoUpdate = it; Prefs.save() }
-            }
-            SettingCard(Icons.Outlined.Update, tr("Buscar ahora"), checkMsg ?: tr("Build instalada: %d", build)) {
-                TextButton(enabled = !checking, onClick = {
-                    checking = true
-                    checkMsg = tr("Buscando…")
-                    scope.launch {
-                        val result = withContext(Dispatchers.IO) { Updater.fetch(ctx.applicationContext) }
-                        checking = false
-                        when (result) {
-                            is UpdateResult.Success -> {
-                                val info = result.info
-                                onVerified(info)
-                                if (Updater.isOffered(ctx, info, ignoreSkipped = true)) {
-                                    if (!Updater.isRequired(ctx, info)) found = info
-                                    checkMsg = tr("Build %d disponible", info.build)
-                                } else checkMsg = tr("Ya tienes la última versión (build %d)", build)
+            if (!BuildConfig.SYSTEM_BUILD) {
+                SectionLabel(tr("Actualizaciones"))
+                SettingCard(Icons.Outlined.SystemUpdate, tr("Buscar actualizaciones al abrir"), tr("Avisa cuando hay una versión nueva en GitHub")) {
+                    WinSwitch(Prefs.autoUpdate) { Prefs.autoUpdate = it; Prefs.save() }
+                }
+                SettingCard(Icons.Outlined.Update, tr("Buscar ahora"), checkMsg ?: tr("Build instalada: %d", build)) {
+                    TextButton(enabled = !checking, onClick = {
+                        checking = true
+                        checkMsg = tr("Buscando…")
+                        scope.launch {
+                            val result = withContext(Dispatchers.IO) { Updater.fetch(ctx.applicationContext) }
+                            checking = false
+                            when (result) {
+                                is UpdateResult.Success -> {
+                                    val info = result.info
+                                    onVerified(info)
+                                    if (Updater.isOffered(ctx, info, ignoreSkipped = true)) {
+                                        if (!Updater.isRequired(ctx, info)) found = info
+                                        checkMsg = tr("Build %d disponible", info.build)
+                                    } else checkMsg = tr("Ya tienes la última versión (build %d)", build)
+                                }
+                                is UpdateResult.Failure -> checkMsg = result.message()
                             }
-                            is UpdateResult.Failure -> checkMsg = result.message()
                         }
-                    }
-                }) { Text(tr("Buscar")) }
+                    }) { Text(tr("Buscar")) }
+                }
+                Spacer(Modifier.height(8.dp))
             }
-            Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Acerca de"))
             AboutEntry { showAbout = true }
             Spacer(Modifier.height(16.dp))

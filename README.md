@@ -71,6 +71,10 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 - Failed checks show the type of error and indicate when active private DNS may be related. The app does not change the phone’s DNS.
 - Updates are optional. Only a release explicitly marked as required (with the `MIN_BUILD` file in this repository) asks older versions to update before continuing.
 
+## For ROM developers
+
+There's a **system edition** (`MonitorRoot-system.apk` in each release) that works **without root** when it's built into a ROM as a privileged system app signed with the platform key. See [rom/README.md](rom/README.md) for the `Android.bp`, permissions and SELinux notes.
+
 ## Requirements
 
 - Android 8.0 or later.

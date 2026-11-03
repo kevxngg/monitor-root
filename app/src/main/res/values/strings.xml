@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Monitor Root</string>
+    <string name="app_name">Monitor</string>
     <string name="widget_description">CPU, RAM, temperature and battery</string>
-    <string name="tile_label">Monitor Root</string>
+    <string name="tile_label">Monitor</string>
 </resources>

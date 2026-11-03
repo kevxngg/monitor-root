@@ -304,7 +304,7 @@ private fun SessionDialog(s: GameSession, onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = {
-                val text = "${s.label}\n" + rows.joinToString("\n") { "${it.first}: ${it.second}" } + "\n\nMonitor Root"
+                val text = "${s.label}\n" + rows.joinToString("\n") { "${it.first}: ${it.second}" } + "\n\nMonitor"
                 try {
                     ctx.startActivity(
                         Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), null)

@@ -1,0 +1,18 @@
+# Monitor: reglas opcionales de SELinux para la edición de sistema.
+#
+# La app corre como system_app. Según la ROM, SELinux puede bloquear algunas
+# lecturas (procesos de otras apps) o escrituras (gobernador de CPU/GPU).
+# Revisa los "avc: denied" con:  adb logcat | grep -i "avc.*system_app"
+# y añade solo las reglas que tu ROM necesite. Son un punto de partida, no
+# una lista definitiva: comprueba que no entren en conflicto con neverallow.
+
+# Leer procesos (Procesos, Detalles, uso de CPU por app)
+allow system_app domain:dir r_dir_perms;
+allow system_app domain:file r_file_perms;
+allow system_app domain:lnk_file r_file_perms;
+
+# Sensores, frecuencias y GPU
+r_dir_file(system_app, sysfs_thermal)
+r_dir_file(system_app, sysfs_devices_system_cpu)
+allow system_app sysfs_devices_system_cpu:file w_file_perms;
+allow system_app sysfs_gpu:file rw_file_perms;

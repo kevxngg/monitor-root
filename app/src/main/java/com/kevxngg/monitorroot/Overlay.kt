@@ -403,7 +403,7 @@ class OverlayService : Service() {
             extra.forEach { sb.setSpan(it, start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE) }
         }
         if (d == null) {
-            span("Monitor Root  ", WHITE)
+            span("Monitor  ", WHITE)
             span(tr("Sin acceso root"), RED)
             return sb
         }
@@ -551,7 +551,7 @@ class OverlayService : Service() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             setLineSpacing(0f, 1.1f)
             setShadowLayer(2f, 0f, 1f, 0xAA000000.toInt())
-            text = "Monitor Root"
+            text = "Monitor"
         }
         val g = OverlayGraph(this).apply {
             visibility = View.GONE

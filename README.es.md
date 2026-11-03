@@ -71,6 +71,10 @@ Código disponible bajo la [licencia MIT](LICENSE). Copyright (c) 2026 kevxngg.
 - Si falla una consulta, la app indica el tipo de error y avisa si hay DNS privado activo que podría estar relacionado. No modifica el DNS del teléfono.
 - Las actualizaciones son opcionales. Solo una versión marcada expresamente como obligatoria (con el archivo `MIN_BUILD` de este repositorio) pide a las versiones anteriores que actualicen antes de continuar.
 
+## Para desarrolladores de ROMs
+
+Hay una **edición de sistema** (`MonitorRoot-system.apk` en cada versión) que funciona **sin root** cuando se integra en una ROM como app privilegiada del sistema, firmada con la clave de la plataforma. Consulta [rom/README.md](rom/README.md) para el `Android.bp`, los permisos y las notas de SELinux.
+
 ## Requisitos
 
 - Android 8.0 o superior.
