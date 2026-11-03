@@ -40,6 +40,26 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
     var found by remember { mutableStateOf<UpdateInfo?>(null) }
     found?.let { UpdateDialog(it) { found = null } }
     var showAbout by remember { mutableStateOf(false) }
+    var fpsTesting by remember { mutableStateOf(false) }
+    var fpsReport by remember { mutableStateOf<String?>(null) }
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    fpsReport?.let { report ->
+        AlertDialog(
+            onDismissRequest = { fpsReport = null },
+            title = { Text(tr("Probar medición de FPS"), fontSize = 18.sp) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Text(tr("Abre un juego, vuelve aquí y prueba de nuevo para comparar."), fontSize = 12.sp, color = win.sub)
+                    Spacer(Modifier.height(8.dp))
+                    Text(report, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = win.text)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { clipboard.setText(androidx.compose.ui.text.AnnotatedString(report)) }) { Text(tr("Copiar información")) }
+            },
+            dismissButton = { TextButton(onClick = { fpsReport = null }) { Text(tr("Cerrar")) } },
+        )
+    }
     if (showAbout) {
         AboutPage(build) { showAbout = false }
         return
@@ -89,8 +109,22 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     }
                 }
             }
-            SettingCard(Icons.Outlined.ViewAgenda, tr("Estilo del monitor flotante"), tr("Vertical o en una sola línea, útil para juegos en horizontal")) {
-                WinDropdown(listOf(tr("Vertical"), tr("Horizontal")), Prefs.overlayStyle) { Prefs.overlayStyle = it; Prefs.save() }
+            SettingCard(Icons.Outlined.ViewAgenda, tr("Diseño del monitor flotante"), tr("También puedes tocar el monitor flotante para cambiar de diseño.")) {
+                WinDropdown(
+                    listOf(tr("Completo"), tr("Horizontal"), tr("Compacto"), tr("Solo FPS"), tr("Gráfica")),
+                    Prefs.overlayStyle.coerceIn(0, OverlayService.STYLES - 1),
+                ) { Prefs.overlayStyle = it; Prefs.save() }
+            }
+            SettingCard(Icons.Outlined.Speed, tr("Probar medición de FPS"), tr("Comprueba qué métodos de medición funcionan en este teléfono.")) {
+                TextButton(enabled = !fpsTesting, onClick = {
+                    fpsTesting = true
+                    scope.launch {
+                        fpsReport = withContext(Dispatchers.IO) {
+                            if (RootShell.open()) QuickStats.diagnoseFps() else tr("Sin acceso root")
+                        }
+                        fpsTesting = false
+                    }
+                }) { Text(if (fpsTesting) tr("Probando…") else tr("Probar")) }
             }
             SettingCard(Icons.Outlined.FormatSize, tr("Tamaño"), tr("Tamaño del texto del monitor flotante")) {
                 WinDropdown(listOf(tr("Pequeño"), tr("Normal"), tr("Grande")), Prefs.overlaySize) { Prefs.overlaySize = it; Prefs.save() }
