@@ -115,6 +115,10 @@ object Prefs {
     var autoUpdate by mutableStateOf(true)
     var language by mutableStateOf("")       // "" = idioma del sistema
     var defaultGovernor by mutableStateOf("") // gobernador original de la CPU (modo equilibrado)
+    var defaultGpuGovernor by mutableStateOf("")
+    var overlayStyle by mutableIntStateOf(0)    // 0 vertical, 1 horizontal
+    var overlaySize by mutableIntStateOf(1)     // 0 pequeño, 1 normal, 2 grande
+    var overlayOpacity by mutableIntStateOf(1)  // 0 baja, 1 media, 2 alta
     var skippedBuild by mutableIntStateOf(0)
 
     fun init(ctx: Context) {
@@ -129,6 +133,10 @@ object Prefs {
         autoUpdate = p.getBoolean("autoUpdate", true)
         language = p.getString("lang", "") ?: ""
         defaultGovernor = p.getString("defaultGov", "") ?: ""
+        defaultGpuGovernor = p.getString("defaultGpuGov", "") ?: ""
+        overlayStyle = p.getInt("ovStyle", 0)
+        overlaySize = p.getInt("ovSize", 1)
+        overlayOpacity = p.getInt("ovOpacity", 1)
         skippedBuild = p.getInt("skipped", 0)
     }
 
@@ -143,6 +151,10 @@ object Prefs {
             ?.putBoolean("autoUpdate", autoUpdate)
             ?.putString("lang", language)
             ?.putString("defaultGov", defaultGovernor)
+            ?.putString("defaultGpuGov", defaultGpuGovernor)
+            ?.putInt("ovStyle", overlayStyle)
+            ?.putInt("ovSize", overlaySize)
+            ?.putInt("ovOpacity", overlayOpacity)
             ?.putInt("skipped", skippedBuild)
             ?.apply()
     }

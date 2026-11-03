@@ -14,6 +14,11 @@ import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.Icon
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
+import android.text.style.StyleSpan
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -72,6 +77,43 @@ object QuickStats {
         return n.take(8).sum() to (n[3] + n[4])
     }
 
+    // ---- FPS de la app en primer plano ----
+    private val FOCUS = Regex("mCurrentFocus=Window\\{\\S+ u\\d+ ([\\w.]+)/")
+    private var layer: String? = null
+    private var layerCheckedAt = 0L
+
+    /** Busca la capa de SurfaceFlinger donde dibuja la app enfocada (cada 4 s). */
+    private fun currentLayer(): String? {
+        val now = SystemClock.elapsedRealtime()
+        if (now - layerCheckedAt < 4000) return layer
+        layerCheckedAt = now
+        val focus = RootShell.run("dumpsys window | grep -m 1 mCurrentFocus").firstOrNull()
+        val pkg = focus?.let { FOCUS.find(it)?.groupValues?.get(1) }
+        if (pkg == null) {
+            layer = null
+            return null
+        }
+        val layers = RootShell.run("dumpsys SurfaceFlinger --list").map { it.trim() }.filter { it.contains(pkg) }
+        layer = layers.firstOrNull { it.startsWith("SurfaceView") && it.contains("BLAST") }
+            ?: layers.firstOrNull { it.startsWith("SurfaceView") }
+            ?: layers.firstOrNull { it.contains("BLAST") }
+            ?: layers.firstOrNull()
+        return layer
+    }
+
+    /** Cuenta los cuadros que la capa mostró en el último segundo. */
+    private fun layerFps(): Int? {
+        val name = currentLayer() ?: return null
+        val lines = RootShell.run("dumpsys SurfaceFlinger --latency ${Actions.q(name)}")
+        if (lines.size < 3) return null
+        val times = lines.drop(1).mapNotNull { l -> l.trim().split(WS).getOrNull(1)?.toLongOrNull() }
+            .filter { it > 0 && it != Long.MAX_VALUE }
+        if (times.size < 2) return null
+        // Las marcas de tiempo usan el mismo reloj monótono que System.nanoTime()
+        val since = System.nanoTime() - 1_000_000_000L
+        return times.count { it > since }.coerceAtMost(240)
+    }
+
     /** [fps] = true también mide los cuadros por segundo de la pantalla. */
     @Synchronized
     fun read(fps: Boolean): Data {
@@ -114,18 +156,24 @@ object QuickStats {
             .map { if (abs(it) >= 1000f) it / 1000f else it }
             .filter { it > 0f && it < 125f }
             .maxOrNull()
-        // FPS: contador de la pantalla (Qualcomm) o cuadros compuestos por SurfaceFlinger
+        // FPS: se prueban tres métodos y se usa el mayor valor válido.
+        //  1) cuadros de la capa del juego en primer plano (el más preciso)
+        //  2) cuadros que compone SurfaceFlinger en toda la pantalla
+        //  3) contador del panel (solo Qualcomm), si da más de 0
         var fpsValue: Int? = null
         if (fps) {
-            fpsValue = parts.getOrNull(5)?.let { Regex("fps:\\s*([\\d.]+)").find(it)?.groupValues?.get(1)?.toFloatOrNull()?.toInt() }
+            val measured = parts.getOrNull(5)?.let { Regex("fps:\\s*([\\d.]+)").find(it)?.groupValues?.get(1)?.toFloatOrNull()?.toInt() }
+                ?.takeIf { it > 0 }
             val flips = parts.getOrNull(6)?.let { Regex("Parcel\\(([0-9a-fA-F]+)").find(it)?.groupValues?.get(1)?.toLongOrNull(16) }
             val now = SystemClock.elapsedRealtime()
-            if (fpsValue == null && flips != null && prevFlips >= 0 && now > prevFlipTime) {
-                fpsValue = ((flips - prevFlips) * 1000 / (now - prevFlipTime)).toInt().coerceIn(0, 240)
+            var flipFps: Int? = null
+            if (flips != null && prevFlips >= 0 && now > prevFlipTime && flips >= prevFlips) {
+                flipFps = ((flips - prevFlips) * 1000 / (now - prevFlipTime)).toInt().coerceIn(0, 240)
             }
             if (flips != null) {
                 prevFlips = flips; prevFlipTime = now
             }
+            fpsValue = listOfNotNull(layerFps(), flipFps, measured).maxOrNull()
         }
         return Data(cpu, cpuTemp, gpu, ram, battTemp, battLevel, fpsValue)
     }
@@ -170,7 +218,13 @@ class OverlayService : Service() {
                 } catch (_: Exception) {
                     null
                 }
-                main.post { label?.text = format(d) }
+                val horizontal = getSharedPreferences("prefs", Context.MODE_PRIVATE).getInt("ovStyle", 0) == 1
+                main.post {
+                    label?.let { tv ->
+                        applyLook(tv)
+                        tv.text = build(d, horizontal)
+                    }
+                }
                 SystemClock.sleep(1000)
             }
         }.start()
@@ -185,11 +239,67 @@ class OverlayService : Service() {
         super.onDestroy()
     }
 
-    private fun format(d: QuickStats.Data?): String {
-        if (d == null) return "Monitor Root\n" + tr("Sin acceso root")
-        fun v(x: Int?, unit: String = "%") = x?.let { "$it$unit" } ?: "—"
-        fun t(x: Float?) = x?.let { "%.0f°".format(it) } ?: "—"
-        return "FPS  ${d.fps ?: "—"}\nCPU  ${v(d.cpu)}  ${t(d.cpuTemp)}\nGPU  ${v(d.gpu)}\nRAM  ${v(d.ram)}\nBAT  ${v(d.battLevel)}  ${t(d.battTemp)}"
+    // Colores según la carga: verde, amarillo o rojo
+    private fun loadColor(v: Int?) = when {
+        v == null -> WHITE
+        v < 60 -> GREEN
+        v < 85 -> AMBER
+        else -> RED
+    }
+
+    private fun tempColor(t: Float?) = when {
+        t == null -> WHITE
+        t < 45f -> GREEN
+        t < 60f -> AMBER
+        else -> RED
+    }
+
+    private fun build(d: QuickStats.Data?, horizontal: Boolean): CharSequence {
+        val sb = SpannableStringBuilder()
+        fun span(text: String, color: Int, vararg extra: Any) {
+            val start = sb.length
+            sb.append(text)
+            sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            extra.forEach { sb.setSpan(it, start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE) }
+        }
+        if (d == null) {
+            span("Monitor Root  ", WHITE)
+            span(tr("Sin acceso root"), RED)
+            return sb
+        }
+        fun pct(v: Int?) = (v?.let { "$it%" } ?: "—").padEnd(4)
+        fun deg(t: Float?) = t?.let { "%.0f°".format(it) } ?: ""
+        val sep = if (horizontal) "   " else "\n"
+        // FPS destacado
+        span((d.fps?.toString() ?: "—").padStart(if (horizontal) 1 else 3), ACCENT, RelativeSizeSpan(if (horizontal) 1.25f else 1.7f), StyleSpan(Typeface.BOLD))
+        span(" FPS", LABEL)
+        val rows = listOf(
+            Triple("CPU", d.cpu, d.cpuTemp),
+            Triple("GPU", d.gpu, null),
+            Triple("RAM", d.ram, null),
+            Triple("BAT", d.battLevel, d.battTemp),
+        )
+        rows.forEach { (name, v, t) ->
+            sb.append(sep)
+            span("$name ", LABEL)
+            // La batería no es "carga": siempre en blanco
+            span(pct(v), if (name == "BAT") WHITE else loadColor(v))
+            if (t != null) span(" " + deg(t), tempColor(t))
+        }
+        return sb
+    }
+
+    /** Aplica estilo, tamaño y opacidad elegidos en Configuración. */
+    private fun applyLook(tv: TextView) {
+        val p = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        val size = p.getInt("ovSize", 1)
+        val opacity = p.getInt("ovOpacity", 1)
+        val dp = resources.displayMetrics.density
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, when (size) { 0 -> 9.5f; 2 -> 13.5f; else -> 11f })
+        val alpha = when (opacity) { 0 -> 0x80; 2 -> 0xF0; else -> 0xC0 }
+        (tv.background as? GradientDrawable)?.setColor((alpha shl 24) or 0x161616)
+        val pad = when (size) { 0 -> 7; 2 -> 12; else -> 9 }
+        tv.setPadding((pad * 1.3f * dp).toInt(), (pad * dp).toInt(), (pad * 1.3f * dp).toInt(), (pad * dp).toInt())
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -204,10 +314,11 @@ class OverlayService : Service() {
             setLineSpacing(0f, 1.1f)
             setPadding((10 * dp).toInt(), (8 * dp).toInt(), (10 * dp).toInt(), (8 * dp).toInt())
             background = GradientDrawable().apply {
-                cornerRadius = 12 * dp
-                setColor(0xCC1C1C1C.toInt())
-                setStroke((1 * dp).toInt(), 0x553FB8CC)
+                cornerRadius = 14 * dp
+                setColor(0xC0161616.toInt())
+                setStroke((1 * dp).toInt(), 0x6660CDFF)
             }
+            setShadowLayer(2f, 0f, 1f, 0xAA000000.toInt())
             text = "Monitor Root"
         }
         val sp = getSharedPreferences("prefs", Context.MODE_PRIVATE)
@@ -271,6 +382,12 @@ class OverlayService : Service() {
     }
 
     companion object {
+        private const val WHITE = 0xFFFFFFFF.toInt()
+        private const val LABEL = 0xFFA8A8A8.toInt()
+        private const val ACCENT = 0xFF60CDFF.toInt()
+        private const val GREEN = 0xFF6CCB5F.toInt()
+        private const val AMBER = 0xFFFCE100.toInt()
+        private const val RED = 0xFFFF6B6B.toInt()
         private const val CHANNEL = "overlay"
         private const val NOTIF_ID = 2001
         const val ACTION_STOP = "com.kevxngg.monitorroot.STOP_OVERLAY"

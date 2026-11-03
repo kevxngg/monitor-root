@@ -305,6 +305,7 @@ private fun CpuDetail(s: Snapshot, h: History, logical: Boolean) {
         ),
     )
     PowerModeCard()
+    CpuTuningCard()
     if (!logical && s.cores.isNotEmpty()) {
         Text(tr("Frecuencia por núcleo"), fontSize = 12.sp, color = win.sub)
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -484,6 +485,7 @@ private fun GpuDetail(s: Snapshot, h: History) {
             g.memBytes?.let { tr("Memoria de GPU compartida") to formatBytes(it) },
         ),
     )
+    GpuTuningCard()
 }
 
 // ===================== BATERÍA Y TEMPERATURA =====================

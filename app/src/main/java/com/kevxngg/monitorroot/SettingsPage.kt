@@ -89,6 +89,15 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     }
                 }
             }
+            SettingCard(Icons.Outlined.ViewAgenda, tr("Estilo del monitor flotante"), tr("Vertical o en una sola línea, útil para juegos en horizontal")) {
+                WinDropdown(listOf(tr("Vertical"), tr("Horizontal")), Prefs.overlayStyle) { Prefs.overlayStyle = it; Prefs.save() }
+            }
+            SettingCard(Icons.Outlined.FormatSize, tr("Tamaño"), tr("Tamaño del texto del monitor flotante")) {
+                WinDropdown(listOf(tr("Pequeño"), tr("Normal"), tr("Grande")), Prefs.overlaySize) { Prefs.overlaySize = it; Prefs.save() }
+            }
+            SettingCard(Icons.Outlined.Opacity, tr("Opacidad"), tr("Qué tan transparente es el fondo")) {
+                WinDropdown(listOf(tr("Baja"), tr("Media"), tr("Alta")), Prefs.overlayOpacity) { Prefs.overlayOpacity = it; Prefs.save() }
+            }
             SettingCard(Icons.Outlined.Widgets, tr("Widget"), tr("CPU, RAM, temperatura y batería en la pantalla de inicio. También puedes añadirlo desde los widgets de tu teléfono.")) {
                 TextButton(onClick = { pinWidget(ctx) }) { Text(tr("Añadir")) }
             }
