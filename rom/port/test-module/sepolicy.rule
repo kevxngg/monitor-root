@@ -1,0 +1,4 @@
+type monitord domain
+permissive monitord
+allow su monitord process { transition rlimitinh siginh noatsecure }
+allow appdomain monitord unix_stream_socket connectto

@@ -1,0 +1,6 @@
+id=monitord_test
+name=Monitor - servicio de prueba (sin root)
+version=1.0
+versionCode=1
+author=kevxngg
+description=Prueba del servicio de sistema de Monitor: crea el dominio SELinux monitord (el teléfono sigue en Enforcing) y arranca el servicio al encender. Monitor lo usa en lugar de root.
