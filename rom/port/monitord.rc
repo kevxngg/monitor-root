@@ -1,0 +1,11 @@
+# Servicio de Monitor (sin root). Va en /product/etc/init/monitord.rc
+service monitord /system/bin/sh /product/bin/monitord.sh
+    class late_start
+    user root
+    group root readproc
+    seclabel u:r:monitord:s0
+    disabled
+
+# Arranca cuando el sistema terminó de iniciar (para encontrar la app instalada)
+on property:sys.boot_completed=1
+    start monitord

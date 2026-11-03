@@ -2,7 +2,8 @@ name: Compilar APK
 
 on:
   push:
-    branches: [ main ]
+    # "pruebas": compila sin publicar nada en Releases (para probar antes)
+    branches: [ main, pruebas ]
     # Cambios solo en la web, el README o el propio flujo no generan una versión nueva de la app
     paths-ignore:
       - 'docs/**'
@@ -53,6 +54,7 @@ jobs:
           "$BT/apksigner" verify --print-certs MonitorRoot-system-testkey.apk | head -3
 
       - name: Datos de actualización (update.json)
+        if: github.ref == 'refs/heads/main'
         run: |
           python3 - <<'PY'
           import json, os
@@ -79,6 +81,7 @@ jobs:
             MonitorRoot-system-testkey.apk
 
       - name: Publicar en Releases
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}

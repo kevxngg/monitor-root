@@ -1,0 +1,11 @@
+; Monitor: dominio de SELinux para el servicio monitord.
+; Añade estas líneas AL FINAL de /product/etc/selinux/product_sepolicy.cil
+; El resto del sistema sigue en Enforcing: solo este servicio tiene su dominio propio.
+(type monitord)
+(roletype r monitord)
+(typeattributeset domain (monitord))
+(typepermissive monitord)
+; init puede iniciar el servicio en su dominio
+(allow init monitord (process (transition rlimitinh siginh noatsecure)))
+; las apps pueden conectarse al socket (el servicio solo acepta a Monitor)
+(allow appdomain monitord (unix_stream_socket (connectto)))

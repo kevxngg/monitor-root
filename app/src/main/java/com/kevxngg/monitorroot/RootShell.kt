@@ -10,9 +10,10 @@ import java.util.UUID
  *  - ROOT: con "su" (Magisk, KernelSU, APatch o root temporal)
  *  - SYSTEM: sin root, cuando la app viene integrada en una ROM como app del
  *    sistema (uid 1000, firmada con la clave de la plataforma)
+ *  - HELPER: sin root, con el servicio "monitord" que trae la ROM (ver rom/port/)
  */
 object RootShell {
-    enum class Mode { NONE, ROOT, SYSTEM }
+    enum class Mode { NONE, ROOT, SYSTEM, HELPER }
 
     private var process: Process? = null
     private var writer: OutputStreamWriter? = null
@@ -45,10 +46,34 @@ object RootShell {
         }
     }
 
-    /** Abre la shell. Primero con root; si no hay, como app del sistema. */
+    /** Envía un script al servicio monitord y devuelve su salida (null si no está). */
+    private fun helperRun(script: String): List<String>? = try {
+        android.net.LocalSocket().use { sock ->
+            sock.connect(
+                android.net.LocalSocketAddress(
+                    com.kevxngg.monitorroot.helper.HelperMain.SOCKET,
+                    android.net.LocalSocketAddress.Namespace.ABSTRACT,
+                )
+            )
+            sock.soTimeout = 30_000
+            sock.outputStream.write(script.toByteArray(Charsets.UTF_8))
+            sock.outputStream.flush()
+            sock.shutdownOutput()
+            sock.inputStream.bufferedReader(Charsets.UTF_8).readLines()
+        }
+    } catch (e: Exception) {
+        null
+    }
+
+    /** Abre la shell: servicio de la ROM, app del sistema o root, en ese orden. */
     fun open(): Boolean {
         synchronized(lock) {
-            if (process != null) return true
+            if (mode == Mode.HELPER || process != null) return true
+            // En custom ROMs y ports con el servicio monitord: sin root
+            if (helperRun("id")?.any { it.contains("uid=0") } == true) {
+                mode = Mode.HELPER
+                return true
+            }
             // En una ROM se usa directamente la shell del sistema (no hace falta root)
             if (isSystemApp && start("sh", needRoot = false)) {
                 mode = Mode.SYSTEM
@@ -66,6 +91,11 @@ object RootShell {
     /** Ejecuta un comando (o script de varias líneas) y devuelve su salida. */
     fun run(cmd: String): List<String> {
         synchronized(lock) {
+            if (mode == Mode.HELPER) {
+                helperRun(cmd)?.let { return it }
+                // El servicio se reinició o se detuvo: se vuelve a elegir el modo
+                mode = Mode.NONE
+            }
             if (process == null) return emptyList()
             return try {
                 runLocked(cmd)

@@ -62,6 +62,7 @@ private fun open(ctx: Context, url: String) {
 }
 
 private fun rootManager(): String? {
+    if (RootShell.mode == RootShell.Mode.HELPER) return tr("Servicio de la ROM (sin root)")
     if (RootShell.mode == RootShell.Mode.SYSTEM || RootShell.isSystemApp) return tr("App del sistema (sin root)")
     val out = RootShell.run(
         "magisk -c 2>/dev/null || /data/adb/ksud -V 2>/dev/null || /data/adb/apd -V 2>/dev/null"
