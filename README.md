@@ -48,13 +48,20 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 - **Services:** native Android and app services, with options to start, stop and restart them.
 - **Run new task:** open an app by name or run a command, with or without root.
 
+### Tools
+- **Floating monitor:** CPU, GPU, RAM, temperatures and FPS on top of any app, for example while gaming. Drag it anywhere.
+- **Quick Settings button** to turn the floating monitor on or off.
+- **Home screen widget** with CPU, RAM, CPU temperature and battery.
+- **Battery history** for the last 24 hours, with estimated time remaining and charge and discharge rates.
+- **Power mode** like Windows 11 (best power efficiency, balanced or best performance), which switches the CPU governor with root.
+
 ### Settings
 - 11 languages: English, Spanish, French, Portuguese, German, Italian, Russian, Arabic, Chinese, Japanese and Korean.
 - Light, dark or system theme.
 - Start page and data refresh speed.
 - Automatic updates: in-app prompt and a notification with an **Update now** button. Checks use GitHub; Android may delay background checks, so notifications are not instantaneous.
 - Failed checks show the type of error and indicate when active private DNS may be related. The app does not change the phone’s DNS.
-- An update is required when three build numbers behind (for example: installed 10, published 13). Build numbers can skip when GitHub Actions builds fail. The last verified release is retained; a network failure without previous release information does not lock the app. This policy starts applying after installing a version that includes it.
+- Updates are optional. Only a release explicitly marked as required (with the `MIN_BUILD` file in this repository) asks older versions to update before continuing.
 
 ## Requirements
 

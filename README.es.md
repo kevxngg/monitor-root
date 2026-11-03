@@ -48,13 +48,20 @@ Código disponible bajo la [licencia MIT](LICENSE). Copyright (c) 2026 kevxngg.
 - **Servicios:** servicios nativos de Android y de las apps, con opciones para iniciarlos, detenerlos y reiniciarlos.
 - **Ejecutar nueva tarea:** abre una app por su nombre o ejecuta un comando, con o sin root.
 
+### Herramientas
+- **Monitor flotante:** CPU, GPU, RAM, temperaturas y FPS encima de cualquier app, por ejemplo mientras juegas. Se mueve arrastrándolo.
+- **Botón de ajustes rápidos** para encender o apagar el monitor flotante.
+- **Widget** para la pantalla de inicio con CPU, RAM, temperatura de la CPU y batería.
+- **Historial de batería** de las últimas 24 horas, con tiempo restante estimado y velocidad de carga y descarga.
+- **Modo de energía** como en Windows 11 (mejor eficiencia energética, equilibrado o mejor rendimiento), que cambia el gobernador de la CPU con root.
+
 ### Configuración
 - 11 idiomas: español, inglés, francés, portugués, alemán, italiano, ruso, árabe, chino, japonés y coreano.
 - Tema claro, oscuro o según el sistema.
 - Página de inicio y velocidad de actualización de los datos.
 - Actualizaciones automáticas: aviso dentro de la app y notificación con el botón **Actualizar ahora**. Las consultas usan GitHub; Android puede retrasar las revisiones en segundo plano, por lo que el aviso no es instantáneo.
 - Si falla una consulta, la app indica el tipo de error y avisa si hay DNS privado activo que podría estar relacionado. No modifica el DNS del teléfono.
-- Con tres builds de atraso se requiere actualizar para continuar (por ejemplo: instalada 10, publicada 13). El límite se calcula con los números de build, que pueden saltar si falla una compilación de GitHub Actions. Se conserva la última versión comprobada; un fallo de red sin información previa no bloquea la app. Esta regla empieza a aplicarse al instalar una versión que la incluya.
+- Las actualizaciones son opcionales. Solo una versión marcada expresamente como obligatoria (con el archivo `MIN_BUILD` de este repositorio) pide a las versiones anteriores que actualicen antes de continuar.
 
 ## Requisitos
 

@@ -22,6 +22,9 @@ class UpdateAlarm : BroadcastReceiver() {
         }
         // The receiver only schedules work: network requests may exceed its time limit.
         UpdateWorker.enqueueNow(app)
+        // Tareas rápidas en cada alarma: historial de batería y widget
+        BatteryLog.record(app)
+        WidgetUpdater.requestRefresh(app)
         schedule(app)
     }
 

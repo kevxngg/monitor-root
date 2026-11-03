@@ -114,6 +114,7 @@ object Prefs {
     var efficiency by mutableStateOf(setOf<String>())
     var autoUpdate by mutableStateOf(true)
     var language by mutableStateOf("")       // "" = idioma del sistema
+    var defaultGovernor by mutableStateOf("") // gobernador original de la CPU (modo equilibrado)
     var skippedBuild by mutableIntStateOf(0)
 
     fun init(ctx: Context) {
@@ -127,6 +128,7 @@ object Prefs {
         efficiency = p.getStringSet("eff", emptySet())?.toSet() ?: emptySet()
         autoUpdate = p.getBoolean("autoUpdate", true)
         language = p.getString("lang", "") ?: ""
+        defaultGovernor = p.getString("defaultGov", "") ?: ""
         skippedBuild = p.getInt("skipped", 0)
     }
 
@@ -140,6 +142,7 @@ object Prefs {
             ?.putStringSet("eff", efficiency)
             ?.putBoolean("autoUpdate", autoUpdate)
             ?.putString("lang", language)
+            ?.putString("defaultGov", defaultGovernor)
             ?.putInt("skipped", skippedBuild)
             ?.apply()
     }

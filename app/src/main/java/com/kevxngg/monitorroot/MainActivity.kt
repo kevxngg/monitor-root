@@ -127,6 +127,7 @@ fun Shell() {
     val reader = remember { SystemReader(context.applicationContext) }
     var snap by remember { mutableStateOf<Snapshot?>(null) }
     var hist by remember { mutableStateOf(History()) }
+    var samples by remember { mutableIntStateOf(0) }
     var page by remember { mutableStateOf(Page.entries.getOrElse(Prefs.startPage) { Page.PROCESSES }) }
     var navOpen by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
@@ -152,7 +153,8 @@ fun Shell() {
                     }
                     is UpdateResult.Failure -> Unit // Preserve the last verified policy while offline.
                 }
-                delay(60 * 1000L)
+                // Con los avisos desactivados solo se comprueba de vez en cuando
+                delay(if (Prefs.autoUpdate) 60 * 1000L else 15 * 60 * 1000L)
             }
         }
     }
@@ -184,6 +186,17 @@ fun Shell() {
                 }
                 snap = s
                 hist = hist.add(s)
+                // Historial de batería y widget (como mucho una vez por minuto / cada 30 s)
+                samples++
+                if (samples % 30 == 1) {
+                    withContext(Dispatchers.IO) {
+                        BatteryLog.record(context.applicationContext)
+                        WidgetUpdater.push(
+                            context.applicationContext, s.cpuTotal.toInt(), s.mem.usedPct.toInt(),
+                            s.mainTempC, s.batt.level,
+                        )
+                    }
+                }
                 delay(if (ms < 0) 1000L else ms)
             }
         }

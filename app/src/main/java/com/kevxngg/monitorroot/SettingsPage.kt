@@ -1,5 +1,7 @@
 package com.kevxngg.monitorroot
 
+import android.os.Build
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,6 +74,30 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 WinDropdown(listOf(tr("Alta (0,5 s)"), tr("Normal (1 s)"), tr("Baja (4 s)"), tr("En pausa")), Prefs.speed) {
                     Prefs.speed = it; Prefs.save()
                 }
+            }
+            Spacer(Modifier.height(8.dp))
+            SectionLabel(tr("Herramientas"))
+            SettingCard(Icons.Outlined.PictureInPicture, tr("Monitor flotante"), tr("Muestra CPU, GPU, RAM, temperatura y FPS encima de otras apps")) {
+                WinSwitch(OverlayState.running) { on ->
+                    val app = ctx.applicationContext
+                    scope.launch(Dispatchers.IO) {
+                        if (on) {
+                            if (!OverlayControl.start(app)) OverlayControl.openPermissionSettings(app)
+                        } else {
+                            OverlayControl.stop(app)
+                        }
+                    }
+                }
+            }
+            SettingCard(Icons.Outlined.Widgets, tr("Widget"), tr("CPU, RAM, temperatura y batería en la pantalla de inicio. También puedes añadirlo desde los widgets de tu teléfono.")) {
+                TextButton(onClick = { pinWidget(ctx) }) { Text(tr("Añadir")) }
+            }
+            SettingCard(
+                Icons.Outlined.Tune, tr("Botón de ajustes rápidos"),
+                if (Build.VERSION.SDK_INT >= 33) tr("Enciende o apaga el monitor flotante desde el panel de notificaciones.")
+                else tr("Edita el panel de ajustes rápidos y arrastra el botón Monitor Root."),
+            ) {
+                if (Build.VERSION.SDK_INT >= 33) TextButton(onClick = { addTile(ctx) }) { Text(tr("Añadir")) }
             }
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Opciones de vista"))
@@ -279,4 +305,24 @@ fun RunTaskDialog(onDismiss: () -> Unit) {
         confirmButton = { TextButton(enabled = !running && text.isNotBlank(), onClick = { submit() }) { Text(tr("Aceptar")) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cerrar")) } },
     )
+}
+
+private fun pinWidget(ctx: android.content.Context) {
+    val manager = android.appwidget.AppWidgetManager.getInstance(ctx)
+    if (manager.isRequestPinAppWidgetSupported) {
+        manager.requestPinAppWidget(android.content.ComponentName(ctx, MonitorWidget::class.java), null, null)
+    }
+}
+
+private fun addTile(ctx: android.content.Context) {
+    if (Build.VERSION.SDK_INT < 33) return
+    try {
+        ctx.getSystemService(android.app.StatusBarManager::class.java)?.requestAddTileService(
+            android.content.ComponentName(ctx, MonitorTileService::class.java),
+            tr("Monitor flotante"),
+            android.graphics.drawable.Icon.createWithResource(ctx, R.drawable.ic_fg),
+            ctx.mainExecutor,
+        ) { }
+    } catch (_: Exception) {
+    }
 }

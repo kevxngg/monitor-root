@@ -31,7 +31,7 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class UpdateInfo(val build: Int, val title: String, val notes: String, val apkUrl: String, val sizeBytes: Long)
+data class UpdateInfo(val build: Int, val title: String, val notes: String, val apkUrl: String, val sizeBytes: Long, val minBuild: Int = 0)
 
 sealed interface UpdateResult {
     data class Success(val info: UpdateInfo) : UpdateResult
@@ -111,7 +111,7 @@ object Updater {
     private fun fromFeed(): UpdateInfo {
         val j = JSONObject(get("$FEED?t=${System.currentTimeMillis()}"))
         val build = j.getInt("build")
-        return validated(UpdateInfo(build, "Monitor Root (build $build)", j.optString("notes"), j.getString("apk"), j.optLong("size")))
+        return validated(UpdateInfo(build, "Monitor Root (build $build)", j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0)))
     }
 
     private fun fromApi(): UpdateInfo {
@@ -156,7 +156,7 @@ object Updater {
             try {
                 val info = source()
                 val j = JSONObject().put("build", info.build).put("title", info.title)
-                    .put("notes", info.notes).put("apk", info.apkUrl).put("size", info.sizeBytes)
+                    .put("notes", info.notes).put("apk", info.apkUrl).put("size", info.sizeBytes).put("min_build", info.minBuild)
                 ctx.getSharedPreferences("updates", Context.MODE_PRIVATE).edit().putString("latest", j.toString()).apply()
                 return UpdateResult.Success(info)
             } catch (e: Exception) {
@@ -173,14 +173,14 @@ object Updater {
         val text = ctx.getSharedPreferences("updates", Context.MODE_PRIVATE).getString("latest", null)
         if (text == null) null else {
             val j = JSONObject(text)
-            validated(UpdateInfo(j.getInt("build"), j.optString("title"), j.optString("notes"), j.getString("apk"), j.optLong("size")))
+            validated(UpdateInfo(j.getInt("build"), j.optString("title"), j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0)))
         }
     } catch (_: Exception) { null }
 
-    fun isRequired(ctx: Context, info: UpdateInfo) = UpdatePolicy.isRequired(currentBuild(ctx), info.build)
+    fun isRequired(ctx: Context, info: UpdateInfo) = UpdatePolicy.isRequired(currentBuild(ctx), info.minBuild)
 
     fun isOffered(ctx: Context, info: UpdateInfo, ignoreSkipped: Boolean = false): Boolean =
-        UpdatePolicy.isOffered(currentBuild(ctx), info.build, Prefs.skippedBuild, ignoreSkipped)
+        UpdatePolicy.isOffered(currentBuild(ctx), info.build, Prefs.skippedBuild, ignoreSkipped, info.minBuild)
 
     fun download(ctx: Context, url: String, onProgress: (Float) -> Unit): File {
         val file = File(ctx.cacheDir, "update.apk")
@@ -284,7 +284,7 @@ fun UpdateDialog(info: UpdateInfo, required: Boolean = false, onDismiss: () -> U
                         if (info.sizeBytes > 0) " · ${formatBytes(info.sizeBytes)}" else "",
                     fontSize = 13.sp, color = win.sub,
                 )
-                if (required) Text(tr("Tienes al menos tres builds de atraso. Actualiza para continuar usando Monitor Root."), fontSize = 13.sp)
+                if (required) Text(tr("Esta versión ya no es compatible. Actualiza para continuar usando Monitor Root."), fontSize = 13.sp)
                 if (info.notes.isNotBlank()) ReleaseNotes(info.notes)
                 progress?.let { p ->
                     LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth(), color = win.accent)

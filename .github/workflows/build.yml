@@ -41,11 +41,14 @@ jobs:
           import json, os
           build = int(os.environ["GITHUB_RUN_NUMBER"])
           repo = os.environ["GITHUB_REPOSITORY"]
+          # MIN_BUILD: builds menores que este número tienen que actualizar (0 = nunca se obliga)
+          min_build = int(open("MIN_BUILD").read().strip() or 0) if os.path.exists("MIN_BUILD") else 0
           data = {
               "build": build,
               "notes": open("RELEASE_NOTES.md", encoding="utf-8").read(),
               "apk": f"https://github.com/{repo}/releases/download/build-{build}/MonitorRoot.apk",
               "size": os.path.getsize("MonitorRoot.apk"),
+              "min_build": min_build,
           }
           json.dump(data, open("update.json", "w", encoding="utf-8"), ensure_ascii=False)
           PY

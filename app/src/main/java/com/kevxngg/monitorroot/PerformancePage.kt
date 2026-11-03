@@ -304,6 +304,7 @@ private fun CpuDetail(s: Snapshot, h: History, logical: Boolean) {
             tr("Arquitectura") to (Build.SUPPORTED_ABIS.firstOrNull() ?: "—"),
         ),
     )
+    PowerModeCard()
     if (!logical && s.cores.isNotEmpty()) {
         Text(tr("Frecuencia por núcleo"), fontSize = 12.sp, color = win.sub)
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -503,9 +504,13 @@ private fun TempDetail(s: Snapshot, h: History) {
             tr("Voltaje") to (b.voltageMv?.let { "%.2f V".format(it / 1000f) } ?: "—"),
             tr("Estado") to (b.status?.let { tr(it) } ?: "—"),
         ),
-        listOf(tr("Salud de la batería") to (b.health?.let { tr(it) } ?: "—")) +
-            s.thermals.take(40).map { it.name to "%.1f °C".format(it.celsius) },
+        listOf(tr("Salud de la batería") to (b.health?.let { tr(it) } ?: "—")),
     )
+    BatteryHistoryCard(s.uptimeSec, color)
+    if (s.thermals.isNotEmpty()) {
+        Text(tr("Sensores de temperatura"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+        KeyValues(s.thermals.take(40).map { it.name to "%.1f °C".format(it.celsius) })
+    }
 }
 
 private fun summary(r: Res, s: Snapshot): String {

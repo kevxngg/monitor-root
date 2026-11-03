@@ -5,23 +5,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UpdatePolicyTest {
-    @Test fun allowsCurrentAndUpToTwoBuildsBehind() {
-        for (latest in 10..12) assertFalse(UpdatePolicy.isRequired(10, latest))
+    @Test fun neverRequiredWithoutMinimumBuild() {
+        for (installed in 1..20) assertFalse(UpdatePolicy.isRequired(installed, 0))
     }
 
-    @Test fun requiresUpdateAtThreeBuildsBehindAndBeyond() {
+    @Test fun requiredOnlyBelowMinimumBuild() {
         assertTrue(UpdatePolicy.isRequired(10, 13))
-        assertTrue(UpdatePolicy.isRequired(10, 14))
-    }
-
-    @Test fun installedUpdateUnlocksTheApp() {
         assertFalse(UpdatePolicy.isRequired(13, 13))
         assertFalse(UpdatePolicy.isRequired(14, 13))
     }
 
-    @Test fun unavailableVersionDoesNotLockTheApp() {
+    @Test fun unknownInstalledVersionDoesNotLockTheApp() {
         assertFalse(UpdatePolicy.isRequired(0, 13))
-        assertFalse(UpdatePolicy.isRequired(10, 0))
     }
 
     @Test fun optionalReleaseCanBeSkippedButManualCheckStillOffersIt() {
@@ -30,7 +25,7 @@ class UpdatePolicyTest {
     }
 
     @Test fun requiredReleaseCannotBeSkipped() {
-        assertTrue(UpdatePolicy.isOffered(10, 13, 99))
+        assertTrue(UpdatePolicy.isOffered(10, 13, 99, minBuild = 13))
     }
 
     @Test fun manualCheckDoesNotOfferReinstallOrDowngrade() {
