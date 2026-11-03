@@ -16,6 +16,21 @@ La **edición de sistema** de Monitor funciona **sin root** cuando viene integra
 
 El `Android.bp` vuelve a firmar el APK con `certificate: "platform"` y lo instala como app privilegiada en `system_ext`.
 
+## ¿Qué APK uso?
+
+Primero revisa con qué claves está firmada tu ROM:
+```sh
+adb shell getprop ro.build.tags
+```
+
+- **`test-keys`**: usa **`MonitorRoot-system-testkey.apk`**, que ya viene firmada con la clave de plataforma de prueba pública de AOSP. Puedes ponerla directamente en `/system_ext/priv-app/Monitor/Monitor.apk`, sin firmar nada.
+- **`release-keys`**: tu ROM usa una clave propia. Usa **`MonitorRoot-system.apk`** y fírmala con tu clave de plataforma, ya sea con el `Android.bp` (`certificate: "platform"`) o a mano:
+  ```sh
+  apksigner sign --key platform.pk8 --cert platform.x509.pem --out Monitor.apk MonitorRoot-system.apk
+  ```
+
+Si la etiqueta dice `test-keys` pero la app no aparece después de reiniciar, la ROM usa otra clave aunque diga test-keys: fírmala con la tuya.
+
 ## Diferencias con la edición normal
 
 - No pide root: usa la shell del sistema.
@@ -32,7 +47,7 @@ Como app del sistema, Monitor puede hacer casi todo lo que hace con root. Lo que
 
 The **system edition** of Monitor works **without root** when it's built into a ROM as a system app. It runs as the system user (`android.uid.system`), so it must be **signed with your ROM's platform key**.
 
-1. Download `MonitorRoot-system.apk` from the [latest release](https://github.com/kevxngg/monitor-root/releases/latest).
+1. Download from the [latest release](https://github.com/kevxngg/monitor-root/releases/latest): `MonitorRoot-system-testkey.apk` if `getprop ro.build.tags` says `test-keys` (already signed with the public AOSP platform test key, just drop it into `/system_ext/priv-app/Monitor/`), or `MonitorRoot-system.apk` to sign with your own platform key.
 2. Copy this `rom/` folder into your tree (for example `packages/apps/Monitor`) and put the APK inside.
 3. Add `PRODUCT_PACKAGES += Monitor` to your `device.mk` or `product.mk`.
 4. If SELinux blocks something (`avc: denied` in logcat), use `sepolicy/system_app.te` as a starting point.

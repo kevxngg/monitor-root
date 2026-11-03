@@ -45,6 +45,13 @@ jobs:
           cp app/build/outputs/apk/standard/release/app-standard-release.apk MonitorRoot.apk
           cp app/build/outputs/apk/system/release/app-system-release.apk MonitorRoot-system.apk
 
+      - name: Firmar la edición de sistema con la clave de prueba de AOSP
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" sign --key rom/testkey/platform.pk8 --cert rom/testkey/platform.x509.pem \
+            --out MonitorRoot-system-testkey.apk MonitorRoot-system.apk
+          "$BT/apksigner" verify --print-certs MonitorRoot-system-testkey.apk | head -3
+
       - name: Datos de actualización (update.json)
         run: |
           python3 - <<'PY'
@@ -69,6 +76,7 @@ jobs:
           path: |
             MonitorRoot.apk
             MonitorRoot-system.apk
+            MonitorRoot-system-testkey.apk
 
       - name: Publicar en Releases
         uses: softprops/action-gh-release@v2
@@ -78,5 +86,6 @@ jobs:
           files: |
             MonitorRoot.apk
             MonitorRoot-system.apk
+            MonitorRoot-system-testkey.apk
             update.json
           body_path: RELEASE_NOTES.md

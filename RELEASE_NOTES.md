@@ -1,4 +1,3 @@
 ## Novedades
-- La app ahora se llama Monitor.
-- Edición de sistema para ROMs (MonitorRoot-system.apk): funciona sin root cuando se integra en una ROM como app del sistema firmada con la clave de la plataforma. Las instrucciones para integrarla están en la carpeta rom del repositorio.
-- En Acerca de, el gestor de root indica "App del sistema (sin root)" cuando la app viene integrada en la ROM.
+- Edición de sistema ya firmada para ROMs con test-keys (MonitorRoot-system-testkey.apk), con la clave de plataforma de prueba pública de AOSP. Se pone directamente en /system_ext/priv-app sin tener que firmarla.
+- Instrucciones para elegir la APK correcta según las claves de la ROM, en la carpeta rom del repositorio.
