@@ -49,6 +49,7 @@ enum class Page(val title: String, val icon: ImageVector) {
     USERS("Usuarios", Icons.Outlined.People),
     DETAILS("Detalles", Icons.Outlined.FormatListBulleted),
     SERVICES("Servicios", Icons.Outlined.Extension),
+    GAMES("Juegos", Icons.Outlined.SportsEsports),
     SETTINGS("Configuración", Icons.Outlined.Settings),
 }
 
@@ -128,7 +129,9 @@ fun Shell() {
     var snap by remember { mutableStateOf<Snapshot?>(null) }
     var hist by remember { mutableStateOf(History()) }
     var samples by remember { mutableIntStateOf(0) }
-    var page by remember { mutableStateOf(Page.entries.getOrElse(Prefs.startPage) { Page.PROCESSES }) }
+    // Las notificaciones del modo juego abren directamente la página Juegos
+    val openGames = (context as? android.app.Activity)?.intent?.getStringExtra("page") == "games"
+    var page by remember { mutableStateOf(if (openGames) Page.GAMES else Page.entries.getOrElse(Prefs.startPage) { Page.PROCESSES }) }
     var navOpen by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var runOpen by remember { mutableStateOf(false) }
@@ -138,7 +141,11 @@ fun Shell() {
 
     // Check on resume and once a minute while visible, including the required-version policy.
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) { UpdateWorker.prepare(context.applicationContext) }
+        withContext(Dispatchers.IO) {
+            UpdateWorker.prepare(context.applicationContext)
+            // Si el modo juego estaba activo, se asegura de que siga funcionando
+            if (Prefs.gameMode) GameMode.start(context.applicationContext)
+        }
         (context as LifecycleOwner).repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
                 // Always verify the supported version, even when optional alerts are disabled.
@@ -235,6 +242,7 @@ fun Shell() {
                                     Page.SERVICES -> ServicesPage(s, query, onRun) { pid ->
                                         focusPid = pid; page = Page.DETAILS
                                     }
+                                    Page.GAMES -> GamesPage(onRun)
                                     Page.SETTINGS -> SettingsPage { latestInfo = it }
                                 }
                             }

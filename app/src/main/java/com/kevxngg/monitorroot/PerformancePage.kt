@@ -476,7 +476,7 @@ private fun GpuDetail(s: Snapshot, h: History) {
         listOf(
             tr("Uso") to (g.load?.let { "$it%" } ?: "—"),
             tr("Frecuencia") to (g.freqMhz?.let { "$it MHz" } ?: "—"),
-            tr("Temperatura") to (g.tempC?.let { "%.0f °C".format(it) + if (g.tempIsSoc) " (SoC)" else "" } ?: "—"),
+            (tr("Temperatura") + if (g.tempIsSoc) " (SoC)" else "") to (g.tempC?.let { "%.0f °C".format(it) } ?: "—"),
         ),
         listOfNotNull(
             tr("Familia") to tr(g.source),

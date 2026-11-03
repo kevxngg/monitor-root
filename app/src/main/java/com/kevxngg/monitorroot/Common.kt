@@ -119,6 +119,23 @@ object Prefs {
     var overlayStyle by mutableIntStateOf(0)    // 0 vertical, 1 horizontal
     var overlaySize by mutableIntStateOf(1)     // 0 pequeño, 1 normal, 2 grande
     var overlayOpacity by mutableIntStateOf(1)  // 0 baja, 1 media, 2 alta
+
+    // Modo juego
+    var gameMode by mutableStateOf(false)
+    var games by mutableStateOf(setOf<String>())
+    var gamePower by mutableIntStateOf(1)       // 0 sin cambios, 1 rendimiento, 2 equilibrado, 3 eficiencia
+    var gameOverlay by mutableStateOf(true)
+    var gameKill by mutableStateOf(false)
+    var gameDnd by mutableStateOf(false)
+    var gameRecord by mutableStateOf(true)
+
+    // Alertas
+    var alertTemp by mutableStateOf(false)
+    var alertTempLimit by mutableIntStateOf(1)  // 45, 50, 55, 60 °C
+    var alertCpu by mutableStateOf(false)
+    var alertCpuLimit by mutableIntStateOf(1)   // 25, 50, 75 %
+    var alertCharge by mutableStateOf(false)
+    var alertChargeLimit by mutableIntStateOf(0) // 80, 85, 90, 100 %
     var skippedBuild by mutableIntStateOf(0)
 
     fun init(ctx: Context) {
@@ -137,6 +154,19 @@ object Prefs {
         overlayStyle = p.getInt("ovStyle", 0)
         overlaySize = p.getInt("ovSize", 1)
         overlayOpacity = p.getInt("ovOpacity", 1)
+        gameMode = p.getBoolean("gmEnabled", false)
+        games = p.getStringSet("gmGames", emptySet())?.toSet() ?: emptySet()
+        gamePower = p.getInt("gmPower", 1)
+        gameOverlay = p.getBoolean("gmOverlay", true)
+        gameKill = p.getBoolean("gmKill", false)
+        gameDnd = p.getBoolean("gmDnd", false)
+        gameRecord = p.getBoolean("gmRecord", true)
+        alertTemp = p.getBoolean("alTemp", false)
+        alertTempLimit = p.getInt("alTempLimit", 1)
+        alertCpu = p.getBoolean("alCpu", false)
+        alertCpuLimit = p.getInt("alCpuLimit", 1)
+        alertCharge = p.getBoolean("alCharge", false)
+        alertChargeLimit = p.getInt("alChargeLimit", 0)
         skippedBuild = p.getInt("skipped", 0)
     }
 
@@ -155,9 +185,26 @@ object Prefs {
             ?.putInt("ovStyle", overlayStyle)
             ?.putInt("ovSize", overlaySize)
             ?.putInt("ovOpacity", overlayOpacity)
+            ?.putBoolean("gmEnabled", gameMode)
+            ?.putStringSet("gmGames", games)
+            ?.putInt("gmPower", gamePower)
+            ?.putBoolean("gmOverlay", gameOverlay)
+            ?.putBoolean("gmKill", gameKill)
+            ?.putBoolean("gmDnd", gameDnd)
+            ?.putBoolean("gmRecord", gameRecord)
+            ?.putBoolean("alTemp", alertTemp)
+            ?.putInt("alTempLimit", alertTempLimit)
+            ?.putBoolean("alCpu", alertCpu)
+            ?.putInt("alCpuLimit", alertCpuLimit)
+            ?.putBoolean("alCharge", alertCharge)
+            ?.putInt("alChargeLimit", alertChargeLimit)
             ?.putInt("skipped", skippedBuild)
             ?.apply()
     }
+
+    val TEMP_LIMITS = listOf(45, 50, 55, 60)
+    val CPU_LIMITS = listOf(25, 50, 75)
+    val CHARGE_LIMITS = listOf(80, 85, 90, 100)
 
     fun refreshMs(): Long = when (speed) {
         0 -> 500L

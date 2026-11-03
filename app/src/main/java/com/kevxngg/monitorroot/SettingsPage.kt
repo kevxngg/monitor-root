@@ -143,6 +143,30 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 if (Build.VERSION.SDK_INT >= 33) TextButton(onClick = { addTile(ctx) }) { Text(tr("Añadir")) }
             }
             Spacer(Modifier.height(8.dp))
+            SectionLabel(tr("Alertas"))
+            SettingCard(Icons.Outlined.Thermostat, tr("Temperatura alta"), tr("Avisa si el teléfono supera esta temperatura.")) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WinDropdown(Prefs.TEMP_LIMITS.map { "$it °C" }, Prefs.alertTempLimit) { Prefs.alertTempLimit = it; Prefs.save() }
+                    Spacer(Modifier.width(6.dp))
+                    WinSwitch(Prefs.alertTemp) { Prefs.alertTemp = it; Prefs.save() }
+                }
+            }
+            SettingCard(Icons.Outlined.Memory, tr("CPU en segundo plano"), tr("Avisa si una app usa mucha CPU sin estar en pantalla, con un botón para finalizarla.")) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WinDropdown(Prefs.CPU_LIMITS.map { "$it %" }, Prefs.alertCpuLimit) { Prefs.alertCpuLimit = it; Prefs.save() }
+                    Spacer(Modifier.width(6.dp))
+                    WinSwitch(Prefs.alertCpu) { Prefs.alertCpu = it; Prefs.save() }
+                }
+            }
+            SettingCard(Icons.Outlined.BatteryChargingFull, tr("Límite de carga"), tr("Avisa cuando la batería llega a este nivel mientras carga.")) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    WinDropdown(Prefs.CHARGE_LIMITS.map { "$it %" }, Prefs.alertChargeLimit) { Prefs.alertChargeLimit = it; Prefs.save() }
+                    Spacer(Modifier.width(6.dp))
+                    WinSwitch(Prefs.alertCharge) { Prefs.alertCharge = it; Prefs.save() }
+                }
+            }
+            Text(tr("Las alertas se revisan cada pocos minutos, también con la app cerrada."), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 4.dp))
+            Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Opciones de vista"))
             SettingCard(Icons.Outlined.Category, tr("Agrupar por tipo"), tr("Separa aplicaciones, procesos en segundo plano y de Android")) {
                 WinSwitch(Prefs.groupByType) { Prefs.groupByType = it; Prefs.save() }
@@ -192,12 +216,12 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
 }
 
 @Composable
-private fun SectionLabel(text: String) {
+fun SectionLabel(text: String) {
     Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = LocalWin.current.text, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
 }
 
 @Composable
-private fun SettingCard(icon: ImageVector, title: String, subtitle: String, control: @Composable () -> Unit) {
+fun SettingCard(icon: ImageVector, title: String, subtitle: String, control: @Composable () -> Unit) {
     val win = LocalWin.current
     Row(
         Modifier
@@ -220,7 +244,7 @@ private fun SettingCard(icon: ImageVector, title: String, subtitle: String, cont
 }
 
 @Composable
-private fun WinDropdown(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+fun WinDropdown(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     val win = LocalWin.current
     var open by remember { mutableStateOf(false) }
     Box {
@@ -245,7 +269,7 @@ private fun WinDropdown(options: List<String>, selected: Int, onSelect: (Int) ->
 }
 
 @Composable
-private fun WinSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
+fun WinSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
     val win = LocalWin.current
     Switch(
         checked = checked,

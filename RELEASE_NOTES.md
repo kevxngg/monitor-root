@@ -1,8 +1,9 @@
 ## Novedades
-- Monitor flotante con 5 diseños: completo, horizontal, compacto, solo FPS y gráfica (FPS de los últimos segundos). Toca el monitor para cambiar de diseño y mantenlo presionado para abrir la app.
-- El FPS se pinta en azul si es fluido, amarillo si baja de 50 y rojo si baja de 30.
-- Configuración > Herramientas > Probar medición de FPS: muestra qué métodos funcionan en el teléfono, con botón para copiar el resultado.
+- Nueva sección Juegos con el modo juego: al abrir uno de tus juegos aplica el modo de energía que elijas, muestra el monitor flotante, puede cerrar apps en segundo plano y activar No molestar. Todo vuelve a la normalidad al salir.
+- Resumen de cada partida: FPS promedio, FPS bajo, temperatura máxima y batería usada, con gráfica de FPS y botón para compartir. También llega como notificación al cerrar el juego.
+- Alertas (Configuración > Alertas): temperatura alta, apps que usan mucha CPU en segundo plano (con botón para finalizarlas) y límite de carga para cuidar la batería.
+- Control de la GPU en cualquier procesador: Qualcomm, Google Tensor, Unisoc, Samsung Exynos y MediaTek. En MediaTek la GPU se puede fijar a una frecuencia o dejar en automático.
 
 ## Correcciones
-- El FPS seguía en 0 en algunos teléfonos. Ahora se miden los cuadros que muestra la pantalla con las estadísticas de SurfaceFlinger, y los otros métodos quedan como respaldo.
-- Al salir de un juego en horizontal, el monitor flotante quedaba cortado a la mitad de la pantalla. Ahora la posición se guarda en proporción a la pantalla y se reacomoda al girarla.
+- Los ajustes de la GPU decían que no se podían cambiar en procesadores MediaTek, porque usan su propio driver en lugar del estándar de Linux. Ahora se detecta el driver de cada fabricante.
+- La temperatura de la GPU con "(SoC)" se cortaba en pantallas pequeñas.

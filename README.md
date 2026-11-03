@@ -54,6 +54,14 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 - **Home screen widget** with CPU, RAM, CPU temperature and battery.
 - **Battery history** for the last 24 hours, with estimated time remaining and charge and discharge rates.
 - **Power mode** like Windows 11 (best power efficiency, balanced or best performance), which switches the CPU governor with root.
+- **Advanced CPU and GPU settings:** governor and maximum frequency per CPU cluster, and GPU control on any processor (Qualcomm, MediaTek, Exynos, Tensor, Unisoc).
+
+### Games
+- **Game mode:** when one of your games opens, it applies the power mode you choose, shows the floating monitor, can close background apps and turn on Do not disturb. Everything goes back when you leave.
+- **Session summary:** average and low FPS, max temperature and battery used for each session, with an FPS graph you can share.
+
+### Alerts
+- High temperature, an app using a lot of CPU in the background (with a button to end it), and a charge limit to protect the battery.
 
 ### Settings
 - 11 languages: English, Spanish, French, Portuguese, German, Italian, Russian, Arabic, Chinese, Japanese and Korean.

@@ -54,6 +54,14 @@ Código disponible bajo la [licencia MIT](LICENSE). Copyright (c) 2026 kevxngg.
 - **Widget** para la pantalla de inicio con CPU, RAM, temperatura de la CPU y batería.
 - **Historial de batería** de las últimas 24 horas, con tiempo restante estimado y velocidad de carga y descarga.
 - **Modo de energía** como en Windows 11 (mejor eficiencia energética, equilibrado o mejor rendimiento), que cambia el gobernador de la CPU con root.
+- **Ajustes avanzados de CPU y GPU:** gobernador y frecuencia máxima de cada clúster de la CPU, y control de la GPU en cualquier procesador (Qualcomm, MediaTek, Exynos, Tensor, Unisoc).
+
+### Juegos
+- **Modo juego:** al abrir uno de tus juegos aplica el modo de energía que elijas, muestra el monitor flotante, puede cerrar apps en segundo plano y activar No molestar. Todo vuelve a la normalidad al salir.
+- **Resumen de cada partida:** FPS promedio y bajo, temperatura máxima y batería usada, con una gráfica de FPS que puedes compartir.
+
+### Alertas
+- Temperatura alta, una app usando mucha CPU en segundo plano (con botón para finalizarla) y límite de carga para cuidar la batería.
 
 ### Configuración
 - 11 idiomas: español, inglés, francés, portugués, alemán, italiano, ruso, árabe, chino, japonés y coreano.

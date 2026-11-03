@@ -37,14 +37,6 @@ object Tuning {
         val freqsKhz: List<Long>,
     )
 
-    class Gpu(
-        val path: String,
-        val governor: String?,
-        val governors: List<String>,
-        val maxHz: Long?,
-        val freqsHz: List<Long>,
-    )
-
     private fun parseBlocks(lines: List<String>): List<Pair<String, Map<String, String>>> {
         val out = ArrayList<Pair<String, MutableMap<String, String>>>()
         for (l in lines) {
@@ -86,29 +78,7 @@ object Tuning {
         }
     }
 
-    fun gpu(): Gpu? {
-        val lines = RootShell.run(
-            "for d in /sys/class/kgsl/kgsl-3d0/devfreq /sys/class/devfreq/*; do " +
-                "case \"\$d\" in *kgsl*|*mali*|*gpu*|*GPU*) " +
-                "if [ -e \"\$d/governor\" ]; then " +
-                "echo \"@@\$d\"; " +
-                "echo \"gov=\$(cat \$d/governor)\"; " +
-                "echo \"govs=\$(cat \$d/available_governors)\"; " +
-                "echo \"max=\$(cat \$d/max_freq)\"; " +
-                "echo \"freqs=\$(cat \$d/available_frequencies)\"; " +
-                "break; fi;; esac; done"
-        )
-        val (path, m) = parseBlocks(lines).firstOrNull() ?: return null
-        return Gpu(
-            path = path,
-            governor = m["gov"]?.takeIf { it.isNotBlank() },
-            governors = words(m["govs"]),
-            maxHz = nums(m["max"]).firstOrNull(),
-            freqsHz = nums(m["freqs"]).distinct().sorted(),
-        )
-    }
-
-    private fun write(file: String, value: String) {
+    fun write(file: String, value: String) {
         RootShell.run("echo ${Actions.q(value)} > ${Actions.q(file)}")
     }
 
@@ -122,21 +92,6 @@ object Tuning {
     }
     fun setCpuMax(c: Cluster, khz: Long) = write("${c.path}/scaling_max_freq", khz.toString())
 
-    fun setGpuGovernor(g: Gpu, gov: String) {
-        // El gobernador original se guarda la primera vez para poder restablecerlo
-        if (Prefs.defaultGpuGovernor.isEmpty() && g.governor != null) {
-            Prefs.defaultGpuGovernor = g.governor
-            Prefs.save()
-        }
-        write("${g.path}/governor", gov)
-    }
-
-    fun setGpuMax(g: Gpu, hz: Long) {
-        write("${g.path}/max_freq", hz.toString())
-        // En Adreno también se limita el reloj del driver
-        if (g.path.contains("kgsl")) write("/sys/class/kgsl/kgsl-3d0/max_gpuclk", hz.toString())
-    }
-
     /** Vuelve a los valores de fábrica (gobernador original y frecuencias máximas). */
     fun resetCpu(clusters: List<Cluster>) {
         val balanced = Prefs.defaultGovernor
@@ -146,13 +101,10 @@ object Tuning {
         }
     }
 
-    fun resetGpu(g: Gpu) {
-        Prefs.defaultGpuGovernor.takeIf { it.isNotEmpty() && it in g.governors }?.let { write("${g.path}/governor", it) }
-        g.freqsHz.maxOrNull()?.let { setGpuMax(g, it) }
     }
 }
 
-private fun mhz(khz: Long) = "${khz / 1000} MHz"
+fun mhz(khz: Long) = "${khz / 1000} MHz"
 
 @Composable
 fun TuneDropdown(value: String, options: List<String>, enabled: Boolean, onSelect: (Int) -> Unit) {
@@ -181,7 +133,7 @@ fun TuneDropdown(value: String, options: List<String>, enabled: Boolean, onSelec
 }
 
 @Composable
-private fun TuneRow(title: String, content: @Composable () -> Unit) {
+fun TuneRow(title: String, content: @Composable () -> Unit) {
     val win = LocalWin.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(title, fontSize = 13.sp, color = win.sub, modifier = Modifier.weight(1f))
@@ -190,7 +142,7 @@ private fun TuneRow(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun TuneCard(title: String, onReset: (() -> Unit)?, content: @Composable ColumnScope.() -> Unit) {
+fun TuneCard(title: String, onReset: (() -> Unit)?, content: @Composable ColumnScope.() -> Unit) {
     val win = LocalWin.current
     Column(
         Modifier
@@ -260,51 +212,3 @@ fun CpuTuningCard() {
     }
 }
 
-/** Gobernador y frecuencia máxima de la GPU. */
-@Composable
-fun GpuTuningCard() {
-    val win = LocalWin.current
-    val scope = rememberCoroutineScope()
-    var gpu by remember { mutableStateOf<Tuning.Gpu?>(null) }
-    var loaded by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        gpu = withContext(Dispatchers.IO) { Tuning.gpu() }
-        loaded = true
-    }
-
-    fun run(action: () -> Unit) {
-        busy = true
-        scope.launch {
-            gpu = withContext(Dispatchers.IO) {
-                action()
-                Tuning.gpu()
-            }
-            busy = false
-        }
-    }
-
-    val g = gpu
-    val resetGpu: (() -> Unit)? = if (g == null) null else {
-        val target: Tuning.Gpu = g
-        ({ run { Tuning.resetGpu(target) } })
-    }
-    TuneCard(tr("Ajustes de la GPU"), resetGpu) {
-        when {
-            !loaded -> Text(tr("Cargando…"), fontSize = 12.sp, color = win.sub)
-            g == null -> Text(tr("No se pueden cambiar estos ajustes en este teléfono."), fontSize = 12.sp, color = win.sub)
-            else -> {
-                TuneRow(tr("Gobernador")) {
-                    TuneDropdown(g.governor ?: "—", g.governors, !busy) { idx -> run { Tuning.setGpuGovernor(g, g.governors[idx]) } }
-                }
-                if (g.freqsHz.isNotEmpty()) {
-                    TuneRow(tr("Frecuencia máxima")) {
-                        TuneDropdown(g.maxHz?.let { mhz(it / 1000) } ?: "—", g.freqsHz.map { mhz(it / 1000) }, !busy) { idx ->
-                            run { Tuning.setGpuMax(g, g.freqsHz[idx]) }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}

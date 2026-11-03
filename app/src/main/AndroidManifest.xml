@@ -63,6 +63,19 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- Modo juego -->
+        <service
+            android:name=".GameModeService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Game mode: detects when the user's chosen games open to apply their power settings and record session statistics." />
+        </service>
+        <receiver
+            android:name=".KillAppReceiver"
+            android:exported="false" />
+
         <!-- Botón de ajustes rápidos -->
         <service
             android:name=".MonitorTileService"
