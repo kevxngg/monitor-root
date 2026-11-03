@@ -108,7 +108,10 @@ object Alerts {
         val now = System.currentTimeMillis()
         val s = sp(ctx)
         val prevJson = s.getString("cpuTicks", null)
-        s.edit().putString("cpuTicks", JSONObject(ticks.mapValues { it.value }).put("_t", now).toString()).apply()
+        val snapshot = JSONObject()
+        ticks.forEach { (k, v) -> snapshot.put(k, v) }
+        snapshot.put("_t", now)
+        s.edit().putString("cpuTicks", snapshot.toString()).apply()
         if (prevJson == null) return
         val prev = JSONObject(prevJson)
         val seconds = (now - prev.optLong("_t", now)) / 1000f

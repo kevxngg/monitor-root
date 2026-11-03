@@ -100,8 +100,6 @@ object Tuning {
             (c.hwMaxKhz ?: c.freqsKhz.maxOrNull())?.let { setCpuMax(c, it) }
         }
     }
-
-    }
 }
 
 fun mhz(khz: Long) = "${khz / 1000} MHz"

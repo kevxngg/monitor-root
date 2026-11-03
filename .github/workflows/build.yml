@@ -30,7 +30,14 @@ jobs:
           gradle-version: '8.9'
 
       - name: Probar y compilar
-        run: gradle testDebugUnitTest assembleRelease --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          gradle testDebugUnitTest assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Mostrar errores de compilación
+        if: failure()
+        run: |
+          grep -E "^e: |error:|What went wrong" -A 2 build.log | head -40 | while IFS= read -r line; do echo "::error::$line"; done
 
       - name: Renombrar APK
         run: cp app/build/outputs/apk/release/app-release.apk MonitorRoot.apk
