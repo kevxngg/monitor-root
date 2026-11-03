@@ -137,7 +137,7 @@ fun Shell() {
     var runOpen by remember { mutableStateOf(false) }
     var focusPid by remember { mutableStateOf<Int?>(null) }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
-    var latestInfo by remember { mutableStateOf(if (BuildConfig.SYSTEM_BUILD) null else Updater.cached(context)) }
+    var latestInfo by remember { mutableStateOf(Updater.cached(context)) }
 
     // Check on resume and once a minute while visible, including the required-version policy.
     LaunchedEffect(Unit) {
@@ -146,8 +146,6 @@ fun Shell() {
             // Si el modo juego estaba activo, se asegura de que siga funcionando
             if (Prefs.gameMode) GameMode.start(context.applicationContext)
         }
-        // En la edición para ROMs, la app se actualiza junto con la ROM
-        if (BuildConfig.SYSTEM_BUILD) return@LaunchedEffect
         (context as LifecycleOwner).repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
                 // Always verify the supported version, even when optional alerts are disabled.

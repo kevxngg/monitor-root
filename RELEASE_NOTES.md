@@ -1,3 +1,3 @@
-## Novedades
-- Edición de sistema ya firmada para ROMs con test-keys (MonitorRoot-system-testkey.apk), con la clave de plataforma de prueba pública de AOSP. Se pone directamente en /system_ext/priv-app sin tener que firmarla.
-- Instrucciones para elegir la APK correcta según las claves de la ROM, en la carpeta rom del repositorio.
+## Cambios
+- Se retira la edición de sistema para ROMs: Monitor se distribuye solo como la app normal con root.
+- La app funciona igual que antes; no hay cambios en tus ajustes.

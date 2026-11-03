@@ -5,61 +5,33 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.util.UUID
 
-/**
- * Mantiene abierta una única shell privilegiada y ejecuta comandos en ella:
- *  - ROOT: con "su" (Magisk, KernelSU, APatch o root temporal)
- *  - SYSTEM: sin root, cuando la app viene integrada en una ROM como app del
- *    sistema (uid 1000, firmada con la clave de la plataforma)
- */
+/** Mantiene abierta una única shell "su" y ejecuta comandos en ella. */
 object RootShell {
-    enum class Mode { NONE, ROOT, SYSTEM }
-
     private var process: Process? = null
     private var writer: OutputStreamWriter? = null
     private var reader: BufferedReader? = null
     private val lock = Any()
 
-    @Volatile var mode = Mode.NONE
-        private set
-
-    /** true si la app corre como app del sistema (integrada en la ROM). */
-    val isSystemApp: Boolean get() = android.os.Process.myUid() == android.os.Process.SYSTEM_UID
-
-    private fun start(cmd: String, needRoot: Boolean): Boolean {
-        return try {
-            val p = ProcessBuilder(cmd).start()
-            val w = OutputStreamWriter(p.outputStream)
-            process = p
-            writer = w
-            reader = BufferedReader(InputStreamReader(p.inputStream))
-            // Descarta stderr para que no se llene su buffer y bloquee la shell
-            w.write("exec 2>/dev/null\n")
-            w.flush()
-            val id = runLocked("id")
-            val ok = if (needRoot) id.any { it.contains("uid=0") } else id.any { it.contains("uid=") }
-            if (!ok) closeLocked()
-            ok
-        } catch (e: Exception) {
-            closeLocked()
-            false
-        }
-    }
-
-    /** Abre la shell. Primero con root; si no hay, como app del sistema. */
+    /** Abre la shell root. Devuelve true si se obtuvo uid=0. */
     fun open(): Boolean {
         synchronized(lock) {
             if (process != null) return true
-            // En una ROM se usa directamente la shell del sistema (no hace falta root)
-            if (isSystemApp && start("sh", needRoot = false)) {
-                mode = Mode.SYSTEM
-                return true
+            return try {
+                val p = ProcessBuilder("su").start()
+                val w = OutputStreamWriter(p.outputStream)
+                process = p
+                writer = w
+                reader = BufferedReader(InputStreamReader(p.inputStream))
+                // Descarta stderr para que no se llene su buffer y bloquee la shell
+                w.write("exec 2>/dev/null\n")
+                w.flush()
+                val ok = runLocked("id").any { it.contains("uid=0") }
+                if (!ok) closeLocked()
+                ok
+            } catch (e: Exception) {
+                closeLocked()
+                false
             }
-            if (start("su", needRoot = true)) {
-                mode = Mode.ROOT
-                return true
-            }
-            mode = Mode.NONE
-            return false
         }
     }
 

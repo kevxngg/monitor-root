@@ -27,23 +27,6 @@ android {
         }
     }
 
-    // Dos ediciones:
-    //  - standard: la normal, funciona con root y se actualiza desde GitHub
-    //  - system:   para integrar en ROMs como app del sistema (firmada con la clave de
-    //              la plataforma); no necesita root y se actualiza con la ROM
-    flavorDimensions += "edition"
-    productFlavors {
-        create("standard") {
-            dimension = "edition"
-            buildConfigField("boolean", "SYSTEM_BUILD", "false")
-        }
-        create("system") {
-            dimension = "edition"
-            versionNameSuffix = "-system"
-            buildConfigField("boolean", "SYSTEM_BUILD", "true")
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true

@@ -9,7 +9,6 @@ on:
       - 'README.md'
       - 'README.es.md'
       - '.github/**'
-      - 'rom/**'
   workflow_dispatch:
 
 permissions:
@@ -33,7 +32,7 @@ jobs:
       - name: Probar y compilar
         run: |
           set -o pipefail
-          gradle testStandardDebugUnitTest assembleStandardRelease assembleSystemRelease --no-daemon --stacktrace 2>&1 | tee build.log
+          gradle testDebugUnitTest assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
 
       - name: Mostrar errores de compilación
         if: failure()
@@ -42,15 +41,7 @@ jobs:
 
       - name: Renombrar APK
         run: |
-          cp app/build/outputs/apk/standard/release/app-standard-release.apk MonitorRoot.apk
-          cp app/build/outputs/apk/system/release/app-system-release.apk MonitorRoot-system.apk
-
-      - name: Firmar la edición de sistema con la clave de prueba de AOSP
-        run: |
-          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          "$BT/apksigner" sign --key rom/testkey/platform.pk8 --cert rom/testkey/platform.x509.pem \
-            --out MonitorRoot-system-testkey.apk MonitorRoot-system.apk
-          "$BT/apksigner" verify --print-certs MonitorRoot-system-testkey.apk | head -3
+          cp app/build/outputs/apk/release/app-release.apk MonitorRoot.apk
 
       - name: Datos de actualización (update.json)
         run: |
@@ -73,10 +64,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: MonitorRoot
-          path: |
-            MonitorRoot.apk
-            MonitorRoot-system.apk
-            MonitorRoot-system-testkey.apk
+          path: MonitorRoot.apk
 
       - name: Publicar en Releases
         uses: softprops/action-gh-release@v2
@@ -85,7 +73,5 @@ jobs:
           name: Monitor Root (build ${{ github.run_number }})
           files: |
             MonitorRoot.apk
-            MonitorRoot-system.apk
-            MonitorRoot-system-testkey.apk
             update.json
           body_path: RELEASE_NOTES.md

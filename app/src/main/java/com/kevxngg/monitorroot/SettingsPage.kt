@@ -182,34 +182,32 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            if (!BuildConfig.SYSTEM_BUILD) {
-                SectionLabel(tr("Actualizaciones"))
-                SettingCard(Icons.Outlined.SystemUpdate, tr("Buscar actualizaciones al abrir"), tr("Avisa cuando hay una versión nueva en GitHub")) {
-                    WinSwitch(Prefs.autoUpdate) { Prefs.autoUpdate = it; Prefs.save() }
-                }
-                SettingCard(Icons.Outlined.Update, tr("Buscar ahora"), checkMsg ?: tr("Build instalada: %d", build)) {
-                    TextButton(enabled = !checking, onClick = {
-                        checking = true
-                        checkMsg = tr("Buscando…")
-                        scope.launch {
-                            val result = withContext(Dispatchers.IO) { Updater.fetch(ctx.applicationContext) }
-                            checking = false
-                            when (result) {
-                                is UpdateResult.Success -> {
-                                    val info = result.info
-                                    onVerified(info)
-                                    if (Updater.isOffered(ctx, info, ignoreSkipped = true)) {
-                                        if (!Updater.isRequired(ctx, info)) found = info
-                                        checkMsg = tr("Build %d disponible", info.build)
-                                    } else checkMsg = tr("Ya tienes la última versión (build %d)", build)
-                                }
-                                is UpdateResult.Failure -> checkMsg = result.message()
-                            }
-                        }
-                    }) { Text(tr("Buscar")) }
-                }
-                Spacer(Modifier.height(8.dp))
+            SectionLabel(tr("Actualizaciones"))
+            SettingCard(Icons.Outlined.SystemUpdate, tr("Buscar actualizaciones al abrir"), tr("Avisa cuando hay una versión nueva en GitHub")) {
+                WinSwitch(Prefs.autoUpdate) { Prefs.autoUpdate = it; Prefs.save() }
             }
+            SettingCard(Icons.Outlined.Update, tr("Buscar ahora"), checkMsg ?: tr("Build instalada: %d", build)) {
+                TextButton(enabled = !checking, onClick = {
+                    checking = true
+                    checkMsg = tr("Buscando…")
+                    scope.launch {
+                        val result = withContext(Dispatchers.IO) { Updater.fetch(ctx.applicationContext) }
+                        checking = false
+                        when (result) {
+                            is UpdateResult.Success -> {
+                                val info = result.info
+                                onVerified(info)
+                                if (Updater.isOffered(ctx, info, ignoreSkipped = true)) {
+                                    if (!Updater.isRequired(ctx, info)) found = info
+                                    checkMsg = tr("Build %d disponible", info.build)
+                                } else checkMsg = tr("Ya tienes la última versión (build %d)", build)
+                            }
+                            is UpdateResult.Failure -> checkMsg = result.message()
+                        }
+                    }
+                }) { Text(tr("Buscar")) }
+            }
+            Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Acerca de"))
             AboutEntry { showAbout = true }
             Spacer(Modifier.height(16.dp))
