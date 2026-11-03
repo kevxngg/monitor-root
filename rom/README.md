@@ -41,6 +41,18 @@ Si la etiqueta dice `test-keys` pero la app no aparece después de reiniciar, la
 
 Como app del sistema, Monitor puede hacer casi todo lo que hace con root. Lo que puede variar según la ROM es lo que controla SELinux: leer los procesos de otras apps y cambiar los gobernadores de CPU y GPU. Si algo no funciona, revisa los `avc: denied` y ajusta la política.
 
+## Repack de particiones (sin compilar) / Partition repack (no build)
+
+**La forma segura:** usa la APK **normal** (`MonitorRoot.apk`) en **`/product/app/Monitor/Monitor.apk`** (permisos 644). No necesita archivos extra, no puede causar bootloop, se instala y actualiza como cualquier app y funciona completa con root.
+
+**Si la quieres en `/product/priv-app/Monitor/`:** añade también `product/privapp-permissions-com.kevxngg.monitorroot.xml` en **`/product/etc/permissions/`**. Sin ese archivo, Android no arranca.
+
+**No pongas la edición de sistema (`MonitorRoot-system*.apk`) en `/product`:** las apps con usuario del sistema solo pueden ir en `/system` o `/system_ext` y firmadas con la clave de plataforma de la ROM. Si no, hay bootloop.
+
+**Sin root:** salvo la edición de sistema firmada con la clave de la ROM, Android (SELinux) no deja que ninguna app, aunque sea priv-app, lea los procesos de otras apps ni cambie gobernadores.
+
+*Safe option: put the regular `MonitorRoot.apk` in `/product/app/Monitor/`. For `/product/priv-app`, also add `product/privapp-permissions-com.kevxngg.monitorroot.xml` to `/product/etc/permissions/`. Never put the system edition in `/product`.*
+
 ---
 
 ## English
