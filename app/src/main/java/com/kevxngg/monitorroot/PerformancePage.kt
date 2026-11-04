@@ -227,7 +227,13 @@ private fun BigStats(items: List<Pair<String, String>>) {
                 row.forEach { (label, value) ->
                     Column(Modifier.weight(1f)) {
                         Text(label, fontSize = 12.sp, color = win.sub, maxLines = 1)
-                        Text(value, fontSize = 19.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        // Los valores largos (por ejemplo "Descargando") se achican para caber enteros
+                        val size = when {
+                            value.length <= 8 -> 19.sp
+                            value.length <= 11 -> 16.sp
+                            else -> 14.sp
+                        }
+                        Text(value, fontSize = size, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }

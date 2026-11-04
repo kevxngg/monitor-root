@@ -12,10 +12,11 @@ android {
         applicationId = "com.kevxngg.monitorroot"
         minSdk = 26
         targetSdk = 34
-        // Cada compilación de GitHub Actions tiene un número; la app lo usa para saber si hay actualización
+        // Número interno de compilación (siempre sube): lo usan Android y el actualizador
         val ciBuild = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionCode = ciBuild
-        versionName = "2.1 (build $ciBuild)"
+        // Versión visible (2.2, 2.3…): se toma del archivo VERSION de la raíz del repositorio
+        versionName = rootProject.file("VERSION").readText().trim()
     }
 
     signingConfigs {

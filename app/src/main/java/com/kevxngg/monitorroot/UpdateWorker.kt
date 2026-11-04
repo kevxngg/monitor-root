@@ -151,9 +151,9 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             val n = NotificationCompat.Builder(ctx, CHANNEL)
                 .setSmallIcon(R.drawable.ic_fg)
                 .setContentTitle(tr("Hay una nueva versión"))
-                .setContentText(tr("Build %d disponible", info.build))
+                .setContentText(tr("Versión %s disponible", info.label))
                 .setStyle(NotificationCompat.BigTextStyle().bigText(
-                    tr("Build %d disponible", info.build) + if (firstLines.isNotEmpty()) "\n" + firstLines else ""
+                    tr("Versión %s disponible", info.label) + if (firstLines.isNotEmpty()) "\n" + firstLines else ""
                 ))
                 .setContentIntent(open)
                 .addAction(0, tr("Actualizar ahora"), install)

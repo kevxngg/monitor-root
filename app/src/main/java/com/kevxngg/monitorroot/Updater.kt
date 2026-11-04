@@ -31,7 +31,19 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class UpdateInfo(val build: Int, val title: String, val notes: String, val apkUrl: String, val sizeBytes: Long, val minBuild: Int = 0)
+data class UpdateInfo(
+    val build: Int,
+    val title: String,
+    val notes: String,
+    val apkUrl: String,
+    val sizeBytes: Long,
+    val minBuild: Int = 0,
+    /** Versión visible (por ejemplo "2.3"); las versiones antiguas no la tienen. */
+    val version: String = "",
+) {
+    /** Lo que se muestra al usuario: "2.3", o "build 22" en versiones antiguas. */
+    val label: String get() = version.ifEmpty { "build $build" }
+}
 
 sealed interface UpdateResult {
     data class Success(val info: UpdateInfo) : UpdateResult
@@ -68,6 +80,13 @@ object Updater {
     fun snooze(build: Int) {
         snoozedBuild = build
         snoozedUntil = System.currentTimeMillis() + 60 * 60 * 1000
+    }
+
+    /** Versión instalada visible (por ejemplo "2.3"). */
+    fun currentVersion(ctx: Context): String = try {
+        ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: ""
+    } catch (e: Exception) {
+        ""
     }
 
     fun currentBuild(ctx: Context): Int = try {
@@ -111,7 +130,13 @@ object Updater {
     private fun fromFeed(): UpdateInfo {
         val j = JSONObject(get("$FEED?t=${System.currentTimeMillis()}"))
         val build = j.getInt("build")
-        return validated(UpdateInfo(build, "Monitor (build $build)", j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0)))
+        val version = j.optString("version")
+        return validated(
+            UpdateInfo(
+                build, "Monitor ${version.ifEmpty { "build $build" }}", j.optString("notes"), j.getString("apk"),
+                j.optLong("size"), j.optInt("min_build", 0), version,
+            )
+        )
     }
 
     private fun fromApi(): UpdateInfo {
@@ -121,7 +146,9 @@ object Updater {
         for (i in 0 until assets.length()) {
             val a = assets.getJSONObject(i)
             if (a.optString("name") == "MonitorRoot.apk") {
-                return validated(UpdateInfo(build, json.optString("name"), json.optString("body"), a.getString("browser_download_url"), a.optLong("size")))
+                // El título de la versión es "Monitor 2.3": se toma el número del final
+                val version = json.optString("name").substringAfterLast(' ').takeIf { v -> v.matches(Regex("\\d+(\\.\\d+)+")) } ?: ""
+                return validated(UpdateInfo(build, json.optString("name"), json.optString("body"), a.getString("browser_download_url"), a.optLong("size"), version = version))
             }
         }
         error("Release has no MonitorRoot.apk")
@@ -156,7 +183,7 @@ object Updater {
             try {
                 val info = source()
                 val j = JSONObject().put("build", info.build).put("title", info.title)
-                    .put("notes", info.notes).put("apk", info.apkUrl).put("size", info.sizeBytes).put("min_build", info.minBuild)
+                    .put("notes", info.notes).put("apk", info.apkUrl).put("size", info.sizeBytes).put("min_build", info.minBuild).put("version", info.version)
                 ctx.getSharedPreferences("updates", Context.MODE_PRIVATE).edit().putString("latest", j.toString()).apply()
                 return UpdateResult.Success(info)
             } catch (e: Exception) {
@@ -173,7 +200,7 @@ object Updater {
         val text = ctx.getSharedPreferences("updates", Context.MODE_PRIVATE).getString("latest", null)
         if (text == null) null else {
             val j = JSONObject(text)
-            validated(UpdateInfo(j.getInt("build"), j.optString("title"), j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0)))
+            validated(UpdateInfo(j.getInt("build"), j.optString("title"), j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0), j.optString("version")))
         }
     } catch (_: Exception) { null }
 
@@ -241,7 +268,7 @@ fun UpdateDialog(info: UpdateInfo, required: Boolean = false, onDismiss: () -> U
     var progress by remember { mutableStateOf<Float?>(null) }
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    val current = remember { Updater.currentBuild(ctx) }
+    val current = remember { Updater.currentVersion(ctx) }
 
     fun start() {
         busy = true
@@ -280,7 +307,7 @@ fun UpdateDialog(info: UpdateInfo, required: Boolean = false, onDismiss: () -> U
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    tr("Build %d disponible (tienes la build %d)", info.build, current) +
+                    tr("Versión %s disponible (tienes la %s)", info.label, current) +
                         if (info.sizeBytes > 0) " · ${formatBytes(info.sizeBytes)}" else "",
                     fontSize = 13.sp, color = win.sub,
                 )

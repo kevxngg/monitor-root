@@ -35,6 +35,7 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val build = remember { Updater.currentBuild(ctx) }
+    val version = remember { Updater.currentVersion(ctx) }
     var checking by remember { mutableStateOf(false) }
     var checkMsg by remember { mutableStateOf<String?>(null) }
     var found by remember { mutableStateOf<UpdateInfo?>(null) }
@@ -186,7 +187,7 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
             SettingCard(Icons.Outlined.SystemUpdate, tr("Buscar actualizaciones al abrir"), tr("Avisa cuando hay una versión nueva en GitHub")) {
                 WinSwitch(Prefs.autoUpdate) { Prefs.autoUpdate = it; Prefs.save() }
             }
-            SettingCard(Icons.Outlined.Update, tr("Buscar ahora"), checkMsg ?: tr("Build instalada: %d", build)) {
+            SettingCard(Icons.Outlined.Update, tr("Buscar ahora"), checkMsg ?: tr("Versión instalada: %s", version)) {
                 TextButton(enabled = !checking, onClick = {
                     checking = true
                     checkMsg = tr("Buscando…")
@@ -199,8 +200,8 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                                 onVerified(info)
                                 if (Updater.isOffered(ctx, info, ignoreSkipped = true)) {
                                     if (!Updater.isRequired(ctx, info)) found = info
-                                    checkMsg = tr("Build %d disponible", info.build)
-                                } else checkMsg = tr("Ya tienes la última versión (build %d)", build)
+                                    checkMsg = tr("Versión %s disponible", info.label)
+                                } else checkMsg = tr("Ya tienes la última versión (%s)", version)
                             }
                             is UpdateResult.Failure -> checkMsg = result.message()
                         }

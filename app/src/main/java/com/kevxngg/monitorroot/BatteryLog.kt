@@ -18,6 +18,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -133,6 +134,7 @@ fun BatteryHistoryCard(refreshKey: Long, color: Color) {
             }
         } else {
             val fill = if (win.dark) 0.3f else 0.16f
+            val chargeColor = win.eco
             Canvas(Modifier.fillMaxWidth().height(130.dp)) {
                 val w = size.width
                 val h = size.height
@@ -142,25 +144,29 @@ fun BatteryHistoryCard(refreshKey: Long, color: Color) {
                 val g = color.copy(alpha = if (win.dark) 0.22f else 0.14f)
                 for (i in 1 until 4) drawLine(g, Offset(0f, h * i / 4f), Offset(w, h * i / 4f), 1f)
                 for (i in 1 until 24) drawLine(g, Offset(w * i / 24f, 0f), Offset(w * i / 24f, h), 1f)
-                // Franjas de carga
-                day.zipWithNext().forEach { (a, b) ->
-                    if (a.charging && b.time - a.time < 30 * 60_000L) {
-                        drawRect(win.eco.copy(alpha = 0.18f), Offset(x(a.time), 0f), Size(x(b.time) - x(a.time), h))
-                    }
-                }
-                val line = Path()
+                // Relleno bajo la curva, en el color normal
                 val area = Path()
                 day.forEachIndexed { i, e ->
                     if (i == 0) {
-                        line.moveTo(x(e.time), y(e.level)); area.moveTo(x(e.time), h); area.lineTo(x(e.time), y(e.level))
+                        area.moveTo(x(e.time), h); area.lineTo(x(e.time), y(e.level))
                     } else {
-                        line.lineTo(x(e.time), y(e.level)); area.lineTo(x(e.time), y(e.level))
+                        area.lineTo(x(e.time), y(e.level))
                     }
                 }
                 area.lineTo(x(day.last().time), h)
                 area.close()
                 drawPath(area, color.copy(alpha = fill))
-                drawPath(line, color, style = Stroke(width = 1.5.dp.toPx()))
+                // La línea: verde en los tramos en que el teléfono estaba cargando
+                val stroke = 2.dp.toPx()
+                day.zipWithNext().forEach { (a, b) ->
+                    drawLine(
+                        color = if (a.charging) chargeColor else color,
+                        start = Offset(x(a.time), y(a.level)),
+                        end = Offset(x(b.time), y(b.level)),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round,
+                    )
+                }
                 drawRect(color.copy(alpha = 0.9f), style = Stroke(width = 1.dp.toPx()))
             }
         }
@@ -169,9 +175,13 @@ fun BatteryHistoryCard(refreshKey: Long, color: Color) {
             Text(tr("Ahora"), fontSize = 11.sp, color = win.sub)
         }
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Box(Modifier.size(10.dp).background(win.eco.copy(alpha = 0.35f)))
+            Box(Modifier.width(16.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(win.eco))
             Spacer(Modifier.width(6.dp))
             Text(tr("Cargando"), fontSize = 11.sp, color = win.sub)
+            Spacer(Modifier.width(16.dp))
+            Box(Modifier.width(16.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(color))
+            Spacer(Modifier.width(6.dp))
+            Text(tr("Descargando"), fontSize = 11.sp, color = win.sub)
         }
 
         val est = BatteryLog.estimateMinutes(ctx, entries)

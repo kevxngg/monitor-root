@@ -219,7 +219,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
             }
 
             Text(
-                "Monitor · build $build · © ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} $DEV",
+                "Monitor $version · © ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} $DEV",
                 fontSize = 11.sp, color = win.sub, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
             )
