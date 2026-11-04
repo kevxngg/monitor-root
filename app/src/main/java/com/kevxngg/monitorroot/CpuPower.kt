@@ -46,6 +46,8 @@ object CpuPower {
         val hwMaxKhz: Long?,
         val setspeedKhz: Long?,
         val freqsKhz: List<Long>,
+        /** Frecuencia a la que va el clúster en este momento. */
+        val curKhz: Long? = null,
     ) {
         val kind: Kind get() = kindOf(governor)
         val atHwMax: Boolean get() = hwMaxKhz == null || maxKhz == hwMaxKhz
@@ -120,6 +122,7 @@ object CpuPower {
           echo "hwmin=§(cat §p/cpuinfo_min_freq)"
           echo "hwmax=§(cat §p/cpuinfo_max_freq)"
           echo "setspeed=§(cat §p/scaling_setspeed)"
+          echo "cur=§(cat §p/scaling_cur_freq)"
           echo "freqs=§(cat §p/scaling_available_frequencies)"
         done
     """.trimIndent().replace("§", "$")
@@ -142,6 +145,7 @@ object CpuPower {
                 hwMaxKhz = longs(m["hwmax"]).firstOrNull(),
                 setspeedKhz = longs(m["setspeed"]).firstOrNull(),
                 freqsKhz = longs(m["freqs"]).distinct().sorted(),
+                curKhz = longs(m["cur"]).firstOrNull(),
             )
         }
         rememberFactoryGovernor(clusters)
@@ -167,14 +171,28 @@ object CpuPower {
 
     /**
      * Cambia el gobernador y deja la frecuencia coherente con él:
-     * performance va a la máxima real del chip y powersave a la mínima.
+     *  - performance: el tope máximo vuelve a la máxima real del chip.
+     *  - powersave: la mínima y también la máxima quedan en la mínima real.
+     *    Sin el tope, servicios del fabricante (como el "touch boost" de
+     *    MediaTek) suben la mínima al tocar la pantalla y powersave la sigue.
+     *    El kernel nunca deja que la mínima supere a la máxima.
+     *  - userspace: arranca en la frecuencia máxima actual.
      */
     fun setGovernor(c: Cluster, gov: String) {
+        val newKind = kindOf(gov)
+        // Al salir de powersave se quita el tope que puso Monitor
+        if (c.kind == Kind.FIXED_MIN && newKind != Kind.FIXED_MIN) {
+            hwMax(c)?.let { write("${c.path}/scaling_max_freq", it) }
+        }
         write("${c.path}/scaling_governor", gov)
-        when (kindOf(gov)) {
+        when (newKind) {
             Kind.FIXED_MAX -> hwMax(c)?.let { write("${c.path}/scaling_max_freq", it) }
-            Kind.FIXED_MIN -> hwMin(c)?.let { write("${c.path}/scaling_min_freq", it) }
-            Kind.MANUAL -> (c.maxKhz ?: hwMax(c))?.let { write("${c.path}/scaling_setspeed", it) }
+            Kind.FIXED_MIN -> hwMin(c)?.let {
+                write("${c.path}/scaling_min_freq", it)
+                write("${c.path}/scaling_max_freq", it)
+            }
+            Kind.MANUAL -> (if (c.kind == Kind.FIXED_MIN) hwMax(c) else c.maxKhz ?: hwMax(c))
+                ?.let { write("${c.path}/scaling_setspeed", it) }
             Kind.DYNAMIC -> Unit
         }
     }
@@ -345,14 +363,20 @@ private fun CpuAdvancedCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, ru
             clusters.isEmpty() -> Text(tr("No se pueden cambiar estos ajustes en este teléfono."), fontSize = 12.sp, color = win.sub)
             else -> clusters.forEachIndexed { i, c ->
                 if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(win.divider))
-                Text(tr("Clúster %d (CPU %s)", i, c.cpus), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        tr("Clúster %d (CPU %s)", i, c.cpus), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                        color = win.text, modifier = Modifier.weight(1f),
+                    )
+                    c.curKhz?.let { Text(tr("Ahora: %s", mhz(it)), fontSize = 12.sp, color = win.accent) }
+                }
                 TuneRow(tr("Gobernador")) {
                     TuneDropdown(c.governor ?: "—", c.governors, !busy) { idx -> run { CpuPower.setGovernor(c, c.governors[idx]) } }
                 }
                 val freqs = c.freqsKhz
                 when (c.kind) {
                     CpuPower.Kind.FIXED_MAX -> FixedRow(tr("Fija en la máxima"), c.maxKhz)
-                    CpuPower.Kind.FIXED_MIN -> FixedRow(tr("Fija en la mínima"), c.minKhz)
+                    CpuPower.Kind.FIXED_MIN -> FixedRow(tr("Fija en la mínima"), listOfNotNull(c.minKhz, c.maxKhz).minOrNull())
                     CpuPower.Kind.MANUAL -> if (freqs.isNotEmpty()) {
                         TuneRow(tr("Frecuencia fija")) {
                             TuneDropdown(c.setspeedKhz?.let(::mhz) ?: "—", freqs.map(::mhz), !busy) { idx ->
