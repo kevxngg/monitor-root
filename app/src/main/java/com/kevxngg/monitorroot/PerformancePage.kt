@@ -304,8 +304,7 @@ private fun CpuDetail(s: Snapshot, h: History, logical: Boolean) {
             tr("Arquitectura") to (Build.SUPPORTED_ABIS.firstOrNull() ?: "—"),
         ),
     )
-    PowerModeCard()
-    CpuTuningCard()
+    CpuPowerSection()
     if (!logical && s.cores.isNotEmpty()) {
         Text(tr("Frecuencia por núcleo"), fontSize = 12.sp, color = win.sub)
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {

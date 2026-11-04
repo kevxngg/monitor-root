@@ -145,6 +145,15 @@ object GpuControl {
             Kind.EXYNOS -> Tuning.write("/sys/kernel/gpu/gpu_governor", gov)
             else -> Unit
         }
+        // Con performance la GPU va a la máxima real: se quita cualquier límite
+        if (gov == "performance") setFreq(s, null)
+    }
+
+    /** Texto de la frecuencia cuando el gobernador la deja fija (null = se puede limitar). */
+    fun pinnedLabel(s: State): String? = when (s.governor) {
+        "performance" -> s.freqsKhz.maxOrNull()?.let { tr("Fija en la máxima") + ": " + mhz(it) }
+        "powersave" -> s.freqsKhz.minOrNull()?.let { tr("Fija en la mínima") + ": " + mhz(it) }
+        else -> null
     }
 
     /** [khz] = null vuelve a automático (o quita el límite). */
@@ -213,7 +222,15 @@ fun GpuTuningCard() {
                         TuneDropdown(s.governor ?: "—", s.governors, !busy) { idx -> run { GpuControl.setGovernor(s, s.governors[idx]) } }
                     }
                 }
-                if (s.freqsKhz.isNotEmpty()) {
+                val pinned = if (s.fixed) null else GpuControl.pinnedLabel(s)
+                if (pinned != null) {
+                    TuneRow(tr("Frecuencia")) { Text(pinned, fontSize = 13.sp, color = win.text) }
+                    Text(
+                        if (s.governor == "performance") tr("Con este gobernador la GPU trabaja siempre a la máxima frecuencia.")
+                        else tr("Con este gobernador la GPU trabaja siempre a la mínima frecuencia."),
+                        fontSize = 11.sp, color = win.sub,
+                    )
+                } else if (s.freqsKhz.isNotEmpty()) {
                     val auto = if (s.fixed) tr("Automática") else tr("Sin límite")
                     val options = listOf(auto) + s.freqsKhz.map(::mhz)
                     val current = s.currentKhz

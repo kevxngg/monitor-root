@@ -130,7 +130,7 @@ class GameModeService : Service() {
     private val fps = ArrayList<Int>()
     private var tempMax: Float? = null
     private var battStart: Int? = null
-    private var savedGovernor: String? = null
+    private var savedCpu: CpuPower.Snapshot? = null
     private var startedOverlay = false
     private var changedDnd = false
     private var lastFg: String? = null
@@ -217,17 +217,19 @@ class GameModeService : Service() {
         tempMax = null
         battStart = battery()
         if (!RootShell.open()) return
-        // Modo de energía
+        // Modo de energía (se guarda el estado completo de la CPU para devolverlo al salir)
         val mode = when (Prefs.gamePower) {
-            1 -> PowerMode.Mode.PERFORMANCE
-            2 -> PowerMode.Mode.BALANCED
-            3 -> PowerMode.Mode.SAVER
+            1 -> CpuPower.Mode.PERFORMANCE
+            2 -> CpuPower.Mode.BALANCED
+            3 -> CpuPower.Mode.SAVER
             else -> null
         }
         if (mode != null) {
-            val st = PowerMode.read()
-            savedGovernor = st.current
-            PowerMode.governorFor(mode, st)?.let { PowerMode.setGovernor(it) }
+            val before = CpuPower.snapshot()
+            if (CpuPower.isAvailable(mode, before.clusters)) {
+                savedCpu = before
+                CpuPower.apply(mode, before.clusters)
+            }
         }
         // Cerrar apps en segundo plano para liberar memoria
         if (Prefs.gameKill) RootShell.run("am kill-all")
@@ -254,10 +256,10 @@ class GameModeService : Service() {
     private fun exitGame(pkg: String) {
         current = null
         if (RootShell.open()) {
-            savedGovernor?.let { PowerMode.setGovernor(it) }
+            savedCpu?.let { CpuPower.restore(it) }
             if (changedDnd) RootShell.run("cmd notification set_dnd off")
         }
-        savedGovernor = null
+        savedCpu = null
         changedDnd = false
         if (startedOverlay) {
             OverlayControl.stop(applicationContext)
