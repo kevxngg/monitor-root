@@ -1,5 +1,3 @@
 ## Novedades
-- Cuando el sistema limita la frecuencia de la CPU (normalmente por temperatura), cada clúster lo indica, y el modo Mejor rendimiento avisa que vuelve a la máxima al enfriarse.
-
-## Correcciones
-- Al elegir Equilibrado o Mejor rendimiento el modo se aplicaba pero no aparecía seleccionado: la app comparaba las frecuencias con las de fábrica, y el sistema las mueve solo (sube la mínima al tocar la pantalla y baja la máxima con el calor). Ahora el modo se reconoce por lo que elegiste, y solo aparece "Personalizado" si cambias los límites de frecuencia a mano.
+- Estilos de interfaz (Configuración > Estilo de interfaz): Windows 11 (el de siempre), Windows 10 (esquinas rectas y uso en amarillo), Material You (con los colores de tu fondo de pantalla en Android 12 o superior) y Terminal (inspirado en las herramientas de consola de Linux, letras verdes sobre negro). La app se reinicia para aplicar el estilo elegido.
+- Tema Negro puro para pantallas AMOLED: fondos en negro absoluto en los estilos Windows 11, Windows 10 y Material You.

@@ -43,9 +43,9 @@ fun TuneDropdown(value: String, options: List<String>, enabled: Boolean, onSelec
         Row(
             Modifier
                 .widthIn(min = 120.dp, max = 190.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(corner(4))
                 .background(win.content)
-                .border(1.dp, win.border, RoundedCornerShape(4.dp))
+                .border(1.dp, win.border, corner(4))
                 .clickable(enabled = enabled && options.isNotEmpty()) { open = true }
                 .padding(horizontal = 10.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -76,9 +76,9 @@ fun TuneCard(title: String, onReset: (() -> Unit)?, content: @Composable ColumnS
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(corner(8))
             .background(win.card)
-            .border(1.dp, win.border, RoundedCornerShape(8.dp))
+            .border(1.dp, win.border, corner(8))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

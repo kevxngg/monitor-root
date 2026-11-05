@@ -125,7 +125,7 @@ fun BatteryHistoryCard(refreshKey: Long, color: Color) {
         }
         if (day.size < 2) {
             Box(
-                Modifier.fillMaxWidth().height(130.dp).clip(RoundedCornerShape(4.dp)).border(1.dp, color.copy(alpha = 0.6f)),
+                Modifier.fillMaxWidth().height(130.dp).clip(corner(4)).border(1.dp, color.copy(alpha = 0.6f)),
             ) {
                 Text(
                     tr("Recopilando datos. La gráfica aparecerá en unos minutos."),
@@ -175,11 +175,11 @@ fun BatteryHistoryCard(refreshKey: Long, color: Color) {
             Text(tr("Ahora"), fontSize = 11.sp, color = win.sub)
         }
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Box(Modifier.width(16.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(win.eco))
+            Box(Modifier.width(16.dp).height(3.dp).clip(corner(2)).background(win.eco))
             Spacer(Modifier.width(6.dp))
             Text(tr("Cargando"), fontSize = 11.sp, color = win.sub)
             Spacer(Modifier.width(16.dp))
-            Box(Modifier.width(16.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(color))
+            Box(Modifier.width(16.dp).height(3.dp).clip(corner(2)).background(color))
             Spacer(Modifier.width(6.dp))
             Text(tr("Descargando"), fontSize = 11.sp, color = win.sub)
         }

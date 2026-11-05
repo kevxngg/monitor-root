@@ -141,7 +141,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
             Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onBack).padding(10.dp)) {
+            Box(Modifier.clip(corner(4)).clickable(onClick = onBack).padding(10.dp)) {
                 @Suppress("DEPRECATION")
                 Icon(Icons.Outlined.ArrowBack, tr("Volver"), tint = win.text, modifier = Modifier.size(20.dp))
             }
@@ -241,9 +241,9 @@ private fun AboutCard(content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(corner(8))
             .background(win.card)
-            .border(1.dp, win.border, RoundedCornerShape(8.dp)),
+            .border(1.dp, win.border, corner(8)),
         content = content,
     )
 }

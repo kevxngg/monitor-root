@@ -125,7 +125,7 @@ fun CmdButton(icon: ImageVector, text: String, enabled: Boolean = true, onClick:
     val tint = if (enabled) win.text else win.sub.copy(alpha = 0.5f)
     Row(
         Modifier
-            .clip(RoundedCornerShape(4.dp))
+            .clip(corner(4))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -183,7 +183,7 @@ fun CmdMore(entries: List<MenuEntry>) {
     val win = LocalWin.current
     var open by remember { mutableStateOf(false) }
     Box {
-        Box(Modifier.clip(RoundedCornerShape(4.dp)).clickable { open = true }.padding(7.dp)) {
+        Box(Modifier.clip(corner(4)).clickable { open = true }.padding(7.dp)) {
             Icon(Icons.Outlined.MoreHoriz, tr("Más"), tint = win.text, modifier = Modifier.size(18.dp))
         }
         WinMenu(open, { open = false }, entries)
@@ -319,7 +319,7 @@ fun AppIcon(icon: ImageBitmap?, name: String, size: Dp = 18.dp) {
     } else {
         val win = LocalWin.current
         Box(
-            Modifier.size(size).clip(RoundedCornerShape(3.dp)).background(if (win.dark) Color(0xFF4A5A6A) else Color(0xFF8AA4BC)),
+            Modifier.size(size).clip(corner(3)).background(if (win.dark) Color(0xFF4A5A6A) else Color(0xFF8AA4BC)),
             contentAlignment = Alignment.Center,
         ) {
             Text(name.take(1).uppercase(), fontSize = 10.sp, color = Color.White)
@@ -331,7 +331,7 @@ fun AppIcon(icon: ImageBitmap?, name: String, size: Dp = 18.dp) {
 fun Chevron(expanded: Boolean, visible: Boolean, onClick: () -> Unit) {
     val win = LocalWin.current
     Box(
-        Modifier.size(22.dp).clip(RoundedCornerShape(3.dp)).then(if (visible) Modifier.clickable(onClick = onClick) else Modifier),
+        Modifier.size(22.dp).clip(corner(3)).then(if (visible) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         if (visible) {
@@ -411,7 +411,7 @@ fun PriorityDialog(current: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) {
             Column {
                 PRIORITIES.forEach { (label, value) ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).clickable { onDismiss(); onPick(value) }.padding(vertical = 2.dp),
+                        Modifier.fillMaxWidth().clip(corner(4)).clickable { onDismiss(); onPick(value) }.padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(selected = priorityText(current) == tr(label), onClick = { onDismiss(); onPick(value) })

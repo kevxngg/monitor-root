@@ -325,9 +325,9 @@ private fun PowerModeCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, onSe
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(corner(8))
             .background(win.card)
-            .border(1.dp, win.border, RoundedCornerShape(8.dp))
+            .border(1.dp, win.border, corner(8))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -347,7 +347,7 @@ private fun PowerModeCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, onSe
             CpuPower.Mode.BALANCED to tr("Equilibrado"),
             CpuPower.Mode.PERFORMANCE to tr("Mejor rendimiento"),
         )
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).border(1.dp, win.border, RoundedCornerShape(6.dp))) {
+        Row(Modifier.fillMaxWidth().clip(corner(6)).border(1.dp, win.border, corner(6))) {
             options.forEachIndexed { i, (mode, label) ->
                 val selected = mode == current
                 val enabled = !busy && !selected && CpuPower.isAvailable(mode, clusters)

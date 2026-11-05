@@ -145,7 +145,7 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
             fontSize = 12.sp, color = win.accent,
             modifier = Modifier
                 .padding(start = 10.dp, bottom = 4.dp)
-                .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                .clip(corner(4))
                 .clickable {
                     Prefs.historyResetAt = System.currentTimeMillis()
                     Prefs.save()

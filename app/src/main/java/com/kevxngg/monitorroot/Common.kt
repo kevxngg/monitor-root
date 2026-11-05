@@ -40,6 +40,12 @@ data class Win(
     val heatHigh: Color,
     val eco: Color,
     val warn: Color,
+    /** Redondez de las esquinas: 0 = rectas (Windows 10, Terminal), 1 = Windows 11, 3 = Material You. */
+    val radiusScale: Float = 1f,
+    /** Letra monoespaciada en toda la app (estilo Terminal). */
+    val mono: Boolean = false,
+    /** Colores propios de las gráficas (nombre del recurso → color), o null para los normales. */
+    val resColors: Map<String, Color>? = null,
 ) {
     /** Color de celda según el uso (0..1): azul claro → azul → naranja. */
     fun heat(f: Float): Color {
@@ -98,7 +104,7 @@ enum class Res(val title: String, val light: Color, val dark: Color) {
     GPU("GPU 0", Color(0xFF7B3FB8), Color(0xFFB58CF0)),
     TEMP("Batería", Color(0xFFC0392B), Color(0xFFF07060));
 
-    fun color(w: Win) = if (w.dark) dark else light
+    fun color(w: Win) = w.resColors?.get(name) ?: if (w.dark) dark else light
 }
 
 // ===================== AJUSTES =====================
@@ -106,7 +112,8 @@ enum class Res(val title: String, val light: Color, val dark: Color) {
 object Prefs {
     private var sp: SharedPreferences? = null
 
-    var theme by mutableIntStateOf(0)        // 0 sistema, 1 claro, 2 oscuro
+    var theme by mutableIntStateOf(0)        // 0 sistema, 1 claro, 2 oscuro, 3 negro puro
+    var uiStyle by mutableIntStateOf(0)      // 0 Windows 11, 1 Windows 10, 2 Material You, 3 Terminal
     var startPage by mutableIntStateOf(0)
     var speed by mutableIntStateOf(1)        // 0 alta, 1 normal, 2 baja, 3 pausa
     var groupByType by mutableStateOf(true)
@@ -148,6 +155,7 @@ object Prefs {
         val p = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         sp = p
         theme = p.getInt("theme", 0)
+        uiStyle = p.getInt("uiStyle", 0)
         startPage = p.getInt("startPage", 0)
         speed = p.getInt("speed", 1)
         groupByType = p.getBoolean("group", true)
@@ -181,6 +189,7 @@ object Prefs {
     fun save() {
         sp?.edit()
             ?.putInt("theme", theme)
+            ?.putInt("uiStyle", uiStyle)
             ?.putInt("startPage", startPage)
             ?.putInt("speed", speed)
             ?.putBoolean("group", groupByType)

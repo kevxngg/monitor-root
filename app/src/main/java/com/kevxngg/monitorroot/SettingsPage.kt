@@ -81,10 +81,27 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     I18n.apply(Prefs.language)
                 }
             }
+            SettingCard(Icons.Outlined.Dashboard, tr("Estilo de interfaz"), tr("Cambia el diseño de toda la app. Se reinicia para aplicarlo.")) {
+                WinDropdown(UiStyles.NAMES, Prefs.uiStyle.coerceIn(0, UiStyles.NAMES.size - 1)) {
+                    if (it != Prefs.uiStyle) {
+                        Prefs.uiStyle = it
+                        Prefs.save()
+                        // Se reinicia la pantalla para cargar el nuevo estilo desde cero
+                        (ctx as? android.app.Activity)?.recreate()
+                    }
+                }
+            }
             SettingCard(Icons.Outlined.Palette, tr("Tema de la aplicación"), tr("Elige la apariencia de la app")) {
-                WinDropdown(listOf(tr("Usar configuración del sistema"), tr("Claro"), tr("Oscuro")), Prefs.theme) {
+                WinDropdown(
+                    listOf(tr("Usar configuración del sistema"), tr("Claro"), tr("Oscuro"), tr("Negro puro")),
+                    Prefs.theme.coerceIn(0, 3),
+                    enabled = !UiStyles.forcesDark(Prefs.uiStyle),
+                ) {
                     Prefs.theme = it; Prefs.save()
                 }
+            }
+            if (UiStyles.forcesDark(Prefs.uiStyle)) {
+                Text(tr("El estilo Terminal siempre usa fondo negro."), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 4.dp))
             }
             SettingCard(Icons.Outlined.Home, tr("Página de inicio predeterminada"), tr("La página que se abre al iniciar la app")) {
                 WinDropdown(Page.entries.filter { it != Page.SETTINGS }.map { tr(it.title) }, Prefs.startPage) {
@@ -227,9 +244,9 @@ fun SettingCard(icon: ImageVector, title: String, subtitle: String, control: @Co
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
+            .clip(corner(6))
             .background(win.card)
-            .border(1.dp, win.border, RoundedCornerShape(6.dp))
+            .border(1.dp, win.border, corner(6))
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -245,22 +262,22 @@ fun SettingCard(icon: ImageVector, title: String, subtitle: String, control: @Co
 }
 
 @Composable
-fun WinDropdown(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+fun WinDropdown(options: List<String>, selected: Int, enabled: Boolean = true, onSelect: (Int) -> Unit) {
     val win = LocalWin.current
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
             Modifier
                 .widthIn(max = 170.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(corner(4))
                 .background(win.content)
-                .border(1.dp, win.border, RoundedCornerShape(4.dp))
-                .clickable { open = true }
+                .border(1.dp, win.border, corner(4))
+                .clickable(enabled = enabled) { open = true }
                 .padding(horizontal = 10.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                options.getOrElse(selected) { "" }, fontSize = 13.sp, color = win.text,
+                options.getOrElse(selected) { "" }, fontSize = 13.sp, color = if (enabled) win.text else win.sub,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
             )
             Icon(Icons.Outlined.KeyboardArrowDown, null, tint = win.sub, modifier = Modifier.size(16.dp))
@@ -346,7 +363,7 @@ fun RunTaskDialog(onDismiss: () -> Unit) {
                 )
                 suggestions.forEach { a ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).clickable { if (launch(a.pkg)) onDismiss() }.padding(6.dp),
+                        Modifier.fillMaxWidth().clip(corner(4)).clickable { if (launch(a.pkg)) onDismiss() }.padding(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         AppIcon(a.icon, a.label, 20.dp)

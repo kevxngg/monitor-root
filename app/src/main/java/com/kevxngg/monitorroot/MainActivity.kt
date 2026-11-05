@@ -61,12 +61,14 @@ class MainActivity : ComponentActivity() {
         I18n.init(applicationContext)
         UpdateWorker.schedule(applicationContext)
         setContent {
-            val dark = when (Prefs.theme) {
+            val style = Prefs.uiStyle
+            val dark = UiStyles.forcesDark(style) || when (Prefs.theme) {
                 1 -> false
-                2 -> true
+                2, 3 -> true
                 else -> isSystemInDarkTheme()
             }
-            val win = if (dark) DarkWin else LightWin
+            val ctx = LocalContext.current
+            val win = remember(style, dark, Prefs.theme) { UiStyles.palette(ctx, style, dark, pureBlack = Prefs.theme == 3) }
             LaunchedEffect(dark) {
                 enableEdgeToEdge(
                     statusBarStyle = if (dark) SystemBarStyle.dark(AColor.TRANSPARENT)
@@ -75,7 +77,8 @@ class MainActivity : ComponentActivity() {
                     else SystemBarStyle.light(AColor.TRANSPARENT, AColor.TRANSPARENT),
                 )
             }
-            val base = if (dark) darkColorScheme() else lightColorScheme()
+            val base = if (style == UiStyles.MATERIAL_YOU) UiStyles.materialScheme(ctx, dark)
+            else if (dark) darkColorScheme() else lightColorScheme()
             val scheme = base.copy(
                 primary = win.accent,
                 background = win.content,
@@ -87,9 +90,10 @@ class MainActivity : ComponentActivity() {
                 surfaceContainerHigh = win.card,
                 surfaceContainerHighest = win.card,
             )
+            val typography = remember(win.mono) { if (win.mono) UiStyles.monoTypography() else Typography() }
             val dir = if (I18n.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
             CompositionLocalProvider(LocalWin provides win, LocalLayoutDirection provides dir) {
-                MaterialTheme(colorScheme = scheme) {
+                MaterialTheme(colorScheme = scheme, typography = typography) {
                     Box(Modifier.fillMaxSize().background(win.mica)) { App() }
                 }
             }
@@ -221,9 +225,9 @@ fun Shell() {
                             Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .clip(RoundedCornerShape(topStart = 8.dp))
+                                .clip(cornerTopStart(8))
                                 .background(win.content)
-                                .border(1.dp, win.border, RoundedCornerShape(topStart = 8.dp)),
+                                .border(1.dp, win.border, cornerTopStart(8)),
                         ) {
                             val s = snap
                             if (s == null) {
@@ -287,9 +291,9 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
             Modifier
                 .then(if (compact) Modifier.weight(1f) else Modifier.width(380.dp))
                 .height(34.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(corner(4))
                 .background(win.card)
-                .border(1.dp, win.border, RoundedCornerShape(4.dp))
+                .border(1.dp, win.border, corner(4))
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -348,7 +352,7 @@ private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expande
             .fillMaxWidth()
             .height(40.dp)
             .padding(vertical = 2.dp)
-            .clip(RoundedCornerShape(4.dp))
+            .clip(corner(4))
             .background(if (selected) win.hover else Color.Transparent)
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
@@ -357,7 +361,7 @@ private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expande
             Modifier
                 .width(3.dp)
                 .height(16.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .clip(corner(2))
                 .background(if (selected) win.accent else Color.Transparent),
         )
         Spacer(Modifier.width(10.dp))

@@ -136,7 +136,7 @@ private fun SideItem(r: Res, selected: Boolean, d: SideData, modifier: Modifier,
     Row(
         modifier
             .height(68.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(corner(6))
             .background(if (selected) win.hover else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(end = 8.dp),
@@ -146,7 +146,7 @@ private fun SideItem(r: Res, selected: Boolean, d: SideData, modifier: Modifier,
             Modifier
                 .width(3.dp)
                 .height(22.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .clip(corner(2))
                 .background(if (selected) win.accent else Color.Transparent),
         )
         Spacer(Modifier.width(7.dp))
