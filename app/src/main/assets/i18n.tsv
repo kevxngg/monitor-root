@@ -437,3 +437,13 @@ Versión %s disponible (tienes la %s)	Version %s available (you have %s)	Version
 Versión instalada: %s	Installed version: %s	Version installée : %s	Versão instalada: %s	Installierte Version: %s	Versione installata: %s	Установленная версия: %s	الإصدار المثبت: %s	已安装版本:%s	インストール済みバージョン: %s	설치된 버전: %s
 Ya tienes la última versión (%s)	You have the latest version (%s)	Vous avez la dernière version (%s)	Você tem a versão mais recente (%s)	Du hast die neueste Version (%s)	Hai l'ultima versione (%s)	У вас последняя версия (%s)	لديك أحدث إصدار (%s)	已是最新版本(%s)	最新バージョンです (%s)	최신 버전입니다(%s)
 Ahora: %s	Now: %s	Actuellement : %s	Agora: %s	Jetzt: %s	Ora: %s	Сейчас: %s	الآن: %s	当前:%s	現在: %s	현재: %s
+%d bits	%d-bit	%d bits	%d bits	%d Bit	%d bit	%d бит	%d بت	%d 位	%d ビット	%d비트
+Administrar cuentas de usuario	Manage user accounts	Gérer les comptes d'utilisateur	Gerenciar contas de usuário	Benutzerkonten verwalten	Gestisci account utente	Управление учётными записями	إدارة حسابات المستخدمين	管理用户账户	ユーザー アカウントの管理	사용자 계정 관리
+Caché %s	%s cache	Cache %s	Cache %s	%s-Cache	Cache %s	Кэш %s	ذاكرة التخزين المؤقت %s	%s 缓存	%s キャッシュ	%s 캐시
+Eliminar historial de uso	Delete usage history	Supprimer l'historique d'utilisation	Excluir histórico de uso	Nutzungsverlauf löschen	Elimina cronologia utilizzo	Удалить журнал использования	حذف سجل الاستخدام	删除使用记录	使用履歴を削除	사용 기록 삭제
+Potencia	Power	Puissance	Potência	Leistung	Potenza	Мощность	القدرة	功率	電力	전력
+Reservada para hardware	Hardware reserved	Réservée au matériel	Reservada para hardware	Für Hardware reserviert	Riservata all'hardware	Зарезервировано оборудованием	محجوزة للأجهزة	为硬件保留	ハードウェア予約済み	하드웨어 예약
+Temperaturas	Temperatures	Températures	Temperaturas	Temperaturen	Temperature	Температуры	درجات الحرارة	温度	温度	온도
+Tiempo de arranque: %s s	Boot time: %s s	Temps de démarrage : %s s	Tempo de inicialização: %s s	Startzeit: %s s	Tempo di avvio: %s s	Время загрузки: %s с	مدة الإقلاع: %s ث	启动时间:%s 秒	起動時間: %s 秒	부팅 시간: %s초
+Tipos de núcleo	Core types	Types de cœurs	Tipos de núcleo	Kerntypen	Tipi di core	Типы ядер	أنواع الأنوية	内核类型	コアの種類	코어 종류
+Versión del controlador	Driver version	Version du pilote	Versão do driver	Treiberversion	Versione driver	Версия драйвера	إصدار برنامج التشغيل	驱动版本	ドライバーのバージョン	드라이버 버전

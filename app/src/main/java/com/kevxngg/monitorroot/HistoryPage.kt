@@ -5,7 +5,9 @@ import android.app.usage.NetworkStatsManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.net.ConnectivityManager
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -55,7 +57,8 @@ private fun loadHistory(ctx: Context, days: Long): List<HistRow> {
     // Con root nos damos el permiso de estadísticas de uso
     RootShell.run("appops set ${ctx.packageName} GET_USAGE_STATS allow")
     val end = System.currentTimeMillis()
-    val start = end - days * 24 * 3600 * 1000
+    // Desde el período elegido, o desde que se eliminó el historial si fue después
+    val start = maxOf(end - days * 24 * 3600 * 1000, Prefs.historyResetAt)
     val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
     val usage = try {
         usm.queryAndAggregateUsageStats(start, end)
@@ -131,11 +134,24 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
             CmdButton(Icons.Outlined.Refresh, tr("Actualizar")) { reload++ }
             CmdMore(PERIODS.mapIndexed { i, (label, _) -> MenuEntry(tr(label), checked = period == i) { period = i } })
         }
-        val since = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, I18n.locale())
-            .format(Date(System.currentTimeMillis() - PERIODS[period].second * 24 * 3600 * 1000))
+        val sinceMs = maxOf(System.currentTimeMillis() - PERIODS[period].second * 24 * 3600 * 1000, Prefs.historyResetAt)
+        val since = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, I18n.locale()).format(Date(sinceMs))
         Text(
             tr("Uso de recursos desde el %s para el usuario actual.", since),
-            fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+            fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+        )
+        Text(
+            tr("Eliminar historial de uso"),
+            fontSize = 12.sp, color = win.accent,
+            modifier = Modifier
+                .padding(start = 10.dp, bottom = 4.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                .clickable {
+                    Prefs.historyResetAt = System.currentTimeMillis()
+                    Prefs.save()
+                    reload++
+                }
+                .padding(horizontal = 6.dp, vertical = 4.dp),
         )
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val nameW = nameWidth(maxWidth, cols)

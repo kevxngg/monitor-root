@@ -96,7 +96,7 @@ enum class Res(val title: String, val light: Color, val dark: Color) {
     WIFI("Wi‑Fi", Color(0xFFB4387F), Color(0xFFE37AC4)),
     MOBILE("Datos móviles", Color(0xFFB45F06), Color(0xFFF0A050)),
     GPU("GPU 0", Color(0xFF7B3FB8), Color(0xFFB58CF0)),
-    TEMP("Batería y temperatura", Color(0xFFC0392B), Color(0xFFF07060));
+    TEMP("Batería", Color(0xFFC0392B), Color(0xFFF07060));
 
     fun color(w: Win) = if (w.dark) dark else light
 }
@@ -136,6 +136,9 @@ object Prefs {
     var alertCpuLimit by mutableIntStateOf(1)   // 25, 50, 75 %
     var alertCharge by mutableStateOf(false)
     var alertChargeLimit by mutableIntStateOf(0) // 80, 85, 90, 100 %
+
+    // Historial de aplicaciones: se cuenta desde aquí ("Eliminar historial de uso")
+    var historyResetAt by mutableStateOf(0L)
     var skippedBuild by mutableIntStateOf(0)
 
     fun init(ctx: Context) {
@@ -167,6 +170,7 @@ object Prefs {
         alertCpuLimit = p.getInt("alCpuLimit", 1)
         alertCharge = p.getBoolean("alCharge", false)
         alertChargeLimit = p.getInt("alChargeLimit", 0)
+        historyResetAt = p.getLong("historyResetAt", 0L)
         skippedBuild = p.getInt("skipped", 0)
     }
 
@@ -198,6 +202,7 @@ object Prefs {
             ?.putInt("alCpuLimit", alertCpuLimit)
             ?.putBoolean("alCharge", alertCharge)
             ?.putInt("alChargeLimit", alertChargeLimit)
+            ?.putLong("historyResetAt", historyResetAt)
             ?.putInt("skipped", skippedBuild)
             ?.apply()
     }
@@ -321,6 +326,7 @@ class History(private val m: Map<String, List<Float>> = emptyMap()) {
         v["drd"] = (s.disk?.readBps ?: 0L).toFloat()
         v["dwr"] = (s.disk?.writeBps ?: 0L).toFloat()
         v["temp"] = s.mainTempC ?: 0f
+        v["batt"] = (s.batt.level ?: 0).toFloat()
         s.cores.forEach { v["core${it.index}"] = it.usage }
         val n = HashMap(m)
         v.forEach { (k, value) -> n[k] = ((m[k] ?: emptyList()) + value).takeLast(HISTORY) }
@@ -388,6 +394,17 @@ fun band(freqMhz: Int): String = when {
     freqMhz < 3000 -> "2,4 GHz"
     freqMhz < 5925 -> "5 GHz"
     else -> "6 GHz"
+}
+
+/** "Wi‑Fi 6 (802.11ax)", "Wi‑Fi 6E" en 6 GHz, etc. */
+fun wifiStandardLabel(standard: Int?, freqMhz: Int?): String? = when (standard) {
+    1 -> "802.11a/b/g"
+    4 -> "Wi‑Fi 4 (802.11n)"
+    5 -> "Wi‑Fi 5 (802.11ac)"
+    6 -> if ((freqMhz ?: 0) >= 5925) "Wi‑Fi 6E (802.11ax)" else "Wi‑Fi 6 (802.11ax)"
+    7 -> "WiGig (802.11ad)"
+    8 -> "Wi‑Fi 7 (802.11be)"
+    else -> null
 }
 
 fun socName(): String =

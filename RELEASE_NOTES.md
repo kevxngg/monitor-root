@@ -1,5 +1,11 @@
 ## Novedades
-- Cada clúster de la CPU muestra a qué frecuencia va en este momento, para comprobar que el modo elegido funciona.
-
-## Correcciones
-- Con el modo Mejor eficiencia (powersave), la CPU podía irse a la frecuencia máxima en procesadores MediaTek: el servicio de rendimiento del sistema sube la frecuencia mínima al tocar la pantalla y powersave la seguía. Ahora powersave también pone la frecuencia máxima en la mínima, así nada puede subirla. Al cambiar a otro gobernador, ese tope se quita solo.
+- Rendimiento > Batería (antes "Temperatura"): historial de carga de 24 horas, potencia en vatios (+ cuando entra carga, − cuando sale), corriente, voltaje, estado y salud. Las temperaturas quedan en esa misma sección.
+- CPU: tipos de núcleo (por ejemplo, 6× Cortex-A55 + 2× Cortex-A76) y caché L1/L2/L3 cuando el kernel la publica.
+- Memoria: tamaño de la RAM (8 GB, 12 GB…) y memoria reservada para hardware.
+- Disco: fabricante y modelo del almacenamiento.
+- Wi‑Fi: estándar de la conexión (Wi‑Fi 5, 6, 6E o 7).
+- GPU: versión del controlador gráfico (OpenGL ES) y de Vulkan.
+- Detalles: nueva columna Arquitectura (32 o 64 bits) de cada app.
+- Historial de aplicaciones: opción "Eliminar historial de uso" para contar desde ese momento.
+- Aplicaciones de arranque: cuánto tardó el teléfono en arrancar.
+- Usuarios: botón "Administrar cuentas de usuario", que abre los ajustes de usuarios de Android.

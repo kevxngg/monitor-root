@@ -132,8 +132,10 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
         }
         val bootAt = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, I18n.locale())
             .format(Date(System.currentTimeMillis() - s.uptimeSec * 1000))
+        var bootSeconds by remember { mutableStateOf<Float?>(null) }
+        LaunchedEffect(Unit) { bootSeconds = withContext(Dispatchers.IO) { DeviceInfo.get(s.disk?.name).bootSeconds } }
         Text(
-            tr("Último arranque: %s", bootAt),
+            tr("Último arranque: %s", bootAt) + (bootSeconds?.let { "  ·  " + tr("Tiempo de arranque: %s s", "%.1f".format(it)) } ?: ""),
             fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
         )
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {

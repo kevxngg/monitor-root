@@ -49,6 +49,7 @@ fun DetailsPage(
             "mem" -> l.sortedBy { it.rssKb }
             "threads" -> l.sortedBy { it.threads }
             "prio" -> l.sortedBy { it.nice }
+            "arch" -> l.sortedBy { it.bits ?: 0 }
             "disk" -> l.sortedBy { it.diskBps }
             else -> l.sortedBy { it.name.lowercase() }
         }
@@ -91,6 +92,7 @@ fun DetailsPage(
         Col("threads", tr("Subprocesos"), 96.dp),
         Col("prio", tr("Prioridad"), 170.dp, end = false),
         Col("disk", tr("Disco"), 84.dp),
+        Col("arch", tr("Arquitectura"), 96.dp),
     )
 
     fun cells(p: ProcInfo) = listOf(
@@ -102,6 +104,7 @@ fun DetailsPage(
         Cell(p.threads.toString()),
         Cell(priorityText(p.nice)),
         Cell(formatMBs(p.diskBps)),
+        Cell(p.bits?.let { tr("%d bits", it) } ?: "—"),
     )
 
     Column(Modifier.fillMaxSize()) {
