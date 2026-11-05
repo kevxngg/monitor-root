@@ -61,14 +61,12 @@ class MainActivity : ComponentActivity() {
         I18n.init(applicationContext)
         UpdateWorker.schedule(applicationContext)
         setContent {
-            val style = Prefs.uiStyle
-            val dark = UiStyles.forcesDark(style) || when (Prefs.theme) {
+            val dark = when (Prefs.theme) {
                 1 -> false
                 2, 3 -> true
                 else -> isSystemInDarkTheme()
             }
-            val ctx = LocalContext.current
-            val win = remember(style, dark, Prefs.theme) { UiStyles.palette(ctx, style, dark, pureBlack = Prefs.theme == 3) }
+            val win = remember(dark, Prefs.theme) { UiStyles.palette(dark, pureBlack = Prefs.theme == 3) }
             LaunchedEffect(dark) {
                 enableEdgeToEdge(
                     statusBarStyle = if (dark) SystemBarStyle.dark(AColor.TRANSPARENT)
@@ -77,8 +75,7 @@ class MainActivity : ComponentActivity() {
                     else SystemBarStyle.light(AColor.TRANSPARENT, AColor.TRANSPARENT),
                 )
             }
-            val base = if (style == UiStyles.MATERIAL_YOU) UiStyles.materialScheme(ctx, dark)
-            else if (dark) darkColorScheme() else lightColorScheme()
+            val base = if (dark) darkColorScheme() else lightColorScheme()
             val scheme = base.copy(
                 primary = win.accent,
                 background = win.content,
@@ -90,10 +87,9 @@ class MainActivity : ComponentActivity() {
                 surfaceContainerHigh = win.card,
                 surfaceContainerHighest = win.card,
             )
-            val typography = remember(win.mono) { if (win.mono) UiStyles.monoTypography() else Typography() }
             val dir = if (I18n.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
             CompositionLocalProvider(LocalWin provides win, LocalLayoutDirection provides dir) {
-                MaterialTheme(colorScheme = scheme, typography = typography) {
+                MaterialTheme(colorScheme = scheme) {
                     Box(Modifier.fillMaxSize().background(win.mica)) { App() }
                 }
             }

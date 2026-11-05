@@ -81,27 +81,13 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     I18n.apply(Prefs.language)
                 }
             }
-            SettingCard(Icons.Outlined.Dashboard, tr("Estilo de interfaz"), tr("Cambia el diseño de toda la app. Se reinicia para aplicarlo.")) {
-                WinDropdown(UiStyles.NAMES, Prefs.uiStyle.coerceIn(0, UiStyles.NAMES.size - 1)) {
-                    if (it != Prefs.uiStyle) {
-                        Prefs.uiStyle = it
-                        Prefs.save()
-                        // Se reinicia la pantalla para cargar el nuevo estilo desde cero
-                        (ctx as? android.app.Activity)?.recreate()
-                    }
-                }
-            }
             SettingCard(Icons.Outlined.Palette, tr("Tema de la aplicación"), tr("Elige la apariencia de la app")) {
                 WinDropdown(
                     listOf(tr("Usar configuración del sistema"), tr("Claro"), tr("Oscuro"), tr("Negro puro")),
                     Prefs.theme.coerceIn(0, 3),
-                    enabled = !UiStyles.forcesDark(Prefs.uiStyle),
                 ) {
                     Prefs.theme = it; Prefs.save()
                 }
-            }
-            if (UiStyles.forcesDark(Prefs.uiStyle)) {
-                Text(tr("El estilo Terminal siempre usa fondo negro."), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 4.dp))
             }
             SettingCard(Icons.Outlined.Home, tr("Página de inicio predeterminada"), tr("La página que se abre al iniciar la app")) {
                 WinDropdown(Page.entries.filter { it != Page.SETTINGS }.map { tr(it.title) }, Prefs.startPage) {

@@ -1,3 +1,3 @@
-## Novedades
-- Estilos de interfaz (Configuración > Estilo de interfaz): Windows 11 (el de siempre), Windows 10 (esquinas rectas y uso en amarillo), Material You (con los colores de tu fondo de pantalla en Android 12 o superior) y Terminal (inspirado en las herramientas de consola de Linux, letras verdes sobre negro). La app se reinicia para aplicar el estilo elegido.
-- Tema Negro puro para pantallas AMOLED: fondos en negro absoluto en los estilos Windows 11, Windows 10 y Material You.
+## Cambios
+- Se quitaron los estilos de interfaz Windows 10, Material You y Terminal: Monitor vuelve a tener solo el diseño de Windows 11.
+- Se mantiene el tema Negro puro (Configuración > Tema de la aplicación) para pantallas AMOLED. Si tenías elegido otro estilo, la app vuelve sola al de Windows 11.
