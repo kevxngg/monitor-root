@@ -13,6 +13,9 @@ class CpuPowerTest {
         minKhz = min, maxKhz = max, hwMinKhz = 300_000, hwMaxKhz = 1_800_000, setspeedKhz = null, freqsKhz = freqs,
     )
 
+    private fun mode(vararg cs: CpuPower.Cluster, custom: Boolean = false) =
+        CpuPower.modeOf(cs.toList(), "schedutil", custom)
+
     @Test fun governorKinds() {
         assertEquals(CpuPower.Kind.FIXED_MAX, CpuPower.kindOf("performance"))
         assertEquals(CpuPower.Kind.FIXED_MIN, CpuPower.kindOf("powersave"))
@@ -21,28 +24,36 @@ class CpuPowerTest {
         assertEquals(CpuPower.Kind.DYNAMIC, CpuPower.kindOf("walt"))
     }
 
-    @Test fun allClustersPowersaveIsSaver() {
-        assertEquals(CpuPower.Mode.SAVER, CpuPower.modeOf(listOf(cluster("powersave"), cluster("powersave")), "schedutil"))
+    @Test fun eachModeIsRecognized() {
+        assertEquals(CpuPower.Mode.SAVER, mode(cluster("powersave"), cluster("powersave")))
+        assertEquals(CpuPower.Mode.BALANCED, mode(cluster("schedutil"), cluster("schedutil")))
+        assertEquals(CpuPower.Mode.PERFORMANCE, mode(cluster("performance"), cluster("performance")))
     }
 
-    @Test fun performanceNeedsFullMaximum() {
-        assertEquals(CpuPower.Mode.PERFORMANCE, CpuPower.modeOf(listOf(cluster("performance")), "schedutil"))
-        // Con el máximo limitado ya no es "mejor rendimiento": es personalizado
-        assertNull(CpuPower.modeOf(listOf(cluster("performance", max = 1_000_000)), "schedutil"))
+    @Test fun systemChangesDoNotBreakTheMode() {
+        // Touch boost sube la mínima: sigue siendo Equilibrado
+        assertEquals(CpuPower.Mode.BALANCED, mode(cluster("schedutil", min = 1_800_000)))
+        // El control térmico baja la máxima: sigue siendo Mejor rendimiento
+        assertEquals(CpuPower.Mode.PERFORMANCE, mode(cluster("performance", max = 1_000_000)))
     }
 
-    @Test fun factoryGovernorWithFullRangeIsBalanced() {
-        assertEquals(CpuPower.Mode.BALANCED, CpuPower.modeOf(listOf(cluster("schedutil"), cluster("schedutil")), "schedutil"))
+    @Test fun manualLimitsAreCustom() {
+        assertNull(mode(cluster("schedutil", max = 1_000_000), custom = true))
+        assertNull(mode(cluster("performance"), custom = true))
     }
 
-    @Test fun mixedOrLimitedClustersAreCustom() {
-        // El caso de la captura: un modo arriba y otro gobernador abajo
-        assertNull(CpuPower.modeOf(listOf(cluster("powersave"), cluster("schedutil")), "schedutil"))
-        assertNull(CpuPower.modeOf(listOf(cluster("schedutil", max = 1_000_000)), "schedutil"))
-        assertNull(CpuPower.modeOf(listOf(cluster("userspace")), "schedutil"))
+    @Test fun mixedGovernorsAreCustom() {
+        assertNull(mode(cluster("powersave"), cluster("schedutil")))
+        assertNull(mode(cluster("userspace")))
+    }
+
+    @Test fun systemCapOnlyWhenNotChosenByUser() {
+        assertEquals(1_000_000L, CpuPower.systemCapKhz(cluster("performance", max = 1_000_000), customLimits = false))
+        assertNull(CpuPower.systemCapKhz(cluster("performance", max = 1_000_000), customLimits = true))
+        assertNull(CpuPower.systemCapKhz(cluster("performance"), customLimits = false))
     }
 
     @Test fun noClustersHasNoMode() {
-        assertNull(CpuPower.modeOf(emptyList(), "schedutil"))
+        assertNull(CpuPower.modeOf(emptyList(), "schedutil", false))
     }
 }

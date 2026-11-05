@@ -1,11 +1,5 @@
 ## Novedades
-- Rendimiento > Batería (antes "Temperatura"): historial de carga de 24 horas, potencia en vatios (+ cuando entra carga, − cuando sale), corriente, voltaje, estado y salud. Las temperaturas quedan en esa misma sección.
-- CPU: tipos de núcleo (por ejemplo, 6× Cortex-A55 + 2× Cortex-A76) y caché L1/L2/L3 cuando el kernel la publica.
-- Memoria: tamaño de la RAM (8 GB, 12 GB…) y memoria reservada para hardware.
-- Disco: fabricante y modelo del almacenamiento.
-- Wi‑Fi: estándar de la conexión (Wi‑Fi 5, 6, 6E o 7).
-- GPU: versión del controlador gráfico (OpenGL ES) y de Vulkan.
-- Detalles: nueva columna Arquitectura (32 o 64 bits) de cada app.
-- Historial de aplicaciones: opción "Eliminar historial de uso" para contar desde ese momento.
-- Aplicaciones de arranque: cuánto tardó el teléfono en arrancar.
-- Usuarios: botón "Administrar cuentas de usuario", que abre los ajustes de usuarios de Android.
+- Cuando el sistema limita la frecuencia de la CPU (normalmente por temperatura), cada clúster lo indica, y el modo Mejor rendimiento avisa que vuelve a la máxima al enfriarse.
+
+## Correcciones
+- Al elegir Equilibrado o Mejor rendimiento el modo se aplicaba pero no aparecía seleccionado: la app comparaba las frecuencias con las de fábrica, y el sistema las mueve solo (sube la mínima al tocar la pantalla y baja la máxima con el calor). Ahora el modo se reconoce por lo que elegiste, y solo aparece "Personalizado" si cambias los límites de frecuencia a mano.

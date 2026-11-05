@@ -55,7 +55,7 @@ object CpuPower {
     }
 
     /** Lo que había antes de un cambio temporal (por ejemplo, el modo juego). */
-    class Snapshot(val clusters: List<Cluster>)
+    class Snapshot(val clusters: List<Cluster>, val customLimits: Boolean = Prefs.cpuCustomLimits)
 
     private val SAVER_GOVS = listOf("powersave", "conservative")
     private val DYNAMIC_PREFERRED = listOf("walt", "sched_pixel", "schedutil", "interactive", "ondemand")
@@ -76,15 +76,33 @@ object CpuPower {
     fun saverGov(c: Cluster): String? = SAVER_GOVS.firstOrNull { it in c.governors }
 
     /**
-     * Modo actual a partir del estado real de todos los clústeres.
-     * null = personalizado (el usuario cambió los ajustes avanzados).
+     * Modo actual. Se reconoce por los gobernadores de todos los clústeres y por
+     * si el usuario cambió límites a mano ([customLimits]). No se miran los valores
+     * de frecuencia del momento: el sistema los mueve solo (touch boost, control
+     * térmico) y el modo sigue siendo el mismo.
+     * null = personalizado.
      */
-    fun modeOf(clusters: List<Cluster>, saved: String = Prefs.defaultGovernor): Mode? = when {
-        clusters.isEmpty() -> null
-        clusters.all { it.governor == "performance" && it.atHwMax } -> Mode.PERFORMANCE
+    fun modeOf(
+        clusters: List<Cluster>,
+        saved: String = Prefs.defaultGovernor,
+        customLimits: Boolean = Prefs.cpuCustomLimits,
+    ): Mode? = when {
+        clusters.isEmpty() || customLimits -> null
+        clusters.all { it.governor == "performance" } -> Mode.PERFORMANCE
         clusters.all { it.governor != null && it.governor == saverGov(it) } -> Mode.SAVER
-        clusters.all { it.governor != null && it.governor == balancedGov(it, saved) && it.atHwMax && it.atHwMin } -> Mode.BALANCED
+        clusters.all { it.governor != null && it.governor == balancedGov(it, saved) } -> Mode.BALANCED
         else -> null
+    }
+
+    /**
+     * Máxima que el sistema impone ahora por su cuenta (por ejemplo por calor),
+     * o null si no está limitando. Solo se informa si el usuario no puso un límite.
+     */
+    fun systemCapKhz(c: Cluster, customLimits: Boolean = Prefs.cpuCustomLimits): Long? {
+        if (customLimits || c.kind == Kind.FIXED_MIN) return null
+        val hw = c.hwMaxKhz ?: return null
+        val max = c.maxKhz ?: return null
+        return if (max < hw) max else null
     }
 
     fun isAvailable(mode: Mode, clusters: List<Cluster>): Boolean = clusters.isNotEmpty() && when (mode) {
@@ -198,19 +216,31 @@ object CpuPower {
     }
 
     /** Límite máximo; si queda por debajo del mínimo, el mínimo baja con él. */
+    private fun markCustom() {
+        if (!Prefs.cpuCustomLimits) {
+            Prefs.cpuCustomLimits = true
+            Prefs.save()
+        }
+    }
+
     fun setMax(c: Cluster, khz: Long) {
+        markCustom()
         if (c.minKhz != null && khz < c.minKhz) write("${c.path}/scaling_min_freq", khz)
         write("${c.path}/scaling_max_freq", khz)
     }
 
     /** Límite mínimo; si queda por encima del máximo, el máximo sube con él. */
     fun setMin(c: Cluster, khz: Long) {
+        markCustom()
         if (c.maxKhz != null && khz > c.maxKhz) write("${c.path}/scaling_max_freq", khz)
         write("${c.path}/scaling_min_freq", khz)
     }
 
     /** Frecuencia exacta (solo con el gobernador userspace). */
-    fun setSpeed(c: Cluster, khz: Long) = write("${c.path}/scaling_setspeed", khz)
+    fun setSpeed(c: Cluster, khz: Long) {
+        markCustom()
+        write("${c.path}/scaling_setspeed", khz)
+    }
 
     /** Deja el clúster como viene de fábrica: gobernador dinámico y límites completos. */
     private fun resetCluster(c: Cluster) {
@@ -220,6 +250,8 @@ object CpuPower {
     }
 
     fun apply(mode: Mode, clusters: List<Cluster>) {
+        Prefs.cpuCustomLimits = false
+        Prefs.save()
         clusters.forEach { c ->
             when (mode) {
                 Mode.BALANCED -> resetCluster(c)
@@ -239,6 +271,8 @@ object CpuPower {
 
     /** Vuelve exactamente a como estaba cada clúster. */
     fun restore(s: Snapshot) {
+        Prefs.cpuCustomLimits = s.customLimits
+        Prefs.save()
         s.clusters.forEach { c ->
             c.governor?.let { write("${c.path}/scaling_governor", it) }
             // Se ensancha primero el rango para que el kernel acepte los dos límites
@@ -347,6 +381,12 @@ private fun PowerModeCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, onSe
             },
             fontSize = 12.sp, color = if (current == null) win.accent else win.sub,
         )
+        if (current == CpuPower.Mode.PERFORMANCE && clusters.any { CpuPower.systemCapKhz(it) != null }) {
+            Text(
+                tr("El sistema está limitando la frecuencia ahora, normalmente por temperatura. Vuelve a la máxima cuando se enfría."),
+                fontSize = 11.sp, color = win.warn,
+            )
+        }
     }
 }
 
@@ -396,6 +436,12 @@ private fun CpuAdvancedCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, ru
                             }
                         }
                     }
+                }
+                CpuPower.systemCapKhz(c)?.let { cap ->
+                    Text(
+                        tr("Ahora el sistema limita la máxima a %s (por temperatura o ahorro de energía).", mhz(cap)),
+                        fontSize = 11.sp, color = win.warn,
+                    )
                 }
                 Text(
                     when (c.kind) {

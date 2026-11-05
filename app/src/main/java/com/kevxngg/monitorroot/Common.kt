@@ -137,6 +137,9 @@ object Prefs {
     var alertCharge by mutableStateOf(false)
     var alertChargeLimit by mutableIntStateOf(0) // 80, 85, 90, 100 %
 
+    // true si el usuario cambió a mano los límites de frecuencia de la CPU en Monitor
+    var cpuCustomLimits by mutableStateOf(false)
+
     // Historial de aplicaciones: se cuenta desde aquí ("Eliminar historial de uso")
     var historyResetAt by mutableStateOf(0L)
     var skippedBuild by mutableIntStateOf(0)
@@ -171,6 +174,7 @@ object Prefs {
         alertCharge = p.getBoolean("alCharge", false)
         alertChargeLimit = p.getInt("alChargeLimit", 0)
         historyResetAt = p.getLong("historyResetAt", 0L)
+        cpuCustomLimits = p.getBoolean("cpuCustomLimits", false)
         skippedBuild = p.getInt("skipped", 0)
     }
 
@@ -203,6 +207,7 @@ object Prefs {
             ?.putBoolean("alCharge", alertCharge)
             ?.putInt("alChargeLimit", alertChargeLimit)
             ?.putLong("historyResetAt", historyResetAt)
+            ?.putBoolean("cpuCustomLimits", cpuCustomLimits)
             ?.putInt("skipped", skippedBuild)
             ?.apply()
     }
