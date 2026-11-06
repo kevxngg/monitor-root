@@ -61,12 +61,14 @@ class MainActivity : ComponentActivity() {
         I18n.init(applicationContext)
         UpdateWorker.schedule(applicationContext)
         setContent {
+            val style = Prefs.uiStyle.coerceIn(0, UiStyles.NAMES.size - 1)
+            // En macOS el tema por defecto es claro; en Windows sigue al sistema
             val dark = when (Prefs.theme) {
                 1 -> false
                 2, 3 -> true
+                0 -> if (style == UiStyles.MACOS) false else isSystemInDarkTheme()
                 else -> isSystemInDarkTheme()
             }
-            val style = Prefs.uiStyle.coerceIn(0, UiStyles.NAMES.size - 1)
             val win = remember(dark, Prefs.theme, style) { UiStyles.palette(style, dark, pureBlack = Prefs.theme == 3) }
             LaunchedEffect(dark) {
                 enableEdgeToEdge(
@@ -90,7 +92,8 @@ class MainActivity : ComponentActivity() {
             )
             val dir = if (I18n.rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
             CompositionLocalProvider(LocalWin provides win, LocalLayoutDirection provides dir) {
-                MaterialTheme(colorScheme = scheme) {
+                val typography = if (win.mac) macTypography() else Typography()
+                MaterialTheme(colorScheme = scheme, typography = typography) {
                     Box(Modifier.fillMaxSize().background(win.mica)) { App() }
                 }
             }

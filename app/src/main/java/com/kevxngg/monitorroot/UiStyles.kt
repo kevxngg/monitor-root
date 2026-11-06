@@ -67,3 +67,21 @@ fun corner(dp: Int): RoundedCornerShape = RoundedCornerShape((dp * LocalWin.curr
 @Composable
 @ReadOnlyComposable
 fun cornerTopStart(dp: Int): RoundedCornerShape = RoundedCornerShape(topStart = (dp * LocalWin.current.radiusScale).dp)
+
+// Tipografía del estilo macOS: Inter, muy parecida a SF Pro y de licencia libre (SIL).
+private val InterFamily = androidx.compose.ui.text.font.FontFamily(
+    androidx.compose.ui.text.font.Font(R.font.inter),
+)
+
+@androidx.compose.runtime.Composable
+fun macTypography(): androidx.compose.material3.Typography {
+    val t = androidx.compose.material3.Typography()
+    fun androidx.compose.ui.text.TextStyle.f() = copy(fontFamily = InterFamily)
+    return t.copy(
+        displayLarge = t.displayLarge.f(), displayMedium = t.displayMedium.f(), displaySmall = t.displaySmall.f(),
+        headlineLarge = t.headlineLarge.f(), headlineMedium = t.headlineMedium.f(), headlineSmall = t.headlineSmall.f(),
+        titleLarge = t.titleLarge.f(), titleMedium = t.titleMedium.f(), titleSmall = t.titleSmall.f(),
+        bodyLarge = t.bodyLarge.f(), bodyMedium = t.bodyMedium.f(), bodySmall = t.bodySmall.f(),
+        labelLarge = t.labelLarge.f(), labelMedium = t.labelMedium.f(), labelSmall = t.labelSmall.f(),
+    )
+}

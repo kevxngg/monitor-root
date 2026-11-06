@@ -94,7 +94,6 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 WinDropdown(
                     listOf(tr("Usar configuración del sistema"), tr("Claro"), tr("Oscuro"), tr("Negro puro")),
                     Prefs.theme.coerceIn(0, 3),
-                    enabled = Prefs.uiStyle == UiStyles.WINDOWS,
                 ) {
                     Prefs.theme = it; Prefs.save()
                 }

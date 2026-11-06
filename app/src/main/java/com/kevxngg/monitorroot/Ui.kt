@@ -16,6 +16,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Animatable
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +63,38 @@ fun TaskGraph(
 ) {
     val win = LocalWin.current
     val fillAlpha = if (win.dark) 0.35f else 0.18f
+
+    // Animación: el último punto entra deslizándose y los valores suben/bajan suave,
+    // aprovechando los 60/90 Hz de la pantalla. El dato real sigue llegando cada segundo.
+    val animated = remember { mutableStateListOf<Float>() }
+    val shift = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(values.size, if (values.isEmpty()) 0f else values.last()) {
+        if (values.isEmpty()) {
+            animated.clear()
+            return@LaunchedEffect
+        }
+        // Igualar tamaños sin animar (primer dibujo o cambio de página)
+        if (animated.size != values.size) {
+            animated.clear(); animated.addAll(values)
+            shift.snapTo(0f)
+        }
+        // Deslizar un paso hacia la izquierda mientras el nuevo valor aparece a la derecha
+        shift.snapTo(1f)
+        scope.launch { shift.animateTo(0f, tween(durationMillis = 950, easing = LinearEasing)) }
+        // Interpolar cada punto hacia su nuevo valor (mide 1 s, se ve fluido)
+        val from = animated.toList()
+        val anim = Animatable(0f)
+        anim.animateTo(1f, tween(durationMillis = 420, easing = FastOutSlowInEasing)) {
+            for (i in values.indices) {
+                val a = from.getOrElse(i) { values[i] }
+                val v = a + (values[i] - a) * value
+                if (i < animated.size) animated[i] = v else animated.add(v)
+            }
+        }
+    }
+
+    val shown = if (animated.isEmpty()) values else animated.toList()
     Canvas(modifier) {
         val w = size.width
         val h = size.height
@@ -73,29 +111,33 @@ fun TaskGraph(
                 drawLine(g, Offset(x, 0f), Offset(x, h), 1f)
             }
         }
+        // dx desplaza todo a la izquierda según el progreso de la animación
+        val dx = shift.value * step
         fun pathFor(v: List<Float>, asFill: Boolean): Path? {
             if (v.size < 2) return null
             val p = Path()
             v.forEachIndexed { i, value ->
-                val x = w - (v.size - 1 - i) * step
+                val x = w - (v.size - 1 - i) * step - dx
                 val y = h * (1f - (value / top).coerceIn(0f, 1f))
                 if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
             }
             if (asFill) {
                 p.lineTo(w, h)
-                p.lineTo(w - (v.size - 1) * step, h)
+                p.lineTo(w - (v.size - 1) * step - dx, h)
                 p.close()
             }
             return p
         }
-        pathFor(values, true)?.let { drawPath(it, color.copy(alpha = fillAlpha)) }
-        pathFor(values, false)?.let { drawPath(it, color, style = Stroke(width = 1.2.dp.toPx())) }
-        if (second != null) {
-            pathFor(second, false)?.let {
-                drawPath(
-                    it, color,
-                    style = Stroke(width = 1.2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(9f, 6f))),
-                )
+        clipRect {
+            pathFor(shown, true)?.let { drawPath(it, color.copy(alpha = fillAlpha)) }
+            pathFor(shown, false)?.let { drawPath(it, color, style = Stroke(width = 1.2.dp.toPx())) }
+            if (second != null) {
+                pathFor(second, false)?.let {
+                    drawPath(
+                        it, color,
+                        style = Stroke(width = 1.2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(9f, 6f))),
+                    )
+                }
             }
         }
         drawRect(color.copy(alpha = 0.9f), style = Stroke(width = 1.dp.toPx()))
