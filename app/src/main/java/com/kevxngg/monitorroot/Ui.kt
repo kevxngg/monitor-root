@@ -16,15 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.withFrameNanos
-import kotlinx.coroutines.launch
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Animatable
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,12 +57,10 @@ fun TaskGraph(
 ) {
     val win = LocalWin.current
     val fillAlpha = if (win.dark) 0.35f else 0.18f
-
-    val shown = values
-
     Canvas(modifier) {
         val w = size.width
         val h = size.height
+        val step = w / (HISTORY - 1)
         val top = if (max <= 0f) 1f else max
         if (grid) {
             val g = color.copy(alpha = if (win.dark) 0.22f else 0.14f)
@@ -87,31 +76,26 @@ fun TaskGraph(
         fun pathFor(v: List<Float>, asFill: Boolean): Path? {
             if (v.size < 2) return null
             val p = Path()
-            // Paso fijo según la ventana completa (60 s). El barrido desplaza la línea a
-            // la izquierda de forma continua: el último punto entra desde el borde derecho.
-            val stepFull = w / (v.size - 1)
-            fun px(i: Int) = i * stepFull
-            fun py(value: Float) = h * (1f - (value / top).coerceIn(0f, 1f))
             v.forEachIndexed { i, value ->
-                if (i == 0) p.moveTo(px(i), py(value)) else p.lineTo(px(i), py(value))
+                val x = w - (v.size - 1 - i) * step
+                val y = h * (1f - (value / top).coerceIn(0f, 1f))
+                if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
             }
             if (asFill) {
-                p.lineTo(px(v.size - 1), h)
-                p.lineTo(px(0), h)
+                p.lineTo(w, h)
+                p.lineTo(w - (v.size - 1) * step, h)
                 p.close()
             }
             return p
         }
-        clipRect {
-            pathFor(shown, true)?.let { drawPath(it, color.copy(alpha = fillAlpha)) }
-            pathFor(shown, false)?.let { drawPath(it, color, style = Stroke(width = 1.2.dp.toPx())) }
-            if (second != null) {
-                pathFor(second, false)?.let {
-                    drawPath(
-                        it, color,
-                        style = Stroke(width = 1.2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(9f, 6f))),
-                    )
-                }
+        pathFor(values, true)?.let { drawPath(it, color.copy(alpha = fillAlpha)) }
+        pathFor(values, false)?.let { drawPath(it, color, style = Stroke(width = 1.2.dp.toPx())) }
+        if (second != null) {
+            pathFor(second, false)?.let {
+                drawPath(
+                    it, color,
+                    style = Stroke(width = 1.2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(9f, 6f))),
+                )
             }
         }
         drawRect(color.copy(alpha = 0.9f), style = Stroke(width = 1.dp.toPx()))
