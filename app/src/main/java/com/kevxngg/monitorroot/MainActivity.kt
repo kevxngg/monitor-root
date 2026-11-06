@@ -208,7 +208,17 @@ fun Shell() {
                         )
                     }
                 }
-                delay(if (ms < 0) 1000L else ms)
+                // Modo "En vivo": entre muestreos completos (pesados), intercala lecturas
+                // ligeras de CPU y memoria para que las gráficas fluyan sin saltos.
+                if (Prefs.speed == 4) {
+                    repeat(4) {
+                        delay(200)
+                        val light = withContext(Dispatchers.IO) { if (RootShell.open()) QuickStats.read(fps = false) else null }
+                        if (light != null) hist = hist.addLive(light.cpu, light.ram, light.gpu, light.cpuTemp)
+                    }
+                } else {
+                    delay(if (ms < 0) 1000L else ms)
+                }
             }
         }
     }
