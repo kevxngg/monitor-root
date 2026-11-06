@@ -38,13 +38,8 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-<<<<<<< HEAD
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("monitor")
-=======
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
             signingConfig = signingConfigs.findByName("monitor")
->>>>>>> main
         }
     }
     compileOptions {
