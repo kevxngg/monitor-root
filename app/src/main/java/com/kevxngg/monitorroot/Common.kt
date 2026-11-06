@@ -380,6 +380,8 @@ fun formatDuration(sec: Long): String =
 
 /** Escala "redonda" para gráficas de velocidad. */
 fun niceScale(v: Float, min: Float = 100_000f): Float {
+    // Un valor inválido (infinito o NaN) dejaría el bucle sin fin y congelaría la app
+    if (!v.isFinite() || v <= min) return min
     var mag = min
     while (true) {
         for (k in floatArrayOf(1f, 2.5f, 5f)) {

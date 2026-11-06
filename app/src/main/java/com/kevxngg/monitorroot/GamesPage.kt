@@ -44,11 +44,8 @@ fun GamesPage(onRun: () -> Unit) {
     var confirmClear by remember { mutableStateOf(false) }
 
     // Las partidas nuevas aparecen solas
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(5000)
-            sessions = withContext(Dispatchers.IO) { GameSessions.read(ctx) }
-        }
+    RepeatWhileVisible(5000) {
+        sessions = withContext(Dispatchers.IO) { GameSessions.read(ctx) }
     }
 
     Column(Modifier.fillMaxSize()) {

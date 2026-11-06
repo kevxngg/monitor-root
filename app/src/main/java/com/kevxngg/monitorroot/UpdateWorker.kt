@@ -61,13 +61,25 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             WorkManager.getInstance(ctx).enqueueUniqueWork("update-check-now", ExistingWorkPolicy.KEEP, req)
         }
 
+        /** Revisión en segundo plano como máximo una vez por hora (ahorra batería y datos). */
+        fun enqueueIfDue(ctx: Context) {
+            val sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val now = System.currentTimeMillis()
+            if (now - sp.getLong("lastBgCheck", 0L) < BG_INTERVAL_MS) return
+            sp.edit().putLong("lastBgCheck", now).apply()
+            enqueueNow(ctx)
+        }
+
         fun schedule(ctx: Context) {
             UpdateAlarm.schedule(ctx)
-            val req = PeriodicWorkRequestBuilder<UpdateWorker>(15, TimeUnit.MINUTES)
+            val req = PeriodicWorkRequestBuilder<UpdateWorker>(1, TimeUnit.HOURS)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()
-            WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.KEEP, req)
+            // UPDATE reemplaza la revisión de 15 minutos de versiones anteriores
+            WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.UPDATE, req)
         }
+
+        private const val BG_INTERVAL_MS = 60 * 60 * 1000L
 
         /**
          * Con root: concede el permiso de notificaciones y quita las restricciones de
@@ -135,7 +147,8 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             val manager = ctx.getSystemService(NotificationManager::class.java)
             if (Build.VERSION.SDK_INT >= 26 && manager.getNotificationChannel(CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE) return false
             val install = PendingIntent.getBroadcast(
-                ctx, 1, Intent(ctx, InstallUpdateReceiver::class.java).putExtra("apk", info.apkUrl),
+                ctx, 1, Intent(ctx, InstallUpdateReceiver::class.java).putExtra("apk", info.apkUrl)
+                    .putExtra("sha256", info.sha256).putExtra("size", info.sizeBytes),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
             val open = PendingIntent.getActivity(

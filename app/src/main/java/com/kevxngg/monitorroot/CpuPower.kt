@@ -295,11 +295,8 @@ fun CpuPowerSection() {
     var busy by remember { mutableStateOf(false) }
 
     // Se vuelve a leer cada pocos segundos: algunos fabricantes cambian los valores solos
-    LaunchedEffect(Unit) {
-        while (true) {
-            if (!busy) clusters = withContext(Dispatchers.IO) { CpuPower.read() }
-            delay(5000)
-        }
+    RepeatWhileVisible(5000) {
+        if (!busy) clusters = withContext(Dispatchers.IO) { CpuPower.read() }
     }
 
     fun run(action: () -> Unit) {

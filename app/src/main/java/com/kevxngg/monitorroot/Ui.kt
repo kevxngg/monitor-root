@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -464,4 +465,22 @@ fun AffinityDialog(pid: Int, cores: Int, onDismiss: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar")) } },
     )
+}
+
+/**
+ * Repite [block] cada [intervalMs] solo mientras la app está en pantalla.
+ * Al minimizarla se detiene y al volver sigue sola: no gasta batería por detrás.
+ */
+@Composable
+fun RepeatWhileVisible(intervalMs: Long, key: Any? = Unit, block: suspend () -> Unit) {
+    val owner = androidx.compose.ui.platform.LocalContext.current as? androidx.lifecycle.LifecycleOwner
+    LaunchedEffect(owner, key) {
+        val loop: suspend () -> Unit = {
+            while (true) {
+                block()
+                kotlinx.coroutines.delay(intervalMs)
+            }
+        }
+        if (owner != null) owner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { loop() } else loop()
+    }
 }

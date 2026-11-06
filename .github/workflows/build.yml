@@ -59,7 +59,7 @@ jobs:
       - name: Datos de actualización (update.json)
         run: |
           python3 - <<'PY'
-          import json, os
+          import hashlib, json, os
           build = int(os.environ["GITHUB_RUN_NUMBER"])
           repo = os.environ["GITHUB_REPOSITORY"]
           # MIN_BUILD: builds menores que este número tienen que actualizar (0 = nunca se obliga)
@@ -69,6 +69,7 @@ jobs:
               "notes": open("RELEASE_NOTES.md", encoding="utf-8").read(),
               "apk": f"https://github.com/{repo}/releases/download/build-{build}/MonitorRoot.apk",
               "size": os.path.getsize("MonitorRoot.apk"),
+              "sha256": hashlib.sha256(open("MonitorRoot.apk", "rb").read()).hexdigest(),
               "min_build": min_build,
               "version": os.environ["APP_VERSION"],
           }

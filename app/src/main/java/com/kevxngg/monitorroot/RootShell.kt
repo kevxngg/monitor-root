@@ -4,6 +4,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 /** Mantiene abierta una única shell "su" y ejecuta comandos en ella. */
 object RootShell {
@@ -52,23 +53,44 @@ object RootShell {
         synchronized(lock) { closeLocked() }
     }
 
+    /**
+     * Ejecuta el comando y lee su salida hasta la marca de fin.
+     *  - La entrada del comando es /dev/null: si un comando intenta leer, no se
+     *    "come" las líneas siguientes de la shell.
+     *  - Si un comando tarda más de [TIMEOUT_MS] (por ejemplo, un servicio del
+     *    sistema colgado), se cierra la shell para no bloquear toda la app; la
+     *    siguiente llamada abre una nueva.
+     */
     private fun runLocked(cmd: String): List<String> {
         val w = writer ?: return emptyList()
         val r = reader ?: return emptyList()
+        val p = process ?: return emptyList()
         val marker = "__FIN_${UUID.randomUUID()}__"
-        w.write("$cmd\necho $marker\n")
+        w.write("{\n$cmd\n} </dev/null\necho $marker\n")
         w.flush()
+        val watchdog = timer.schedule({ p.destroy() }, TIMEOUT_MS, TimeUnit.MILLISECONDS)
         val lines = ArrayList<String>()
-        while (true) {
-            val line = r.readLine() ?: break
-            if (line.endsWith(marker)) {
-                val rest = line.removeSuffix(marker)
-                if (rest.isNotEmpty()) lines.add(rest)
-                break
+        try {
+            while (true) {
+                val line = r.readLine() ?: break
+                if (line.endsWith(marker)) {
+                    val rest = line.removeSuffix(marker)
+                    if (rest.isNotEmpty()) lines.add(rest)
+                    return lines
+                }
+                lines.add(line)
             }
-            lines.add(line)
+        } finally {
+            watchdog.cancel(false)
         }
+        // Sin marca de fin: la shell terminó o se cerró por tiempo
+        closeLocked()
         return lines
+    }
+
+    private const val TIMEOUT_MS = 20_000L
+    private val timer = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "RootShell-timeout").apply { isDaemon = true }
     }
 
     private fun closeLocked() {
