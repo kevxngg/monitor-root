@@ -92,20 +92,8 @@ fun TaskGraph(
             val stepFull = w / (v.size - 1)
             fun px(i: Int) = i * stepFull
             fun py(value: Float) = h * (1f - (value / top).coerceIn(0f, 1f))
-            p.moveTo(px(0), py(v[0]))
-            // Curva suave (Catmull-Rom → Bézier): la línea no tiene picos duros, como en macOS
-            for (i in 0 until v.size - 1) {
-                val x0 = px(i); val y0 = py(v[i])
-                val x1 = px(i + 1); val y1 = py(v[i + 1])
-                val xp = if (i > 0) px(i - 1) else x0
-                val yp = if (i > 0) py(v[i - 1]) else y0
-                val xn = if (i + 2 < v.size) px(i + 2) else x1
-                val yn = if (i + 2 < v.size) py(v[i + 2]) else y1
-                val c1x = x0 + (x1 - xp) / 6f
-                val c1y = y0 + (y1 - yp) / 6f
-                val c2x = x1 - (xn - x0) / 6f
-                val c2y = y1 - (yn - y0) / 6f
-                p.cubicTo(c1x, c1y, c2x, c2y, x1, y1)
+            v.forEachIndexed { i, value ->
+                if (i == 0) p.moveTo(px(i), py(value)) else p.lineTo(px(i), py(value))
             }
             if (asFill) {
                 p.lineTo(px(v.size - 1), h)
