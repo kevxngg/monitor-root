@@ -27,11 +27,28 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import java.io.File
+import java.security.MessageDigest
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class UpdateInfo(val build: Int, val title: String, val notes: String, val apkUrl: String, val sizeBytes: Long, val minBuild: Int = 0)
+data class UpdateInfo(
+    val build: Int,
+    val title: String,
+    val notes: String,
+    val apkUrl: String,
+    val sizeBytes: Long,
+    val minBuild: Int = 0,
+    /** Versión visible (por ejemplo "2.3"); las versiones antiguas no la tienen. */
+    val version: String = "",
+    /** Huella SHA-256 de la APK publicada (vacía en versiones antiguas). */
+    val sha256: String = "",
+) {
+    /** Lo que se muestra al usuario: "2.3", o "build 22" en versiones antiguas. */
+    val label: String get() = version.ifEmpty { "build $build" }
+}
 
 sealed interface UpdateResult {
     data class Success(val info: UpdateInfo) : UpdateResult
@@ -68,6 +85,13 @@ object Updater {
     fun snooze(build: Int) {
         snoozedBuild = build
         snoozedUntil = System.currentTimeMillis() + 60 * 60 * 1000
+    }
+
+    /** Versión instalada visible (por ejemplo "2.3"). */
+    fun currentVersion(ctx: Context): String = try {
+        ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: ""
+    } catch (e: Exception) {
+        ""
     }
 
     fun currentBuild(ctx: Context): Int = try {
@@ -111,7 +135,13 @@ object Updater {
     private fun fromFeed(): UpdateInfo {
         val j = JSONObject(get("$FEED?t=${System.currentTimeMillis()}"))
         val build = j.getInt("build")
-        return validated(UpdateInfo(build, "Monitor (build $build)", j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0)))
+        val version = j.optString("version")
+        return validated(
+            UpdateInfo(
+                build, "Monitor ${version.ifEmpty { "build $build" }}", j.optString("notes"), j.getString("apk"),
+                j.optLong("size"), j.optInt("min_build", 0), version, j.optString("sha256"),
+            )
+        )
     }
 
     private fun fromApi(): UpdateInfo {
@@ -121,7 +151,9 @@ object Updater {
         for (i in 0 until assets.length()) {
             val a = assets.getJSONObject(i)
             if (a.optString("name") == "MonitorRoot.apk") {
-                return validated(UpdateInfo(build, json.optString("name"), json.optString("body"), a.getString("browser_download_url"), a.optLong("size")))
+                // El título de la versión es "Monitor 2.3": se toma el número del final
+                val version = json.optString("name").substringAfterLast(' ').takeIf { v -> v.matches(Regex("\\d+(\\.\\d+)+")) } ?: ""
+                return validated(UpdateInfo(build, json.optString("name"), json.optString("body"), a.getString("browser_download_url"), a.optLong("size"), version = version))
             }
         }
         error("Release has no MonitorRoot.apk")
@@ -156,7 +188,7 @@ object Updater {
             try {
                 val info = source()
                 val j = JSONObject().put("build", info.build).put("title", info.title)
-                    .put("notes", info.notes).put("apk", info.apkUrl).put("size", info.sizeBytes).put("min_build", info.minBuild)
+                    .put("notes", info.notes).put("apk", info.apkUrl).put("size", info.sizeBytes).put("min_build", info.minBuild).put("version", info.version).put("sha256", info.sha256)
                 ctx.getSharedPreferences("updates", Context.MODE_PRIVATE).edit().putString("latest", j.toString()).apply()
                 return UpdateResult.Success(info)
             } catch (e: Exception) {
@@ -173,7 +205,7 @@ object Updater {
         val text = ctx.getSharedPreferences("updates", Context.MODE_PRIVATE).getString("latest", null)
         if (text == null) null else {
             val j = JSONObject(text)
-            validated(UpdateInfo(j.getInt("build"), j.optString("title"), j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0)))
+            validated(UpdateInfo(j.getInt("build"), j.optString("title"), j.optString("notes"), j.getString("apk"), j.optLong("size"), j.optInt("min_build", 0), j.optString("version"), j.optString("sha256")))
         }
     } catch (_: Exception) { null }
 
@@ -215,7 +247,12 @@ object Updater {
      * Instala con root y vuelve a abrir la app. Se lanza en segundo plano porque
      * al instalar, Android cierra la versión que está abierta.
      */
-    fun install(ctx: Context, file: File): Boolean {
+    fun install(ctx: Context, file: File, sha256: String? = null, size: Long? = null): Boolean {
+        // Se instala con root y sin confirmación: antes se comprueba que la APK sea legítima
+        if (!verify(ctx, file, sha256, size)) {
+            file.delete()
+            return false
+        }
         val copied = RootShell.run("cp ${Actions.q(file.path)} $TMP && chmod 644 $TMP && echo OK").any { it.contains("OK") }
         if (!copied) return false
         RootShell.run(
@@ -223,6 +260,57 @@ object Updater {
                 "</dev/null >/dev/null 2>&1 &"
         )
         return true
+    }
+
+    /**
+     * Comprueba la APK descargada antes de instalarla:
+     *  - tamaño y huella SHA-256 iguales a los publicados (descarga completa e intacta)
+     *  - es Monitor (mismo nombre de paquete)
+     *  - está firmada con la misma clave que la versión instalada
+     *  - es una versión más nueva
+     */
+    fun verify(ctx: Context, file: File, sha256: String?, size: Long?): Boolean = try {
+        val pm = ctx.packageManager
+        @Suppress("DEPRECATION")
+        val flags = if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES
+        val archive = pm.getPackageArchiveInfo(file.path, flags)
+        val installed = pm.getPackageInfo(ctx.packageName, flags)
+        when {
+            !file.exists() || file.length() == 0L -> false
+            size != null && size > 0 && file.length() != size -> false
+            !sha256.isNullOrBlank() && !sha256Of(file).equals(sha256, ignoreCase = true) -> false
+            archive == null || archive.packageName != ctx.packageName -> false
+            PackageInfoCompat.getLongVersionCode(archive) <= PackageInfoCompat.getLongVersionCode(installed) -> false
+            // Comparte al menos un certificado (admite la rotación de clave de Android 9+)
+            else -> signerDigests(archive).intersect(signerDigests(installed)).isNotEmpty()
+        }
+    } catch (e: Exception) {
+        false
+    }
+
+    private fun signerDigests(pi: PackageInfo): Set<String> {
+        @Suppress("DEPRECATION")
+        val sigs = if (Build.VERSION.SDK_INT >= 28) {
+            val si = pi.signingInfo ?: return emptySet()
+            if (si.hasMultipleSigners()) si.apkContentsSigners else si.signingCertificateHistory
+        } else pi.signatures
+        return sigs.orEmpty().map { sha256Of(it.toByteArray()) }.toSet()
+    }
+
+    private fun sha256Of(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+
+    private fun sha256Of(file: File): String {
+        val md = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buf = ByteArray(64 * 1024)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                md.update(buf, 0, n)
+            }
+        }
+        return md.digest().joinToString("") { "%02x".format(it) }
     }
 
     fun openInBrowser(ctx: Context, url: String) {
@@ -241,7 +329,7 @@ fun UpdateDialog(info: UpdateInfo, required: Boolean = false, onDismiss: () -> U
     var progress by remember { mutableStateOf<Float?>(null) }
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    val current = remember { Updater.currentBuild(ctx) }
+    val current = remember { Updater.currentVersion(ctx) }
 
     fun start() {
         busy = true
@@ -253,7 +341,7 @@ fun UpdateDialog(info: UpdateInfo, required: Boolean = false, onDismiss: () -> U
                 try {
                     val f = Updater.download(ctx, info.apkUrl) { p -> progress = p }
                     status = tr("Instalando… la app se cerrará y volverá a abrirse.")
-                    Updater.install(ctx, f)
+                    Updater.install(ctx, f, info.sha256, info.sizeBytes)
                 } catch (e: Exception) {
                     failureMessage = Updater.failure(ctx, e).message()
                     false
@@ -280,7 +368,7 @@ fun UpdateDialog(info: UpdateInfo, required: Boolean = false, onDismiss: () -> U
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    tr("Build %d disponible (tienes la build %d)", info.build, current) +
+                    tr("Versión %s disponible (tienes la %s)", info.label, current) +
                         if (info.sizeBytes > 0) " · ${formatBytes(info.sizeBytes)}" else "",
                     fontSize = 13.sp, color = win.sub,
                 )

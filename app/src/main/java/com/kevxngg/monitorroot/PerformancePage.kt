@@ -50,8 +50,8 @@ private fun sideData(r: Res, s: Snapshot, h: History): SideData = when (r) {
         (s.gpu.load?.let { "$it%" } ?: "—") + (s.gpu.tempC?.let { " (%.0f °C)".format(it) } ?: ""),
     )
     Res.TEMP -> SideData(
-        h["temp"], 100f, s.batt.level?.let { "${tr("Batería")} $it%" } ?: tr("Batería"),
-        s.mainTempC?.let { "CPU %.0f °C".format(it) } ?: "—",
+        h["batt"], 100f, s.batt.level?.let { "$it %" } ?: "—",
+        listOfNotNull(s.batt.status?.let { tr(it) }, s.batt.tempC?.let { "%.0f °C".format(it) }).joinToString("  "),
     )
 }
 
@@ -136,7 +136,7 @@ private fun SideItem(r: Res, selected: Boolean, d: SideData, modifier: Modifier,
     Row(
         modifier
             .height(68.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(corner(6))
             .background(if (selected) win.hover else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(end = 8.dp),
@@ -146,14 +146,14 @@ private fun SideItem(r: Res, selected: Boolean, d: SideData, modifier: Modifier,
             Modifier
                 .width(3.dp)
                 .height(22.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .clip(corner(2))
                 .background(if (selected) win.accent else Color.Transparent),
         )
         Spacer(Modifier.width(7.dp))
         TaskGraph(d.values, d.max, color, Modifier.size(64.dp, 44.dp), second = d.second, grid = false)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-            Text(if (r == Res.TEMP) tr("Temperatura") else tr(r.title), fontSize = 14.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(tr(r.title), fontSize = 14.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(d.line1.ifEmpty { " " }, fontSize = 11.sp, color = win.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(d.line2.ifEmpty { " " }, fontSize = 11.sp, color = win.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -227,7 +227,13 @@ private fun BigStats(items: List<Pair<String, String>>) {
                 row.forEach { (label, value) ->
                     Column(Modifier.weight(1f)) {
                         Text(label, fontSize = 12.sp, color = win.sub, maxLines = 1)
-                        Text(value, fontSize = 19.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        // Los valores largos (por ejemplo "Descargando") se achican para caber enteros
+                        val size = when {
+                            value.length <= 8 -> 19.sp
+                            value.length <= 11 -> 16.sp
+                            else -> 14.sp
+                        }
+                        Text(value, fontSize = size, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -261,6 +267,7 @@ private fun Legend(color: Color, solid: String, dashed: String) {
 
 @Composable
 private fun CpuDetail(s: Snapshot, h: History, logical: Boolean) {
+    val hw = rememberDeviceInfo(s)
     val win = LocalWin.current
     val color = Res.CPU.color(win)
     DetailHeader("CPU", socName())
@@ -302,10 +309,11 @@ private fun CpuDetail(s: Snapshot, h: History, logical: Boolean) {
             tr("Clústeres") to s.cores.map { it.maxMhz }.filter { it > 0 }.distinct().size.toString(),
             tr("Gobernador") to (s.governor ?: "—"),
             tr("Arquitectura") to (Build.SUPPORTED_ABIS.firstOrNull() ?: "—"),
-        ),
+        ) + listOfNotNull(
+            hw?.coreTypes?.let { tr("Tipos de núcleo") to it },
+        ) + hw?.caches.orEmpty().map { (level, size) -> tr("Caché %s", level) to size },
     )
-    PowerModeCard()
-    CpuTuningCard()
+    CpuPowerSection()
     if (!logical && s.cores.isNotEmpty()) {
         Text(tr("Frecuencia por núcleo"), fontSize = 12.sp, color = win.sub)
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -333,7 +341,8 @@ private fun MemDetail(s: Snapshot, h: History) {
     val win = LocalWin.current
     val color = Res.MEM.color(win)
     val m = s.mem
-    DetailHeader(tr("Memoria"), formatGb(m.totalKb))
+    val nominalGb = nominalRamGb(m.totalKb)
+    DetailHeader(tr("Memoria"), nominalGb?.let { "$it GB" } ?: formatGb(m.totalKb))
     BigGraph(tr("Uso de memoria"), formatGb(m.totalKb), h["mem"], 100f, color)
     if (m.totalKb > 0) {
         Column {
@@ -364,6 +373,9 @@ private fun MemDetail(s: Snapshot, h: History) {
         ),
         listOf(
             tr("Swap / ZRAM") to tr("%s de %s", formatGb(m.swapTotalKb - m.swapFreeKb), formatGb(m.swapTotalKb)),
+        ) + listOfNotNull(
+            nominalGb?.let { gb -> tr("Reservada para hardware") to formatKb((gb * 1024L * 1024L - m.totalKb).coerceAtLeast(0)) },
+        ) + listOf(
             tr("Datos en ZRAM") to formatBytes(m.zramOrigBytes),
             tr("Búferes") to formatKb(m.buffersKb),
         ),
@@ -382,7 +394,8 @@ private fun DiskDetail(s: Snapshot, h: History) {
         Text(tr("No se encontró el almacenamiento interno."), fontSize = 13.sp, color = win.sub)
         return
     }
-    DetailHeader(tr("Disco 0"), "${d.type} (${d.name})")
+    val hw = rememberDeviceInfo(s)
+    DetailHeader(tr("Disco 0"), hw?.storageModel ?: "${d.type} (${d.name})")
     BigGraph(tr("Tiempo activo"), "100%", h["dact"], 100f, color)
     val scale = niceScale((h["drd"] + h["dwr"]).maxOrNull() ?: 0f, 1_048_576f)
     BigGraph(tr("Velocidad de transferencia del disco"), formatRate(scale), h["drd"], scale, color, second = h["dwr"], height = 90)
@@ -398,7 +411,7 @@ private fun DiskDetail(s: Snapshot, h: History) {
             tr("Capacidad (/data)") to formatBytes(d.totalBytes),
             tr("Disponible") to formatBytes(d.freeBytes),
             tr("Disco del sistema") to tr("Sí"),
-            tr("Tipo") to d.type,
+            tr("Tipo") to "${d.type} (${d.name})",
         ),
     )
 }
@@ -422,6 +435,7 @@ private fun WifiDetail(s: Snapshot, h: History) {
         ),
         listOf(
             tr("Nombre del adaptador") to "wlan0",
+            tr("Tipo de conexión") to (wifiStandardLabel(w.standard, w.freqMhz) ?: "—"),
             "SSID" to (w.ssid ?: "—"),
             tr("Tipo de conexión") to (w.freqMhz?.let { band(it) } ?: "—"),
             tr("Calidad de señal") to (w.rssi?.let(::signalQuality) ?: "—"),
@@ -463,6 +477,8 @@ private fun MobileDetail(s: Snapshot, h: History) {
 
 @Composable
 private fun GpuDetail(s: Snapshot, h: History) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val vulkan = remember { vulkanVersion(ctx.packageManager) }
     val win = LocalWin.current
     val color = Res.GPU.color(win)
     val g = s.gpu
@@ -480,6 +496,8 @@ private fun GpuDetail(s: Snapshot, h: History) {
         ),
         listOfNotNull(
             tr("Familia") to tr(g.source),
+            GlInfo.version?.let { tr("Versión del controlador") to it },
+            vulkan?.let { "Vulkan" to it },
             g.model?.let { tr("Modelo") to it },
             tr("Frecuencia máxima") to (g.maxMhz?.let { "$it MHz" } ?: "—"),
             g.memBytes?.let { tr("Memoria de GPU compartida") to formatBytes(it) },
@@ -495,24 +513,29 @@ private fun TempDetail(s: Snapshot, h: History) {
     val win = LocalWin.current
     val color = Res.TEMP.color(win)
     val b = s.batt
-    DetailHeader(tr("Batería y temperatura"), s.mainTempName ?: "")
-    BigGraph(tr("Temperatura del procesador"), "100 °C", h["temp"], 100f, color)
+    // Potencia real en vatios: + entra carga, − sale
+    val watts = if (b.voltageMv != null && b.currentMa != null) b.voltageMv * b.currentMa / 1_000_000f else null
+    DetailHeader(tr("Batería"), b.health?.let { tr("Salud de la batería") + ": " + tr(it) } ?: "")
+    BatteryHistoryCard(s.uptimeSec, color)
     StatsBlock(
         listOf(
-            tr("Máxima") to (s.thermals.firstOrNull()?.let { "%.1f °C".format(it.celsius) } ?: "—"),
-            tr("Batería") to (b.tempC?.let { "%.1f °C".format(it) } ?: "—"),
             tr("Carga") to (b.level?.let { "$it%" } ?: "—"),
+            tr("Estado") to (b.status?.let { tr(it) } ?: "—"),
+            tr("Potencia") to (watts?.let { (if (it > 0) "+" else "") + "%.1f W".format(it) } ?: "—"),
             tr("Corriente") to (b.currentMa?.let { if (it > 0) "+$it mA" else "$it mA" } ?: "—"),
             tr("Voltaje") to (b.voltageMv?.let { "%.2f V".format(it / 1000f) } ?: "—"),
-            tr("Estado") to (b.status?.let { tr(it) } ?: "—"),
+            tr("Temperatura") to (b.tempC?.let { "%.1f °C".format(it) } ?: "—"),
         ),
-        listOf(tr("Salud de la batería") to (b.health?.let { tr(it) } ?: "—")),
+        emptyList(),
     )
-    BatteryHistoryCard(s.uptimeSec, color)
-    if (s.thermals.isNotEmpty()) {
-        Text(tr("Sensores de temperatura"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
-        KeyValues(s.thermals.take(40).map { it.name to "%.1f °C".format(it.celsius) })
-    }
+    // Temperaturas del teléfono
+    Text(tr("Temperaturas"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+    BigGraph(tr("Temperatura del procesador"), "100 °C", h["temp"], 100f, color, height = 140)
+    KeyValues(
+        listOfNotNull(
+            s.thermals.firstOrNull()?.let { tr("Máxima") to "%.1f °C (%s)".format(it.celsius, it.name) },
+        ) + s.thermals.take(40).map { it.name to "%.1f °C".format(it.celsius) },
+    )
 }
 
 private fun summary(r: Res, s: Snapshot): String {
@@ -546,8 +569,23 @@ private fun summary(r: Res, s: Snapshot): String {
             "GPU 0: ${s.gpu.model ?: tr(s.gpu.source)}", line("Uso", s.gpu.load?.let { "$it%" } ?: "—"),
             line("Frecuencia", s.gpu.freqMhz?.let { "$it MHz" } ?: "—"),
         )
-        Res.TEMP -> listOf(line("Batería", "${s.batt.level ?: "—"}% · ${s.batt.tempC ?: "—"} °C")) +
+        Res.TEMP -> listOf(line("Batería", "${s.batt.level ?: "—"}% · ${s.batt.status?.let { tr(it) } ?: ""} · ${s.batt.tempC ?: "—"} °C")) +
             s.thermals.take(10).map { "${it.name}: %.1f °C".format(it.celsius) }
     }
     return lines.joinToString("\n")
+}
+
+/** Datos fijos del hardware (núcleos, caché, almacenamiento), leídos una vez. */
+@Composable
+private fun rememberDeviceInfo(s: Snapshot): DeviceInfo.Info? {
+    var info by remember { mutableStateOf<DeviceInfo.Info?>(null) }
+    LaunchedEffect(Unit) { info = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { DeviceInfo.get(s.disk?.name) } }
+    return info
+}
+
+/** Tamaño comercial de la RAM (8, 12 GB…) a partir de la memoria que ve Android. */
+fun nominalRamGb(totalKb: Long): Int? {
+    if (totalKb <= 0) return null
+    val gb = totalKb / 1048576.0
+    return listOf(1, 2, 3, 4, 6, 8, 10, 12, 16, 18, 20, 24, 32).firstOrNull { it >= gb }
 }

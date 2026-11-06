@@ -13,6 +13,10 @@ object GlInfo {
     @Volatile var renderer: String? = null
         private set
 
+    /** Versión de OpenGL ES y del driver, por ejemplo "OpenGL ES 3.2 V@0615.0". */
+    @Volatile var version: String? = null
+        private set
+
     fun load(): String? {
         if (tried) return renderer
         tried = true
@@ -38,6 +42,7 @@ object GlInfo {
             )
             if (EGL14.eglMakeCurrent(dpy, surf, surf, ctx)) {
                 renderer = GLES20.glGetString(GLES20.GL_RENDERER)?.trim()?.takeIf { it.isNotEmpty() }
+                version = GLES20.glGetString(GLES20.GL_VERSION)?.trim()?.takeIf { it.isNotEmpty() }
             }
             EGL14.eglMakeCurrent(dpy, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
             EGL14.eglDestroySurface(dpy, surf)
@@ -47,4 +52,13 @@ object GlInfo {
         }
         return renderer
     }
+}
+
+/** Versión de Vulkan que declara el teléfono, por ejemplo "1.3" (null si no tiene). */
+fun vulkanVersion(pm: android.content.pm.PackageManager): String? {
+    for (minor in 4 downTo 0) {
+        val code = (1 shl 22) or (minor shl 12)
+        if (pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_VULKAN_HARDWARE_VERSION, code)) return "1.$minor"
+    }
+    return null
 }

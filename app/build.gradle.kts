@@ -12,35 +12,25 @@ android {
         applicationId = "com.kevxngg.monitorroot"
         minSdk = 26
         targetSdk = 34
-        // Cada compilación de GitHub Actions tiene un número; la app lo usa para saber si hay actualización
+        // Número interno de compilación (siempre sube): lo usan Android y el actualizador
         val ciBuild = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionCode = ciBuild
-        versionName = "2.1 (build $ciBuild)"
+        // Versión visible (2.2, 2.3…): se toma del archivo VERSION de la raíz del repositorio
+        versionName = rootProject.file("VERSION").readText().trim()
     }
 
+    // Firma: las claves están en los Secrets de GitHub, nunca en el repositorio.
+    // GitHub Actions firma después con rotación de clave (ver build.yml).
+    // Sin ellas (por ejemplo, al compilar en otra PC) la APK de release sale sin firmar.
+    val oldKeystore = System.getenv("SIGNING_OLD_KEYSTORE_FILE")
     signingConfigs {
-        create("monitor") {
-            storeFile = file("monitor.jks")
-            storePassword = "monitorroot"
-            keyAlias = "monitor"
-            keyPassword = "monitorroot"
-        }
-    }
-
-    // Dos ediciones:
-    //  - standard: la normal, funciona con root y se actualiza desde GitHub
-    //  - system:   para integrar en ROMs como app del sistema (firmada con la clave de
-    //              la plataforma); no necesita root y se actualiza con la ROM
-    flavorDimensions += "edition"
-    productFlavors {
-        create("standard") {
-            dimension = "edition"
-            buildConfigField("boolean", "SYSTEM_BUILD", "false")
-        }
-        create("system") {
-            dimension = "edition"
-            versionNameSuffix = "-system"
-            buildConfigField("boolean", "SYSTEM_BUILD", "true")
+        if (oldKeystore != null) {
+            create("monitor") {
+                storeFile = file(oldKeystore)
+                storePassword = System.getenv("SIGNING_OLD_PASS")
+                keyAlias = "monitor"
+                keyPassword = System.getenv("SIGNING_OLD_PASS")
+            }
         }
     }
 
@@ -48,8 +38,13 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+<<<<<<< HEAD
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("monitor")
+=======
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            signingConfig = signingConfigs.findByName("monitor")
+>>>>>>> main
         }
     }
     compileOptions {

@@ -4,47 +4,23 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 /**
- * Mantiene abierta una única shell privilegiada y ejecuta comandos en ella:
- *  - ROOT: con "su" (Magisk, KernelSU, APatch o root temporal)
- *  - SYSTEM: sin root, cuando la app viene integrada en una ROM como app del
- *    sistema (uid 1000, firmada con la clave de la plataforma)
+ * Mantiene abierta una única shell privilegiada:
+ *  - ROOT: con "su" (Magisk, KernelSU, APatch)
  *  - HELPER: sin root, con el servicio "monitord" que trae la ROM (ver rom/port/)
  */
 object RootShell {
     enum class Mode { NONE, ROOT, SYSTEM, HELPER }
 
+    @Volatile var mode = Mode.NONE
+        private set
+
     private var process: Process? = null
     private var writer: OutputStreamWriter? = null
     private var reader: BufferedReader? = null
     private val lock = Any()
-
-    @Volatile var mode = Mode.NONE
-        private set
-
-    /** true si la app corre como app del sistema (integrada en la ROM). */
-    val isSystemApp: Boolean get() = android.os.Process.myUid() == android.os.Process.SYSTEM_UID
-
-    private fun start(cmd: String, needRoot: Boolean): Boolean {
-        return try {
-            val p = ProcessBuilder(cmd).start()
-            val w = OutputStreamWriter(p.outputStream)
-            process = p
-            writer = w
-            reader = BufferedReader(InputStreamReader(p.inputStream))
-            // Descarta stderr para que no se llene su buffer y bloquee la shell
-            w.write("exec 2>/dev/null\n")
-            w.flush()
-            val id = runLocked("id")
-            val ok = if (needRoot) id.any { it.contains("uid=0") } else id.any { it.contains("uid=") }
-            if (!ok) closeLocked()
-            ok
-        } catch (e: Exception) {
-            closeLocked()
-            false
-        }
-    }
 
     /** Envía un script al servicio monitord y devuelve su salida (null si no está). */
     private fun helperRun(script: String): List<String>? = try {
@@ -65,26 +41,31 @@ object RootShell {
         null
     }
 
-    /** Abre la shell: servicio de la ROM, app del sistema o root, en ese orden. */
+    /** Abre la shell: servicio de la ROM (sin root) o su, en ese orden. */
     fun open(): Boolean {
         synchronized(lock) {
-            if (mode == Mode.HELPER || process != null) return true
-            // En custom ROMs y ports con el servicio monitord: sin root
+            if (mode == Mode.HELPER) return true
+            if (process != null) return true
             if (helperRun("id")?.any { it.contains("uid=0") } == true) {
                 mode = Mode.HELPER
                 return true
             }
-            // En una ROM se usa directamente la shell del sistema (no hace falta root)
-            if (isSystemApp && start("sh", needRoot = false)) {
-                mode = Mode.SYSTEM
-                return true
+            return try {
+                val p = ProcessBuilder("su").start()
+                val w = OutputStreamWriter(p.outputStream)
+                process = p
+                writer = w
+                reader = BufferedReader(InputStreamReader(p.inputStream))
+                // Descarta stderr para que no se llene su buffer y bloquee la shell
+                w.write("exec 2>/dev/null\n")
+                w.flush()
+                val ok = runLocked("id").any { it.contains("uid=0") }
+                if (ok) mode = Mode.ROOT else closeLocked()
+                ok
+            } catch (e: Exception) {
+                closeLocked()
+                false
             }
-            if (start("su", needRoot = true)) {
-                mode = Mode.ROOT
-                return true
-            }
-            mode = Mode.NONE
-            return false
         }
     }
 
@@ -93,8 +74,7 @@ object RootShell {
         synchronized(lock) {
             if (mode == Mode.HELPER) {
                 helperRun(cmd)?.let { return it }
-                // El servicio se reinició o se detuvo: se vuelve a elegir el modo
-                mode = Mode.NONE
+                mode = Mode.NONE  // el servicio se detuvo: se reelige modo la próxima vez
             }
             if (process == null) return emptyList()
             return try {
@@ -110,23 +90,44 @@ object RootShell {
         synchronized(lock) { closeLocked() }
     }
 
+    /**
+     * Ejecuta el comando y lee su salida hasta la marca de fin.
+     *  - La entrada del comando es /dev/null: si un comando intenta leer, no se
+     *    "come" las líneas siguientes de la shell.
+     *  - Si un comando tarda más de [TIMEOUT_MS] (por ejemplo, un servicio del
+     *    sistema colgado), se cierra la shell para no bloquear toda la app; la
+     *    siguiente llamada abre una nueva.
+     */
     private fun runLocked(cmd: String): List<String> {
         val w = writer ?: return emptyList()
         val r = reader ?: return emptyList()
+        val p = process ?: return emptyList()
         val marker = "__FIN_${UUID.randomUUID()}__"
-        w.write("$cmd\necho $marker\n")
+        w.write("{\n$cmd\n} </dev/null\necho $marker\n")
         w.flush()
+        val watchdog = timer.schedule({ p.destroy() }, TIMEOUT_MS, TimeUnit.MILLISECONDS)
         val lines = ArrayList<String>()
-        while (true) {
-            val line = r.readLine() ?: break
-            if (line.endsWith(marker)) {
-                val rest = line.removeSuffix(marker)
-                if (rest.isNotEmpty()) lines.add(rest)
-                break
+        try {
+            while (true) {
+                val line = r.readLine() ?: break
+                if (line.endsWith(marker)) {
+                    val rest = line.removeSuffix(marker)
+                    if (rest.isNotEmpty()) lines.add(rest)
+                    return lines
+                }
+                lines.add(line)
             }
-            lines.add(line)
+        } finally {
+            watchdog.cancel(false)
         }
+        // Sin marca de fin: la shell terminó o se cerró por tiempo
+        closeLocked()
         return lines
+    }
+
+    private const val TIMEOUT_MS = 20_000L
+    private val timer = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "RootShell-timeout").apply { isDaemon = true }
     }
 
     private fun closeLocked() {
@@ -139,5 +140,6 @@ object RootShell {
         process = null
         writer = null
         reader = null
+        if (mode == Mode.ROOT) mode = Mode.NONE
     }
 }

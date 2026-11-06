@@ -1,3 +1,3 @@
-## Novedades
-- Edición de sistema ya firmada para ROMs con test-keys (MonitorRoot-system-testkey.apk), con la clave de plataforma de prueba pública de AOSP. Se pone directamente en /system_ext/priv-app sin tener que firmarla.
-- Instrucciones para elegir la APK correcta según las claves de la ROM, en la carpeta rom del repositorio.
+## Seguridad
+- Nueva clave de firma privada. La anterior estaba publicada en el repositorio. Gracias a la rotación de clave de Android, Monitor se actualiza normalmente sin desinstalar. En Android 9 o superior, después de instalar esta versión, el teléfono deja de aceptar actualizaciones firmadas con la clave antigua.
+- Las claves ya no están en el código: solo en los Secrets de GitHub.

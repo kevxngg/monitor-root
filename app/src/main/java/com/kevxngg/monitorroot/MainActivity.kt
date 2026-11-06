@@ -63,10 +63,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val dark = when (Prefs.theme) {
                 1 -> false
-                2 -> true
+                2, 3 -> true
                 else -> isSystemInDarkTheme()
             }
-            val win = if (dark) DarkWin else LightWin
+            val win = remember(dark, Prefs.theme) { UiStyles.palette(dark, pureBlack = Prefs.theme == 3) }
             LaunchedEffect(dark) {
                 enableEdgeToEdge(
                     statusBarStyle = if (dark) SystemBarStyle.dark(AColor.TRANSPARENT)
@@ -137,7 +137,7 @@ fun Shell() {
     var runOpen by remember { mutableStateOf(false) }
     var focusPid by remember { mutableStateOf<Int?>(null) }
     var update by remember { mutableStateOf<UpdateInfo?>(null) }
-    var latestInfo by remember { mutableStateOf(if (BuildConfig.SYSTEM_BUILD) null else Updater.cached(context)) }
+    var latestInfo by remember { mutableStateOf(Updater.cached(context)) }
 
     // Check on resume and once a minute while visible, including the required-version policy.
     LaunchedEffect(Unit) {
@@ -146,8 +146,6 @@ fun Shell() {
             // Si el modo juego estaba activo, se asegura de que siga funcionando
             if (Prefs.gameMode) GameMode.start(context.applicationContext)
         }
-        // En la edición para ROMs, la app se actualiza junto con la ROM
-        if (BuildConfig.SYSTEM_BUILD) return@LaunchedEffect
         (context as LifecycleOwner).repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
                 // Always verify the supported version, even when optional alerts are disabled.
@@ -223,9 +221,9 @@ fun Shell() {
                             Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .clip(RoundedCornerShape(topStart = 8.dp))
+                                .clip(cornerTopStart(8))
                                 .background(win.content)
-                                .border(1.dp, win.border, RoundedCornerShape(topStart = 8.dp)),
+                                .border(1.dp, win.border, cornerTopStart(8)),
                         ) {
                             val s = snap
                             if (s == null) {
@@ -289,9 +287,9 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
             Modifier
                 .then(if (compact) Modifier.weight(1f) else Modifier.width(380.dp))
                 .height(34.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(corner(4))
                 .background(win.card)
-                .border(1.dp, win.border, RoundedCornerShape(4.dp))
+                .border(1.dp, win.border, corner(4))
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -350,7 +348,7 @@ private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expande
             .fillMaxWidth()
             .height(40.dp)
             .padding(vertical = 2.dp)
-            .clip(RoundedCornerShape(4.dp))
+            .clip(corner(4))
             .background(if (selected) win.hover else Color.Transparent)
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
@@ -359,7 +357,7 @@ private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expande
             Modifier
                 .width(3.dp)
                 .height(16.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .clip(corner(2))
                 .background(if (selected) win.accent else Color.Transparent),
         )
         Spacer(Modifier.width(10.dp))

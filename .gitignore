@@ -3,3 +3,8 @@ build/
 local.properties
 .idea/
 *.iml
+
+# Claves de firma: solo en los Secrets de GitHub
+*.jks
+*.p12
+*.keystore

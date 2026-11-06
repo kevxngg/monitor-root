@@ -8,8 +8,9 @@ import android.content.Intent
 import android.os.SystemClock
 
 /**
- * Solicita una revisión mediante una alarma con intervalo nominal de 5 minutos.
- * Android puede retrasar la alarma y el trabajo, incluso con exención de batería.
+ * Alarma de unos 5 minutos que no despierta al teléfono: guarda el historial de
+ * batería, actualiza el widget, revisa las alertas y, como máximo cada hora,
+ * busca actualizaciones.
  */
 class UpdateAlarm : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
@@ -22,8 +23,8 @@ class UpdateAlarm : BroadcastReceiver() {
                 return
             }
         }
-        // The receiver only schedules work: network requests may exceed its time limit.
-        if (!BuildConfig.SYSTEM_BUILD) UpdateWorker.enqueueNow(app)
+        // Las actualizaciones se revisan como máximo una vez por hora en segundo plano
+        UpdateWorker.enqueueIfDue(app)
         // Tareas rápidas en cada alarma: historial de batería y widget
         BatteryLog.record(app)
         WidgetUpdater.requestRefresh(app)
@@ -40,7 +41,8 @@ class UpdateAlarm : BroadcastReceiver() {
                 ctx, 0, Intent(ctx, UpdateAlarm::class.java).setAction("com.kevxngg.monitorroot.CHECK_UPDATE"),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
-            am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + INTERVAL, pi)
+            // Sin despertar al teléfono: se ejecuta cuando ya está despierto (ahorra batería)
+            am.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + INTERVAL, pi)
         }
     }
 }
@@ -56,7 +58,9 @@ class InstallUpdateReceiver : BroadcastReceiver() {
             try {
                 if (!RootShell.open()) throw IllegalStateException()
                 val file = Updater.download(app, url) {}
-                if (!Updater.install(app, file)) throw IllegalStateException()
+                val sha = intent.getStringExtra("sha256")
+                val size = intent.getLongExtra("size", 0L)
+                if (!Updater.install(app, file, sha, size)) throw IllegalStateException()
             } catch (e: Exception) {
                 UpdateWorker.showFailed(app, url)
             } finally {

@@ -26,6 +26,8 @@ data class ProcInfo(
     val label: String?,
     val icon: ImageBitmap?,
     val launchable: Boolean,
+    /** 64 o 32 bits según el zygote que lanzó la app (null en procesos nativos). */
+    val bits: Int? = null,
 )
 
 data class CoreInfo(val index: Int, val curMhz: Int, val maxMhz: Int, val usage: Float)
@@ -72,6 +74,8 @@ data class WifiData(
     val freqMhz: Int?,
     val ssid: String?,
     val mac: String?,
+    /** Estándar Wi‑Fi de la conexión (ScanResult.WIFI_STANDARD_*), null si no se sabe. */
+    val standard: Int? = null,
 )
 
 data class MemInfo(
@@ -330,6 +334,11 @@ class SystemReader(context: Context) {
                     label = meta?.label,
                     icon = meta?.icon,
                     launchable = meta?.launchable ?: false,
+                    bits = when (names[f.long(1).toInt()]?.second) {
+                        "zygote64" -> 64
+                        "zygote" -> 32
+                        else -> null
+                    },
                 )
             )
         }
@@ -579,6 +588,7 @@ class SystemReader(context: Context) {
             freqMhz = info?.frequency?.takeIf { it > 0 },
             ssid = ssid,
             mac = mac,
+            standard = if (android.os.Build.VERSION.SDK_INT >= 30) info?.wifiStandard?.takeIf { it > 0 } else null,
         )
 
         return Snapshot(

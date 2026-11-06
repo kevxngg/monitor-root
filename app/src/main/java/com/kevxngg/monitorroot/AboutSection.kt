@@ -62,8 +62,11 @@ private fun open(ctx: Context, url: String) {
 }
 
 private fun rootManager(): String? {
+<<<<<<< HEAD
     if (RootShell.mode == RootShell.Mode.HELPER) return tr("Servicio de la ROM (sin root)")
     if (RootShell.mode == RootShell.Mode.SYSTEM || RootShell.isSystemApp) return tr("App del sistema (sin root)")
+=======
+>>>>>>> main
     val out = RootShell.run(
         "magisk -c 2>/dev/null || /data/adb/ksud -V 2>/dev/null || /data/adb/apd -V 2>/dev/null"
     ).firstOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: return null
@@ -143,7 +146,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
             Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onBack).padding(10.dp)) {
+            Box(Modifier.clip(corner(4)).clickable(onClick = onBack).padding(10.dp)) {
                 @Suppress("DEPRECATION")
                 Icon(Icons.Outlined.ArrowBack, tr("Volver"), tint = win.text, modifier = Modifier.size(20.dp))
             }
@@ -221,7 +224,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
             }
 
             Text(
-                "Monitor · build $build · © ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} $DEV",
+                "Monitor $version · © ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} $DEV",
                 fontSize = 11.sp, color = win.sub, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
             )
@@ -243,9 +246,9 @@ private fun AboutCard(content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(corner(8))
             .background(win.card)
-            .border(1.dp, win.border, RoundedCornerShape(8.dp)),
+            .border(1.dp, win.border, corner(8)),
         content = content,
     )
 }

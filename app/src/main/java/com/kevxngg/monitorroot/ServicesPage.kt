@@ -108,12 +108,9 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
     val h = rememberScrollState()
 
-    LaunchedEffect(reload) {
-        while (true) {
-            native = withContext(Dispatchers.IO) { loadNative() }
-            apps = withContext(Dispatchers.IO) { loadAppServices() }
-            delay(5000)
-        }
+    RepeatWhileVisible(5000, key = reload) {
+        native = withContext(Dispatchers.IO) { loadNative() }
+        apps = withContext(Dispatchers.IO) { loadAppServices() }
     }
 
     val rows = remember(native, apps, query, onlyRunning, sortId, asc) {

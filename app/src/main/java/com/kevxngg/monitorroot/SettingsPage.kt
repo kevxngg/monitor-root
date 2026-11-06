@@ -35,6 +35,7 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val build = remember { Updater.currentBuild(ctx) }
+    val version = remember { Updater.currentVersion(ctx) }
     var checking by remember { mutableStateOf(false) }
     var checkMsg by remember { mutableStateOf<String?>(null) }
     var found by remember { mutableStateOf<UpdateInfo?>(null) }
@@ -81,7 +82,10 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 }
             }
             SettingCard(Icons.Outlined.Palette, tr("Tema de la aplicación"), tr("Elige la apariencia de la app")) {
-                WinDropdown(listOf(tr("Usar configuración del sistema"), tr("Claro"), tr("Oscuro")), Prefs.theme) {
+                WinDropdown(
+                    listOf(tr("Usar configuración del sistema"), tr("Claro"), tr("Oscuro"), tr("Negro puro")),
+                    Prefs.theme.coerceIn(0, 3),
+                ) {
                     Prefs.theme = it; Prefs.save()
                 }
             }
@@ -182,34 +186,32 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            if (!BuildConfig.SYSTEM_BUILD) {
-                SectionLabel(tr("Actualizaciones"))
-                SettingCard(Icons.Outlined.SystemUpdate, tr("Buscar actualizaciones al abrir"), tr("Avisa cuando hay una versión nueva en GitHub")) {
-                    WinSwitch(Prefs.autoUpdate) { Prefs.autoUpdate = it; Prefs.save() }
-                }
-                SettingCard(Icons.Outlined.Update, tr("Buscar ahora"), checkMsg ?: tr("Build instalada: %d", build)) {
-                    TextButton(enabled = !checking, onClick = {
-                        checking = true
-                        checkMsg = tr("Buscando…")
-                        scope.launch {
-                            val result = withContext(Dispatchers.IO) { Updater.fetch(ctx.applicationContext) }
-                            checking = false
-                            when (result) {
-                                is UpdateResult.Success -> {
-                                    val info = result.info
-                                    onVerified(info)
-                                    if (Updater.isOffered(ctx, info, ignoreSkipped = true)) {
-                                        if (!Updater.isRequired(ctx, info)) found = info
-                                        checkMsg = tr("Build %d disponible", info.build)
-                                    } else checkMsg = tr("Ya tienes la última versión (build %d)", build)
-                                }
-                                is UpdateResult.Failure -> checkMsg = result.message()
-                            }
-                        }
-                    }) { Text(tr("Buscar")) }
-                }
-                Spacer(Modifier.height(8.dp))
+            SectionLabel(tr("Actualizaciones"))
+            SettingCard(Icons.Outlined.SystemUpdate, tr("Buscar actualizaciones al abrir"), tr("Avisa cuando hay una versión nueva en GitHub")) {
+                WinSwitch(Prefs.autoUpdate) { Prefs.autoUpdate = it; Prefs.save() }
             }
+            SettingCard(Icons.Outlined.Update, tr("Buscar ahora"), checkMsg ?: tr("Versión instalada: %s", version)) {
+                TextButton(enabled = !checking, onClick = {
+                    checking = true
+                    checkMsg = tr("Buscando…")
+                    scope.launch {
+                        val result = withContext(Dispatchers.IO) { Updater.fetch(ctx.applicationContext) }
+                        checking = false
+                        when (result) {
+                            is UpdateResult.Success -> {
+                                val info = result.info
+                                onVerified(info)
+                                if (Updater.isOffered(ctx, info, ignoreSkipped = true)) {
+                                    if (!Updater.isRequired(ctx, info)) found = info
+                                    checkMsg = tr("Versión %s disponible", info.label)
+                                } else checkMsg = tr("Ya tienes la última versión (%s)", version)
+                            }
+                            is UpdateResult.Failure -> checkMsg = result.message()
+                        }
+                    }
+                }) { Text(tr("Buscar")) }
+            }
+            Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Acerca de"))
             AboutEntry { showAbout = true }
             Spacer(Modifier.height(16.dp))
@@ -228,9 +230,9 @@ fun SettingCard(icon: ImageVector, title: String, subtitle: String, control: @Co
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
+            .clip(corner(6))
             .background(win.card)
-            .border(1.dp, win.border, RoundedCornerShape(6.dp))
+            .border(1.dp, win.border, corner(6))
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -246,22 +248,22 @@ fun SettingCard(icon: ImageVector, title: String, subtitle: String, control: @Co
 }
 
 @Composable
-fun WinDropdown(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+fun WinDropdown(options: List<String>, selected: Int, enabled: Boolean = true, onSelect: (Int) -> Unit) {
     val win = LocalWin.current
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
             Modifier
                 .widthIn(max = 170.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(corner(4))
                 .background(win.content)
-                .border(1.dp, win.border, RoundedCornerShape(4.dp))
-                .clickable { open = true }
+                .border(1.dp, win.border, corner(4))
+                .clickable(enabled = enabled) { open = true }
                 .padding(horizontal = 10.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                options.getOrElse(selected) { "" }, fontSize = 13.sp, color = win.text,
+                options.getOrElse(selected) { "" }, fontSize = 13.sp, color = if (enabled) win.text else win.sub,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
             )
             Icon(Icons.Outlined.KeyboardArrowDown, null, tint = win.sub, modifier = Modifier.size(16.dp))
@@ -347,7 +349,7 @@ fun RunTaskDialog(onDismiss: () -> Unit) {
                 )
                 suggestions.forEach { a ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).clickable { if (launch(a.pkg)) onDismiss() }.padding(6.dp),
+                        Modifier.fillMaxWidth().clip(corner(4)).clickable { if (launch(a.pkg)) onDismiss() }.padding(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         AppIcon(a.icon, a.label, 20.dp)

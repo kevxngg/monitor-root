@@ -44,11 +44,8 @@ fun GamesPage(onRun: () -> Unit) {
     var confirmClear by remember { mutableStateOf(false) }
 
     // Las partidas nuevas aparecen solas
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(5000)
-            sessions = withContext(Dispatchers.IO) { GameSessions.read(ctx) }
-        }
+    RepeatWhileVisible(5000) {
+        sessions = withContext(Dispatchers.IO) { GameSessions.read(ctx) }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -103,7 +100,7 @@ fun GamesPage(onRun: () -> Unit) {
                             Text(a.label, fontSize = 14.sp, color = win.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Icon(
                                 Icons.Outlined.Close, tr("Quitar"), tint = win.sub,
-                                modifier = Modifier.size(20.dp).clip(RoundedCornerShape(4.dp)).clickable {
+                                modifier = Modifier.size(20.dp).clip(corner(4)).clickable {
                                     Prefs.games = Prefs.games - a.pkg
                                     Prefs.save()
                                 },
@@ -147,7 +144,7 @@ fun GamesPage(onRun: () -> Unit) {
 private fun GameCard(content: @Composable ColumnScope.() -> Unit) {
     val win = LocalWin.current
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(win.card).border(1.dp, win.border, RoundedCornerShape(6.dp)),
+        Modifier.fillMaxWidth().clip(corner(6)).background(win.card).border(1.dp, win.border, corner(6)),
         content = content,
     )
 }
@@ -157,7 +154,7 @@ private fun Chip(text: String) {
     val win = LocalWin.current
     Text(
         text, fontSize = 11.sp, color = win.text,
-        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(win.hover).padding(horizontal = 6.dp, vertical = 2.dp),
+        modifier = Modifier.clip(corner(4)).background(win.hover).padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }
 

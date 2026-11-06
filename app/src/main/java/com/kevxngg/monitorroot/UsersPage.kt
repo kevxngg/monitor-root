@@ -29,6 +29,7 @@ private class UserGroup(val id: Int, val name: String, val rows: List<TaskRow>) 
 fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
     val win = LocalWin.current
     val scope = rememberCoroutineScope()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     var names by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var expanded by remember { mutableStateOf(setOf(0)) }
     var selKey by remember { mutableStateOf<String?>(null) }
@@ -72,6 +73,13 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
                 val u = selUser ?: return@CmdButton
                 val action: () -> Unit = { scope.launch(Dispatchers.IO) { RootShell.run("am switch-user $u") } }
                 confirm = tr("¿Cambiar al usuario %d?", u) to action
+            }
+            CmdButton(Icons.Outlined.ManageAccounts, tr("Administrar cuentas de usuario")) {
+                try {
+                    ctx.startActivity(android.content.Intent("android.settings.USER_SETTINGS").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                } catch (_: Exception) {
+                    ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
             }
             CmdButton(Icons.Outlined.Logout, tr("Detener usuario"), enabled = selUser != null && selUser > 0) {
                 val u = selUser ?: return@CmdButton
