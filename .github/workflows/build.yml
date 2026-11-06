@@ -42,7 +42,19 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Claves de firma (desde los Secrets)
+        env:
+          OLD_KS: ${{ secrets.SIGNING_OLD_KEYSTORE }}
+          NEW_KS: ${{ secrets.SIGNING_NEW_KEYSTORE }}
+        run: |
+          umask 077
+          echo "$OLD_KS" | base64 -d > "$RUNNER_TEMP/old.jks"
+          echo "$NEW_KS" | base64 -d > "$RUNNER_TEMP/new.p12"
+          echo "SIGNING_OLD_KEYSTORE_FILE=$RUNNER_TEMP/old.jks" >> "$GITHUB_ENV"
+
       - name: Probar y compilar
+        env:
+          SIGNING_OLD_PASS: ${{ secrets.SIGNING_OLD_PASS }}
         run: |
           set -o pipefail
           gradle testDebugUnitTest assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
@@ -52,9 +64,26 @@ jobs:
         run: |
           grep -E "^e: |error:|What went wrong" -A 2 build.log | head -40 | while IFS= read -r line; do echo "::error::$line"; done
 
-      - name: Renombrar APK
+      # Rotación de clave (APK Signature Scheme v3): la clave antigua autoriza a la
+      # nueva. En Android 9+, tras instalar esta versión, el teléfono deja de aceptar
+      # actualizaciones firmadas solo con la clave antigua. Android 8 sigue usando
+      # la antigua (no admite rotación).
+      - name: Firmar con rotación de clave
+        env:
+          SIGNING_OLD_PASS: ${{ secrets.SIGNING_OLD_PASS }}
+          SIGNING_NEW_PASS: ${{ secrets.SIGNING_NEW_PASS }}
         run: |
-          cp app/build/outputs/apk/release/app-release.apk MonitorRoot.apk
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          OLD="--ks $RUNNER_TEMP/old.jks --ks-key-alias monitor --ks-pass env:SIGNING_OLD_PASS --key-pass env:SIGNING_OLD_PASS"
+          NEW="--ks $RUNNER_TEMP/new.p12 --ks-type PKCS12 --ks-key-alias monitor2026 --ks-pass env:SIGNING_NEW_PASS --key-pass env:SIGNING_NEW_PASS"
+          "$BT/apksigner" rotate --out "$RUNNER_TEMP/lineage.bin" --old-signer $OLD --new-signer $NEW
+          "$BT/apksigner" sign $OLD --next-signer $NEW --lineage "$RUNNER_TEMP/lineage.bin" \
+            --rotation-min-sdk-version 28 --in app/build/outputs/apk/release/app-release.apk --out MonitorRoot.apk
+          "$BT/apksigner" verify --verbose --print-certs MonitorRoot.apk | grep -E "Verified using|certificate SHA-256" | head -12
+
+      - name: Borrar las claves
+        if: always()
+        run: rm -f "$RUNNER_TEMP/old.jks" "$RUNNER_TEMP/new.p12" "$RUNNER_TEMP/lineage.bin"
 
       - name: Datos de actualización (update.json)
         run: |

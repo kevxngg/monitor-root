@@ -19,12 +19,18 @@ android {
         versionName = rootProject.file("VERSION").readText().trim()
     }
 
+    // Firma: las claves están en los Secrets de GitHub, nunca en el repositorio.
+    // GitHub Actions firma después con rotación de clave (ver build.yml).
+    // Sin ellas (por ejemplo, al compilar en otra PC) la APK de release sale sin firmar.
+    val oldKeystore = System.getenv("SIGNING_OLD_KEYSTORE_FILE")
     signingConfigs {
-        create("monitor") {
-            storeFile = file("monitor.jks")
-            storePassword = "monitorroot"
-            keyAlias = "monitor"
-            keyPassword = "monitorroot"
+        if (oldKeystore != null) {
+            create("monitor") {
+                storeFile = file(oldKeystore)
+                storePassword = System.getenv("SIGNING_OLD_PASS")
+                keyAlias = "monitor"
+                keyPassword = System.getenv("SIGNING_OLD_PASS")
+            }
         }
     }
 
@@ -33,7 +39,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            signingConfig = signingConfigs.getByName("monitor")
+            signingConfig = signingConfigs.findByName("monitor")
         }
     }
     compileOptions {
