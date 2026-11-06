@@ -345,20 +345,6 @@ class History(private val m: Map<String, List<Float>> = emptyMap()) {
         return History(n)
     }
 
-    /**
-     * Agrega un punto ligero (solo CPU, memoria, GPU y temperatura) a sus series.
-     * Se usa en el modo "En vivo" para mover las gráficas de Rendimiento de forma
-     * fluida sin recorrer todos los procesos.
-     */
-    fun addLive(cpu: Int?, ram: Int?, gpu: Int?, temp: Float?): History {
-        val n = HashMap(m)
-        fun push(k: String, value: Float) { n[k] = ((m[k] ?: emptyList()) + value).takeLast(HISTORY) }
-        cpu?.let { push("cpu", it.toFloat()) }
-        ram?.let { push("mem", it.toFloat()) }
-        gpu?.let { push("gpu", it.toFloat()) }
-        temp?.let { push("temp", it) }
-        return History(n)
-    }
 }
 
 // ===================== FORMATO =====================
