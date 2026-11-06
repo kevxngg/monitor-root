@@ -29,9 +29,9 @@ object UiStyles {
         sub = Color(0xFF8A8A8E),
         border = Color(0xFFD6D6D6),
         divider = Color(0xFFE8E8E8),
-        hover = Color(0xFFE6EEFB),
-        select = Color(0xFF3A74E0),
-        accent = Color(0xFF0A6CFF),
+        hover = Color(0xFFE4E4E6),        // gris de la pestaña/botón activo (como en el recorte)
+        select = Color(0xFF0A66FF),      // azul de la fila seleccionada
+        accent = Color(0xFF0A66FF),
     )
     private val MAC_DARK = DarkWin.copy(
         mac = true, radiusScale = 1f,
@@ -42,8 +42,8 @@ object UiStyles {
         sub = Color(0xFF9A9A9E),
         border = Color(0xFF3A3A3A),
         divider = Color(0xFF333333),
-        hover = Color(0xFF2E3A52),
-        select = Color(0xFF2F6AE0),
+        hover = Color(0xFF3A3A3C),        // gris de la pestaña/botón activo
+        select = Color(0xFF0A66FF),      // azul de la fila seleccionada
         accent = Color(0xFF3B82F6),
     )
 
