@@ -227,7 +227,7 @@ object Prefs {
         0 -> 500L
         2 -> 4000L
         3 -> -1L
-        4 -> 200L   // "En vivo": muestreo rápido para un barrido continuo (estilo macOS)
+        4 -> 300L   // "En vivo": datos cada 300 ms; la gráfica fluye a 60 fps por su cuenta
         else -> 1000L
     }
 }

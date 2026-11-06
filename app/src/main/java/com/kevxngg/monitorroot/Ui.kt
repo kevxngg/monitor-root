@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.animation.core.tween
@@ -64,25 +66,32 @@ fun TaskGraph(
     val win = LocalWin.current
     val fillAlpha = if (win.dark) 0.35f else 0.18f
 
-    // Monitor de signos vitales: la línea se queda pegada en su sitio y cada punto
-    // sube o baja suavemente hacia su nuevo valor, sin desplazarse en bloque (sin saltos).
-    val animated = remember { mutableStateListOf<Float>() }
-    LaunchedEffect(values.size, if (values.isEmpty()) 0f else values.last()) {
-        if (values.isEmpty()) { animated.clear(); return@LaunchedEffect }
-        if (animated.size != values.size) {           // primer dibujo o cambio de página: sin animar
-            animated.clear(); animated.addAll(values); return@LaunchedEffect
-        }
-        val from = animated.toList()
-        val ms = Prefs.refreshMs().let { if (it < 0) 1000L else it }.toInt()
-        val anim = Animatable(0f)
-        anim.animateTo(1f, tween(durationMillis = ms, easing = LinearEasing)) {
-            for (i in values.indices) {
-                val a = from.getOrElse(i) { values[i] }
-                animated[i] = a + (values[i] - a) * value
+    // Monitor de signos vitales: un bucle de animación propio corre a la tasa de
+    // refresco de la pantalla (60/90 Hz) e interpola suavemente los valores mostrados
+    // hacia los últimos datos. Así la línea fluye aunque el dato real llegue más lento.
+    val shownState = remember { mutableStateOf(values) }
+    val latest = rememberUpdatedState(values)
+    LaunchedEffect(Unit) {
+        var cur = latest.value.toMutableList()
+        while (true) {
+            withFrameNanos { }                        // espera al siguiente fotograma de la pantalla
+            val goal = latest.value
+            if (goal.isEmpty()) { cur = mutableListOf(); shownState.value = emptyList(); continue }
+            if (cur.size != goal.size) cur = goal.toMutableList()   // cambió el tamaño: sin interpolar
+            else {
+                // Acercar cada punto a su objetivo una fracción por fotograma (suavizado exponencial)
+                var moved = false
+                for (i in goal.indices) {
+                    val d = goal[i] - cur[i]
+                    if (kotlin.math.abs(d) > 0.05f) { cur[i] = cur[i] + d * 0.18f; moved = true }
+                    else cur[i] = goal[i]
+                }
+                if (!moved) continue
             }
+            shownState.value = cur.toList()
         }
     }
-    val shown = if (animated.isEmpty()) values else animated.toList()
+    val shown = shownState.value
 
     Canvas(modifier) {
         val w = size.width
