@@ -81,10 +81,20 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     I18n.apply(Prefs.language)
                 }
             }
+            SettingCard(Icons.Outlined.Dashboard, tr("Estilo de interfaz"), tr("Cambia el diseño de toda la app. Se reinicia para aplicarlo.")) {
+                WinDropdown(UiStyles.NAMES, Prefs.uiStyle.coerceIn(0, UiStyles.NAMES.size - 1)) {
+                    if (it != Prefs.uiStyle) {
+                        Prefs.uiStyle = it
+                        Prefs.save()
+                        (ctx as? android.app.Activity)?.recreate()
+                    }
+                }
+            }
             SettingCard(Icons.Outlined.Palette, tr("Tema de la aplicación"), tr("Elige la apariencia de la app")) {
                 WinDropdown(
                     listOf(tr("Usar configuración del sistema"), tr("Claro"), tr("Oscuro"), tr("Negro puro")),
                     Prefs.theme.coerceIn(0, 3),
+                    enabled = Prefs.uiStyle == UiStyles.WINDOWS,
                 ) {
                     Prefs.theme = it; Prefs.save()
                 }

@@ -66,7 +66,8 @@ class MainActivity : ComponentActivity() {
                 2, 3 -> true
                 else -> isSystemInDarkTheme()
             }
-            val win = remember(dark, Prefs.theme) { UiStyles.palette(dark, pureBlack = Prefs.theme == 3) }
+            val style = Prefs.uiStyle.coerceIn(0, UiStyles.NAMES.size - 1)
+            val win = remember(dark, Prefs.theme, style) { UiStyles.palette(style, dark, pureBlack = Prefs.theme == 3) }
             LaunchedEffect(dark) {
                 enableEdgeToEdge(
                     statusBarStyle = if (dark) SystemBarStyle.dark(AColor.TRANSPARENT)
