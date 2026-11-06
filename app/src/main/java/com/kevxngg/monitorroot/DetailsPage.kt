@@ -3,6 +3,7 @@ package com.kevxngg.monitorroot
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -122,8 +123,9 @@ fun DetailsPage(
                     }
                 }
                 LazyColumn(Modifier.fillMaxSize(), state = listState) {
-                    items(rows, key = { it.pid }) { p ->
+                    itemsIndexed(rows, key = { _, p -> p.pid }) { i, p ->
                         TableRow(
+                            row = i,
                             nameW, cols, cells(p), h,
                             selected = selPid == p.pid,
                             onClick = { selPid = p.pid },

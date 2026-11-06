@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -150,13 +151,14 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
                     data == null -> EmptyText(tr("Buscando apps que se inician con el teléfono…"))
                     rows.isEmpty() -> EmptyText(tr("No hay aplicaciones de arranque para mostrar."))
                     else -> LazyColumn(Modifier.fillMaxSize()) {
-                        items(rows, key = { it.pkg }) { r ->
+                        itemsIndexed(rows, key = { _, r -> r.pkg }) { i, r ->
                             val state = when {
                                 r.enabledCount == 0 -> tr("Deshabilitado")
                                 r.enabledCount < r.comps.size -> tr("Parcial")
                                 else -> tr("Habilitado")
                             }
                             TableRow(
+                                row = i,
                                 nameW, cols,
                                 listOf(Cell(r.publisher), Cell(state), Cell(r.comps.size.toString())),
                                 h,

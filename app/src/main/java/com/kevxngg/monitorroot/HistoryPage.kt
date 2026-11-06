@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -165,9 +166,10 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
                     data == null -> EmptyText(tr("Leyendo estadísticas de uso…"))
                     rows.isEmpty() -> EmptyText(tr("No hay datos. Si es la primera vez, toca Actualizar."))
                     else -> LazyColumn(Modifier.fillMaxSize()) {
-                        items(rows, key = { it.pkg }) { r ->
+                        itemsIndexed(rows, key = { _, r -> r.pkg }) { i, r ->
                             val cpu = cpuSec[r.pkg] ?: 0L
                             TableRow(
+                                row = i,
                                 nameW, cols,
                                 listOf(
                                     Cell(formatDuration(r.fgMs / 1000), heat = r.fgMs.toFloat() / maxFg),

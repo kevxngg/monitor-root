@@ -3,6 +3,7 @@ package com.kevxngg.monitorroot
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -96,6 +97,7 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
                         item(key = "user:${g.id}") {
                             val open = g.id in expanded
                             TableRow(
+                                row = i,
                                 nameW, cols,
                                 listOf(
                                     Cell(tr("Activo")),
@@ -120,7 +122,7 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
                             }
                         }
                         if (g.id in expanded) {
-                            items(g.rows, key = { "u${g.id}:${it.key}" }) { r ->
+                            itemsIndexed(g.rows, key = { _, r -> "u${g.id}:${r.key}" }) { i, r ->
                                 TableRow(
                                     nameW, cols,
                                     listOf(

@@ -64,37 +64,27 @@ fun TaskGraph(
     val win = LocalWin.current
     val fillAlpha = if (win.dark) 0.35f else 0.18f
 
-    // Animación: el último punto entra deslizándose y los valores suben/bajan suave,
-    // aprovechando los 60/90 Hz de la pantalla. El dato real sigue llegando cada segundo.
-    val animated = remember { mutableStateListOf<Float>() }
-    val shift = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
-    LaunchedEffect(values.size, if (values.isEmpty()) 0f else values.last()) {
-        if (values.isEmpty()) {
-            animated.clear()
-            return@LaunchedEffect
-        }
-        // Igualar tamaños sin animar (primer dibujo o cambio de página)
-        if (animated.size != values.size) {
-            animated.clear(); animated.addAll(values)
-            shift.snapTo(0f)
-        }
-        // Deslizar un paso hacia la izquierda mientras el nuevo valor aparece a la derecha
-        shift.snapTo(1f)
-        scope.launch { shift.animateTo(0f, tween(durationMillis = 950, easing = LinearEasing)) }
-        // Interpolar cada punto hacia su nuevo valor (mide 1 s, se ve fluido)
-        val from = animated.toList()
-        val anim = Animatable(0f)
-        anim.animateTo(1f, tween(durationMillis = 420, easing = FastOutSlowInEasing)) {
-            for (i in values.indices) {
-                val a = from.getOrElse(i) { values[i] }
-                val v = a + (values[i] - a) * value
-                if (i < animated.size) animated[i] = v else animated.add(v)
-            }
-        }
+    // Monitor de signos vitales: la línea avanza de forma continua y suave.
+    // El último tramo se interpola con el reloj de la pantalla (60/90 Hz) mientras
+    // llega la próxima muestra, así no hay saltos de un segundo.
+    val target = if (values.isEmpty()) 0f else values.last()
+    val prev = remember { mutableStateOf(target) }
+    val phase = remember { Animatable(1f) }
+    val base = remember { mutableStateOf(values) }
+    LaunchedEffect(values.size, target) {
+        if (values.size < 2) { base.value = values; return@LaunchedEffect }
+        // Fijar el historial salvo el último punto, que entra animado
+        base.value = values.dropLast(1)
+        prev.value = if (base.value.isNotEmpty()) base.value.last() else target
+        phase.snapTo(0f)
+        phase.animateTo(1f, tween(durationMillis = 1000, easing = LinearEasing))
     }
 
-    val shown = if (animated.isEmpty()) values else animated.toList()
+    // Construye la lista a dibujar: historial fijo + último punto que sube/baja y entra desde la derecha
+    val history = base.value
+    val lastVal = prev.value + (target - prev.value) * phase.value
+    val shown = history + lastVal
+    val enter = phase.value // 0..1 cuánto ha entrado el nuevo punto
     Canvas(modifier) {
         val w = size.width
         val h = size.height
@@ -111,8 +101,8 @@ fun TaskGraph(
                 drawLine(g, Offset(x, 0f), Offset(x, h), 1f)
             }
         }
-        // dx desplaza todo a la izquierda según el progreso de la animación
-        val dx = shift.value * step
+        // Desplazamiento continuo a la izquierda: el nuevo punto entra desde el borde derecho
+        val dx = (1f - enter) * step
         fun pathFor(v: List<Float>, asFill: Boolean): Path? {
             if (v.size < 2) return null
             val p = Path()
@@ -262,7 +252,11 @@ fun TableHeader(
     onSort: (String) -> Unit,
 ) {
     val win = LocalWin.current
-    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).bottomLine(win.border)) {
+    Row(
+        Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+            .then(if (win.mac) Modifier.background(win.mica) else Modifier)
+            .bottomLine(win.border),
+    ) {
         HeaderCell(nameTitle, null, sortId == "name", asc, nameW, false) { onSort("name") }
         Row(Modifier.horizontalScroll(h)) {
             cols.forEach { c ->
@@ -307,15 +301,22 @@ fun TableRow(
     onLongClick: () -> Unit,
     menu: @Composable () -> Unit = {},
     height: Dp = 34.dp,
+    row: Int = 0,                    // posición de la fila, para la cebra gris/blanco del estilo Mac
     name: @Composable RowScope.() -> Unit,
 ) {
     val win = LocalWin.current
+    val rowBg = when {
+        selected -> win.select
+        win.mac && row % 2 == 1 -> win.card
+        else -> Color.Transparent
+    }
+    val textColor = if (selected && win.mac) Color.White else win.text
     Box(Modifier.fillMaxWidth()) {
         Row(
             Modifier
                 .fillMaxWidth()
                 .height(height)
-                .background(if (selected) win.select else Color.Transparent)
+                .background(rowBg)
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -327,17 +328,17 @@ fun TableRow(
             Row(Modifier.fillMaxHeight().horizontalScroll(h)) {
                 cols.forEachIndexed { i, c ->
                     val cell = cells.getOrNull(i) ?: Cell("")
-                    val bg = if (!selected && cell.heat != null) win.heat(cell.heat) else Color.Transparent
+                    val bg = if (!selected && !win.mac && cell.heat != null) win.heat(cell.heat) else Color.Transparent
                     Row(
                         Modifier.width(c.width).fillMaxHeight().padding(start = 1.dp).background(bg).padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = if (c.end) Arrangement.End else Arrangement.Start,
                     ) {
                         if (cell.icon != null) {
-                            Icon(cell.icon, null, tint = cell.iconTint ?: win.sub, modifier = Modifier.size(16.dp))
+                            Icon(cell.icon, null, tint = if (selected && win.mac) Color.White else (cell.iconTint ?: win.sub), modifier = Modifier.size(16.dp))
                             if (cell.text.isNotEmpty()) Spacer(Modifier.width(4.dp))
                         }
-                        Text(cell.text, fontSize = 12.5.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(cell.text, fontSize = 12.5.sp, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }

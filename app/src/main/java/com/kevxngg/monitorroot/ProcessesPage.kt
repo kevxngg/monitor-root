@@ -3,6 +3,7 @@ package com.kevxngg.monitorroot
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -204,13 +205,15 @@ fun ProcessesPage(
                     EmptyText(if (query.isBlank()) tr("Cargando procesos…") else tr("Ningún proceso coincide con “%s”.", query))
                 }
                 LazyColumn(Modifier.fillMaxSize()) {
+                    var rowIndex = 0
                     groups.forEach { (title, rows) ->
                         if (rows.isEmpty()) return@forEach
                         if (title.isNotEmpty()) item(key = "g:$title") { GroupTitle("${tr(title)} (${rows.size})") }
                         rows.forEach { r ->
+                            val ri = rowIndex++
                             item(key = r.key) {
                                 TableRow(
-                                    nameW, cols, cells(r), h,
+                                    nameW, cols, cells(r), h, row = ri,
                                     selected = selKey == r.key,
                                     onClick = { selKey = r.key },
                                     onLongClick = { selKey = r.key; menuKey = r.key },
@@ -230,10 +233,10 @@ fun ProcessesPage(
                                 }
                             }
                             if (r.procs.size > 1 && r.key in expanded) {
-                                items(r.procs.sortedByDescending { it.cpu }, key = { "child:${it.pid}" }) { p ->
+                                itemsIndexed(r.procs.sortedByDescending { it.cpu }, key = { _, p -> "child:${p.pid}" }) { ci, p ->
                                     val cr = childRow(p)
                                     TableRow(
-                                        nameW, cols, cells(cr), h,
+                                        nameW, cols, cells(cr), h, row = ci,
                                         selected = selKey == cr.key,
                                         onClick = { selKey = cr.key },
                                         onLongClick = { selKey = cr.key; menuKey = cr.key },

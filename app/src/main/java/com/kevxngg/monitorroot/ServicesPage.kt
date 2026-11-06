@@ -3,6 +3,7 @@ package com.kevxngg.monitorroot
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -195,8 +196,9 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
                     EmptyText(tr("Leyendo servicios…"))
                 } else {
                     LazyColumn(Modifier.fillMaxSize()) {
-                        items(rows, key = { it.key }) { sv ->
+                        itemsIndexed(rows, key = { _, sv -> sv.key }) { i, sv ->
                             TableRow(
+                                row = i,
                                 nameW, cols,
                                 listOf(
                                     Cell(sv.pid?.toString() ?: ""),

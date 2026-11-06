@@ -162,24 +162,18 @@ private fun MacSearch(query: String, onQuery: (String) -> Unit, modifier: Modifi
 @Composable
 private fun MacStatusBar(s: Snapshot, page: Page) {
     val win = LocalWin.current
-    val items: List<Pair<String, String>> = when (page) {
-        Page.PERFORMANCE, Page.PROCESSES, Page.DETAILS -> listOf(
-            tr("CPU") to "%.0f%%".format(s.cpuTotal),
-            tr("Memoria") to "${s.mem.usedPct.toInt()}%",
-            tr("Procesos") to "${s.processes.size}",
-            tr("Subprocesos") to "${s.threads}",
-        )
-        Page.SERVICES -> listOf(tr("Procesos") to "${s.processes.size}")
-        Page.USERS -> listOf(tr("Procesos") to "${s.processes.size}")
-        else -> listOf(
-            tr("CPU") to "%.0f%%".format(s.cpuTotal),
-            tr("Memoria") to "${s.mem.usedPct.toInt()}%",
-        )
-    }
+    val items: List<Pair<String, String>> = listOf(
+        tr("CPU") to "%.0f%%".format(s.cpuTotal),
+        tr("Memoria") to "${s.mem.usedPct.toInt()}%",
+        tr("Procesos") to "${s.processes.size}",
+        tr("Subprocesos") to "${s.threads}",
+    )
+    // Con scroll horizontal para que no se corte ningún total en pantallas estrechas
     Row(
         Modifier
             .fillMaxWidth()
             .background(win.mica)
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
         verticalAlignment = Alignment.CenterVertically,
