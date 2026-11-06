@@ -83,11 +83,6 @@ private fun MacTitleBar(query: String, onQuery: (String) -> Unit, page: Page, on
             Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Los tres círculos del Monitor de Actividad (decorativos)
-            listOf(Color(0xFFFF5F57), Color(0xFFFEBC2E), Color(0xFF28C840)).forEach { c ->
-                Box(Modifier.padding(end = 8.dp).size(12.dp).clip(CircleShape).background(c))
-            }
-            Spacer(Modifier.width(6.dp))
             Column(Modifier.weight(1f)) {
                 Text("Monitor de Actividad", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
                 Text(tr(page.title), fontSize = 11.sp, color = win.sub)

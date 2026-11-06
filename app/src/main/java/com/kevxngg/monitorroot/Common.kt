@@ -113,7 +113,7 @@ object Prefs {
     var theme by mutableIntStateOf(0)        // 0 sistema, 1 claro, 2 oscuro, 3 negro puro
     var uiStyle by mutableIntStateOf(0)      // 0 Windows 11, 1 macOS
     var startPage by mutableIntStateOf(0)
-    var speed by mutableIntStateOf(1)        // 0 alta, 1 normal, 2 baja, 3 pausa
+    var speed by mutableIntStateOf(1)        // 0 alta, 1 normal, 2 baja, 3 pausa, 4 en vivo
     var groupByType by mutableStateOf(true)
     var showPackageNames by mutableStateOf(false)
     var efficiency by mutableStateOf(setOf<String>())
@@ -227,6 +227,7 @@ object Prefs {
         0 -> 500L
         2 -> 4000L
         3 -> -1L
+        4 -> 200L   // "En vivo": muestreo rápido para un barrido continuo (estilo macOS)
         else -> 1000L
     }
 }

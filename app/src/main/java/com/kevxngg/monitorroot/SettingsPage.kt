@@ -85,6 +85,8 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 WinDropdown(UiStyles.NAMES, Prefs.uiStyle.coerceIn(0, UiStyles.NAMES.size - 1)) {
                     if (it != Prefs.uiStyle) {
                         Prefs.uiStyle = it
+                        // macOS estrena con muestreo en vivo; Windows vuelve a normal
+                        Prefs.speed = if (it == UiStyles.MACOS) 4 else 1
                         Prefs.save()
                         (ctx as? android.app.Activity)?.recreate()
                     }
@@ -104,7 +106,7 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 }
             }
             SettingCard(Icons.Outlined.Speed, tr("Velocidad de actualización en tiempo real"), tr("Cada cuánto se actualizan los datos")) {
-                WinDropdown(listOf(tr("Alta (0,5 s)"), tr("Normal (1 s)"), tr("Baja (4 s)"), tr("En pausa")), Prefs.speed) {
+                WinDropdown(listOf(tr("Alta (0,5 s)"), tr("Normal (1 s)"), tr("Baja (4 s)"), tr("En pausa"), tr("En vivo")), Prefs.speed) {
                     Prefs.speed = it; Prefs.save()
                 }
             }

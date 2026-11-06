@@ -21,7 +21,7 @@ object UiStyles {
     }
 
     private val MAC_LIGHT = LightWin.copy(
-        mac = true, radiusScale = 0f,
+        mac = true, radiusScale = 1f,
         mica = Color(0xFFECECEC),
         content = Color(0xFFFFFFFF),
         card = Color(0xFFF6F6F6),
@@ -34,7 +34,7 @@ object UiStyles {
         accent = Color(0xFF0A6CFF),
     )
     private val MAC_DARK = DarkWin.copy(
-        mac = true, radiusScale = 0f,
+        mac = true, radiusScale = 1f,
         mica = Color(0xFF232323),
         content = Color(0xFF1E1E1E),
         card = Color(0xFF282828),

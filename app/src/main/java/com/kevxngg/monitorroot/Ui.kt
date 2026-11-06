@@ -77,7 +77,9 @@ fun TaskGraph(
         base.value = values.dropLast(1)
         prev.value = if (base.value.isNotEmpty()) base.value.last() else target
         phase.snapTo(0f)
-        phase.animateTo(1f, tween(durationMillis = 1000, easing = LinearEasing))
+        // El avance dura lo mismo que el intervalo de muestreo, para un barrido sin saltos
+        val ms = Prefs.refreshMs().let { if (it < 0) 1000L else it }.toInt()
+        phase.animateTo(1f, tween(durationMillis = ms, easing = LinearEasing))
     }
 
     // Construye la lista a dibujar: historial fijo + último punto que sube/baja y entra desde la derecha
@@ -106,14 +108,26 @@ fun TaskGraph(
         fun pathFor(v: List<Float>, asFill: Boolean): Path? {
             if (v.size < 2) return null
             val p = Path()
-            v.forEachIndexed { i, value ->
-                val x = w - (v.size - 1 - i) * step - dx
-                val y = h * (1f - (value / top).coerceIn(0f, 1f))
-                if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
+            fun px(i: Int) = w - (v.size - 1 - i) * step - dx
+            fun py(value: Float) = h * (1f - (value / top).coerceIn(0f, 1f))
+            p.moveTo(px(0), py(v[0]))
+            // Curva suave (Catmull-Rom → Bézier): la línea no tiene picos duros, como en macOS
+            for (i in 0 until v.size - 1) {
+                val x0 = px(i); val y0 = py(v[i])
+                val x1 = px(i + 1); val y1 = py(v[i + 1])
+                val xp = if (i > 0) px(i - 1) else x0
+                val yp = if (i > 0) py(v[i - 1]) else y0
+                val xn = if (i + 2 < v.size) px(i + 2) else x1
+                val yn = if (i + 2 < v.size) py(v[i + 2]) else y1
+                val c1x = x0 + (x1 - xp) / 6f
+                val c1y = y0 + (y1 - yp) / 6f
+                val c2x = x1 - (xn - x0) / 6f
+                val c2y = y1 - (yn - y0) / 6f
+                p.cubicTo(c1x, c1y, c2x, c2y, x1, y1)
             }
             if (asFill) {
-                p.lineTo(w, h)
-                p.lineTo(w - (v.size - 1) * step - dx, h)
+                p.lineTo(px(v.size - 1), h)
+                p.lineTo(px(0), h)
                 p.close()
             }
             return p
