@@ -213,6 +213,11 @@ fun Shell() {
     BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
         val compact = maxWidth < 600.dp
         CompositionLocalProvider(LocalCompact provides compact) {
+            if (win.mac) {
+                MacShell(snap, hist, query, { query = it }, page, { page = it }, focusPid, { focusPid = it }, { latestInfo = it }) { runOpen = true }
+                MacDialogs(runOpen, { runOpen = false }, update, required, { update = null })
+                return@CompositionLocalProvider
+            }
             Column(Modifier.fillMaxSize()) {
                 TitleBar(query, { query = it })
                 Box(Modifier.weight(1f).fillMaxWidth()) {
