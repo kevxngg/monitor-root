@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.launch
@@ -66,32 +67,34 @@ fun TaskGraph(
     val win = LocalWin.current
     val fillAlpha = if (win.dark) 0.35f else 0.18f
 
-    // Monitor de signos vitales: un bucle de animación propio corre a la tasa de
-    // refresco de la pantalla (60/90 Hz) e interpola suavemente los valores mostrados
-    // hacia los últimos datos. Así la línea fluye aunque el dato real llegue más lento.
-    val shownState = remember { mutableStateOf(values) }
-    val latest = rememberUpdatedState(values)
+    // Monitor de signos vitales: la línea se desliza de derecha a izquierda de forma
+    // continua (barrido), a 60/90 fps. Cada vez que llega un dato nuevo, entra por el
+    // borde derecho y el resto se desplaza sin saltos.
+    val data = rememberUpdatedState(values)
+    var sweep by remember { mutableFloatStateOf(1f) }   // 0..1: cuánto ha avanzado el último paso
+    var lastSize by remember { mutableStateOf(values.size) }
+    var lastValue by remember { mutableStateOf(values.lastOrNull() ?: 0f) }
     LaunchedEffect(Unit) {
-        var cur = latest.value.toMutableList()
+        var prevFrame = 0L
+        // Tiempo estimado entre datos; se recalcula según la velocidad elegida
         while (true) {
-            withFrameNanos { }                        // espera al siguiente fotograma de la pantalla
-            val goal = latest.value
-            if (goal.isEmpty()) { cur = mutableListOf(); shownState.value = emptyList(); continue }
-            if (cur.size != goal.size) cur = goal.toMutableList()   // cambió el tamaño: sin interpolar
-            else {
-                // Acercar cada punto a su objetivo una fracción por fotograma (suavizado exponencial)
-                var moved = false
-                for (i in goal.indices) {
-                    val d = goal[i] - cur[i]
-                    if (kotlin.math.abs(d) > 0.05f) { cur[i] = cur[i] + d * 0.18f; moved = true }
-                    else cur[i] = goal[i]
+            withFrameNanos { frame ->
+                if (prevFrame != 0L) {
+                    val stepMs = Prefs.refreshMs().let { if (it < 0) 1000L else it }.coerceAtLeast(120L)
+                    sweep = (sweep + (frame - prevFrame) / 1_000_000f / stepMs).coerceAtMost(1f)
                 }
-                if (!moved) continue
+                prevFrame = frame
             }
-            shownState.value = cur.toList()
+            val v = data.value
+            // Dato nuevo: reinicia el barrido para que el nuevo punto entre desde la derecha
+            if (v.size != lastSize || (v.isNotEmpty() && v.last() != lastValue)) {
+                lastSize = v.size
+                lastValue = v.lastOrNull() ?: 0f
+                sweep = 0f
+            }
         }
     }
-    val shown = shownState.value
+    val shown = values
 
     Canvas(modifier) {
         val w = size.width
@@ -111,9 +114,11 @@ fun TaskGraph(
         fun pathFor(v: List<Float>, asFill: Boolean): Path? {
             if (v.size < 2) return null
             val p = Path()
-            // La línea ocupa todo el ancho; el punto más reciente queda pegado al borde derecho
-            val stepFull = w / (v.size - 1)
-            fun px(i: Int) = i * stepFull
+            // Paso fijo según la ventana completa (60 s). El barrido desplaza la línea a
+            // la izquierda de forma continua: el último punto entra desde el borde derecho.
+            val stepFull = w / (HISTORY - 1)
+            val shift = (1f - sweep) * stepFull
+            fun px(i: Int) = w - (v.size - 1 - i) * stepFull - shift
             fun py(value: Float) = h * (1f - (value / top).coerceIn(0f, 1f))
             p.moveTo(px(0), py(v[0]))
             // Curva suave (Catmull-Rom → Bézier): la línea no tiene picos duros, como en macOS
