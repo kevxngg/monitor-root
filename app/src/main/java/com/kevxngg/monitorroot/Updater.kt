@@ -29,8 +29,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.os.Build
-import androidx.core.content.pm.PackageInfoCompat
 import java.io.File
 import java.security.MessageDigest
 import java.net.HttpURLConnection
