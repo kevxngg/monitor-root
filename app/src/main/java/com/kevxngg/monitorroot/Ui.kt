@@ -64,33 +64,29 @@ fun TaskGraph(
     val win = LocalWin.current
     val fillAlpha = if (win.dark) 0.35f else 0.18f
 
-    // Monitor de signos vitales: la línea avanza de forma continua y suave.
-    // El último tramo se interpola con el reloj de la pantalla (60/90 Hz) mientras
-    // llega la próxima muestra, así no hay saltos de un segundo.
-    val target = if (values.isEmpty()) 0f else values.last()
-    val prev = remember { mutableStateOf(target) }
-    val phase = remember { Animatable(1f) }
-    val base = remember { mutableStateOf(values) }
-    LaunchedEffect(values.size, target) {
-        if (values.size < 2) { base.value = values; return@LaunchedEffect }
-        // Fijar el historial salvo el último punto, que entra animado
-        base.value = values.dropLast(1)
-        prev.value = if (base.value.isNotEmpty()) base.value.last() else target
-        phase.snapTo(0f)
-        // El avance dura lo mismo que el intervalo de muestreo, para un barrido sin saltos
+    // Monitor de signos vitales: la línea se queda pegada en su sitio y cada punto
+    // sube o baja suavemente hacia su nuevo valor, sin desplazarse en bloque (sin saltos).
+    val animated = remember { mutableStateListOf<Float>() }
+    LaunchedEffect(values.size, if (values.isEmpty()) 0f else values.last()) {
+        if (values.isEmpty()) { animated.clear(); return@LaunchedEffect }
+        if (animated.size != values.size) {           // primer dibujo o cambio de página: sin animar
+            animated.clear(); animated.addAll(values); return@LaunchedEffect
+        }
+        val from = animated.toList()
         val ms = Prefs.refreshMs().let { if (it < 0) 1000L else it }.toInt()
-        phase.animateTo(1f, tween(durationMillis = ms, easing = LinearEasing))
+        val anim = Animatable(0f)
+        anim.animateTo(1f, tween(durationMillis = ms, easing = LinearEasing)) {
+            for (i in values.indices) {
+                val a = from.getOrElse(i) { values[i] }
+                animated[i] = a + (values[i] - a) * value
+            }
+        }
     }
+    val shown = if (animated.isEmpty()) values else animated.toList()
 
-    // Construye la lista a dibujar: historial fijo + último punto que sube/baja y entra desde la derecha
-    val history = base.value
-    val lastVal = prev.value + (target - prev.value) * phase.value
-    val shown = history + lastVal
-    val enter = phase.value // 0..1 cuánto ha entrado el nuevo punto
     Canvas(modifier) {
         val w = size.width
         val h = size.height
-        val step = w / (HISTORY - 1)
         val top = if (max <= 0f) 1f else max
         if (grid) {
             val g = color.copy(alpha = if (win.dark) 0.22f else 0.14f)
@@ -103,12 +99,12 @@ fun TaskGraph(
                 drawLine(g, Offset(x, 0f), Offset(x, h), 1f)
             }
         }
-        // Desplazamiento continuo a la izquierda: el nuevo punto entra desde el borde derecho
-        val dx = (1f - enter) * step
         fun pathFor(v: List<Float>, asFill: Boolean): Path? {
             if (v.size < 2) return null
             val p = Path()
-            fun px(i: Int) = w - (v.size - 1 - i) * step - dx
+            // La línea ocupa todo el ancho; el punto más reciente queda pegado al borde derecho
+            val stepFull = w / (v.size - 1)
+            fun px(i: Int) = i * stepFull
             fun py(value: Float) = h * (1f - (value / top).coerceIn(0f, 1f))
             p.moveTo(px(0), py(v[0]))
             // Curva suave (Catmull-Rom → Bézier): la línea no tiene picos duros, como en macOS
