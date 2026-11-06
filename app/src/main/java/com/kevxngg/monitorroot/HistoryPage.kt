@@ -169,7 +169,6 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
                         itemsIndexed(rows, key = { _, r -> r.pkg }) { i, r ->
                             val cpu = cpuSec[r.pkg] ?: 0L
                             TableRow(
-                                row = i,
                                 nameW, cols,
                                 listOf(
                                     Cell(formatDuration(r.fgMs / 1000), heat = r.fgMs.toFloat() / maxFg),
@@ -193,6 +192,7 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                         ),
                                     )
                                 },
+                                row = i,
                             ) {
                                 AppIcon(r.icon, r.label)
                                 Spacer(Modifier.width(8.dp))

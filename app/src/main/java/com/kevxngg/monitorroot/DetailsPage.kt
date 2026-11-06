@@ -125,13 +125,13 @@ fun DetailsPage(
                 LazyColumn(Modifier.fillMaxSize(), state = listState) {
                     itemsIndexed(rows, key = { _, p -> p.pid }) { i, p ->
                         TableRow(
-                            row = i,
                             nameW, cols, cells(p), h,
                             selected = selPid == p.pid,
                             onClick = { selPid = p.pid },
                             onLongClick = { selPid = p.pid; menuPid = p.pid },
                             menu = { WinMenu(menuPid == p.pid, { menuPid = null }, menuFor(p)) },
                             height = 30.dp,
+                            row = i,
                         ) {
                             AppIcon(p.icon, p.name, 16.dp)
                             Spacer(Modifier.width(8.dp))

@@ -93,11 +93,10 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
             Column(Modifier.fillMaxSize()) {
                 TableHeader(tr("Usuario"), nameW, cols, h, "cpu", false) {}
                 LazyColumn(Modifier.fillMaxSize()) {
-                    groups.forEach { g ->
+                    groups.forEachIndexed { gi, g ->
                         item(key = "user:${g.id}") {
                             val open = g.id in expanded
                             TableRow(
-                                row = i,
                                 nameW, cols,
                                 listOf(
                                     Cell(tr("Activo")),
@@ -110,6 +109,7 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                 onClick = { selKey = "user:${g.id}" },
                                 onLongClick = { expanded = if (open) expanded - g.id else expanded + g.id },
                                 height = 40.dp,
+                                row = gi,
                             ) {
                                 Chevron(open, true) { expanded = if (open) expanded - g.id else expanded + g.id }
                                 Spacer(Modifier.width(4.dp))
@@ -135,6 +135,7 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                     selected = selKey == "u${g.id}:${r.key}",
                                     onClick = { selKey = "u${g.id}:${r.key}" },
                                     onLongClick = {},
+                                    row = i,
                                 ) {
                                     Spacer(Modifier.width(30.dp))
                                     AppIcon(r.icon, r.name, 16.dp)

@@ -198,7 +198,6 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
                     LazyColumn(Modifier.fillMaxSize()) {
                         itemsIndexed(rows, key = { _, sv -> sv.key }) { i, sv ->
                             TableRow(
-                                row = i,
                                 nameW, cols,
                                 listOf(
                                     Cell(sv.pid?.toString() ?: ""),
@@ -212,6 +211,7 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
                                 onLongClick = { selKey = sv.key; menuKey = sv.key },
                                 menu = { WinMenu(menuKey == sv.key, { menuKey = null }, menuFor(sv)) },
                                 height = 30.dp,
+                                row = i,
                             ) {
                                 Icon(
                                     if (sv.native) Icons.Outlined.Settings else Icons.Outlined.Extension,

@@ -158,7 +158,6 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                 else -> tr("Habilitado")
                             }
                             TableRow(
-                                row = i,
                                 nameW, cols,
                                 listOf(Cell(r.publisher), Cell(state), Cell(r.comps.size.toString())),
                                 h,
@@ -177,6 +176,7 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                         ),
                                     )
                                 },
+                                row = i,
                             ) {
                                 AppIcon(r.icon, r.label)
                                 Spacer(Modifier.width(8.dp))
