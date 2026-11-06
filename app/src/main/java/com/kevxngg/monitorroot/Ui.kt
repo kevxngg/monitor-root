@@ -67,30 +67,41 @@ fun TaskGraph(
     val win = LocalWin.current
     val fillAlpha = if (win.dark) 0.35f else 0.18f
 
-    // Monitor de signos vitales: la línea se desliza de derecha a izquierda de forma
-    // continua (barrido), a 60/90 fps. Cada vez que llega un dato nuevo, entra por el
-    // borde derecho y el resto se desplaza sin saltos.
-    val data = rememberUpdatedState(values)
-    var sweep by remember { mutableFloatStateOf(1f) }   // 0..1: cuánto ha avanzado el último paso
-    var lastSize by remember { mutableStateOf(values.size) }
-    var lastValue by remember { mutableStateOf(values.lastOrNull() ?: 0f) }
-    LaunchedEffect(Unit) {
-        var prevFrame = 0L
-        // Tiempo estimado entre datos; se recalcula según la velocidad elegida
-        while (true) {
-            withFrameNanos { frame ->
-                if (prevFrame != 0L) {
+    // --- Animación de la gráfica ---
+    // En Windows: sin animación de barrido (la lista se dibuja tal cual, como siempre).
+    // En macOS: comportamiento ECG. El historial avanza de derecha a izquierda a 60 fps
+    // con desplazamiento constante basado en el reloj; el muestreo sigue siendo cada 500 ms
+    // (o el que marque la velocidad). La fracción de desplazamiento del último paso se
+    // calcula por tiempo real, así que la línea nunca se detiene ni salta.
+    // sweep: avance continuo (0..1) del último paso. Nunca se detiene: el reloj lo mueve
+    // a velocidad constante y cada dato nuevo "consume" un paso completo (resta 1), de modo
+    // que el desplazamiento es siempre fluido aunque el dato llegue un poco antes o después.
+    var sweep by remember { mutableFloatStateOf(1f) }
+    if (win.mac) {
+        val data = rememberUpdatedState(values)
+        var lastSize by remember { mutableStateOf(values.size) }
+        var lastValue by remember { mutableStateOf(values.lastOrNull() ?: 0f) }
+        LaunchedEffect(Unit) {
+            var prevFrame = 0L
+            while (true) {
+                withFrameNanos { frame ->
+                    if (prevFrame == 0L) prevFrame = frame
                     val stepMs = Prefs.refreshMs().let { if (it < 0) 1000L else it }.coerceAtLeast(120L)
-                    sweep = (sweep + (frame - prevFrame) / 1_000_000f / stepMs).coerceAtMost(1f)
+                    // Avanza según el tiempo real del fotograma (60/90 fps), sin tope mientras no llegue el dato
+                    sweep += (frame - prevFrame) / 1_000_000f / stepMs
+                    prevFrame = frame
+                    val v = data.value
+                    val isNew = v.size != lastSize || (v.isNotEmpty() && v.last() != lastValue)
+                    if (isNew) {
+                        lastSize = v.size
+                        lastValue = v.lastOrNull() ?: 0f
+                        // Consumir un paso: el nuevo punto ya está en el historial, así que
+                        // restamos 1 en vez de reiniciar a 0 (continuidad perfecta, sin salto).
+                        sweep = (sweep - 1f).coerceIn(0f, 1f)
+                    }
+                    // Si el dato se retrasa, no pasar de 1 (la línea no se despega del borde)
+                    if (sweep > 1f) sweep = 1f
                 }
-                prevFrame = frame
-            }
-            val v = data.value
-            // Dato nuevo: reinicia el barrido para que el nuevo punto entre desde la derecha
-            if (v.size != lastSize || (v.isNotEmpty() && v.last() != lastValue)) {
-                lastSize = v.size
-                lastValue = v.lastOrNull() ?: 0f
-                sweep = 0f
             }
         }
     }
@@ -117,8 +128,10 @@ fun TaskGraph(
             // Paso fijo según la ventana completa (60 s). El barrido desplaza la línea a
             // la izquierda de forma continua: el último punto entra desde el borde derecho.
             val stepFull = w / (HISTORY - 1)
-            val shift = (1f - sweep) * stepFull
-            fun px(i: Int) = w - (v.size - 1 - i) * stepFull - shift
+            // En macOS la línea se desplaza; en Windows queda fija (comportamiento original)
+            val shift = if (win.mac) (1f - sweep) * stepFull else 0f
+            fun px(i: Int) = if (win.mac) w - (v.size - 1 - i) * stepFull - shift
+                             else i * (w / (v.size - 1))
             fun py(value: Float) = h * (1f - (value / top).coerceIn(0f, 1f))
             p.moveTo(px(0), py(v[0]))
             // Curva suave (Catmull-Rom → Bézier): la línea no tiene picos duros, como en macOS

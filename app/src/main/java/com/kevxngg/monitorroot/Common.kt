@@ -227,7 +227,7 @@ object Prefs {
         0 -> 500L
         2 -> 4000L
         3 -> -1L
-        4 -> 300L   // "En vivo": datos cada 300 ms; la gráfica fluye a 60 fps por su cuenta
+        4 -> 500L   // "En vivo": muestreo cada 500 ms; la gráfica se anima a 60 fps aparte (ECG)
         else -> 1000L
     }
 }
