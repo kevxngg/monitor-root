@@ -66,7 +66,16 @@ object QuickStats {
     class Data(
         val cpu: Int?, val cpuTemp: Float?, val gpu: Int?, val ram: Int?,
         val battTemp: Float?, val battLevel: Int?, val fps: Int?,
+        // Datos extra para el panel grande (todos opcionales)
+        val cpuMhz: Int? = null, val gpuMhz: Int? = null,
+        val ramUsedKb: Long? = null, val ramTotalKb: Long? = null,
+        val netUpKbs: Float? = null, val netDownKbs: Float? = null,
+        val stUsedKb: Long? = null, val stTotalKb: Long? = null,
     )
+
+    private var prevRx = -1L
+    private var prevTx = -1L
+    private var prevNetTime = 0L
 
     private fun zones(): List<String> {
         cpuZones?.let { return it }
@@ -206,6 +215,10 @@ object QuickStats {
             append("head -n 1 /proc/stat; echo @@; ")
             append("grep -H . /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/kernel/gpu/gpu_busy /sys/kernel/ged/hal/gpu_utilization; echo @@; ")
             append("grep -E '^(MemTotal|MemAvailable):' /proc/meminfo; echo @@; ")
+            append("cat /sys/devices/system/cpu/cpufreq/policy*/scaling_cur_freq 2>/dev/null; echo @@; ")
+            append("for g in /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqV2; do [ -e \"$g\" ] && cat \"$g\" && break; done; echo @@; ")
+            append("cat /proc/net/dev; echo @@; ")
+            append("df -k /data | tail -n 1; echo @@; ")
             append("cat /sys/class/power_supply/battery/temp /sys/class/power_supply/battery/capacity; echo @@; ")
             if (z.isNotEmpty()) append("cat ${z.joinToString(" ") { "$it/temp" }}; ")
             append("echo @@; ")
@@ -231,12 +244,42 @@ object QuickStats {
         }
         val total = mem["MemTotal"] ?: 0L
         val ram = if (total > 0) ((total - (mem["MemAvailable"] ?: 0L)) * 100 / total).toInt() else null
+        // Frecuencia de la CPU (la más alta de los clústeres, en MHz)
+        val cpuMhz = parts.getOrNull(3)?.lines().orEmpty().mapNotNull { it.trim().toLongOrNull() }
+            .maxOrNull()?.let { (it / 1000).toInt() }
+        // Frecuencia de la GPU (kHz o Hz según el driver)
+        val gpuMhz = parts.getOrNull(4)?.lines()?.firstOrNull()?.trim()?.toLongOrNull()?.let {
+            when { it > 10_000_000 -> (it / 1_000_000).toInt(); it > 10_000 -> (it / 1000).toInt(); else -> it.toInt() }
+        }
+        // Red: diferencia de bytes rx/tx entre lecturas → KB/s
+        var netUp: Float? = null; var netDown: Float? = null
+        run {
+            var rx = 0L; var tx = 0L
+            parts.getOrNull(5)?.lines().orEmpty().forEach { l ->
+                if (l.contains(':') && !l.contains("lo:")) {
+                    val f = l.substringAfter(':').trim().split(WS)
+                    rx += f.getOrNull(0)?.toLongOrNull() ?: 0L
+                    tx += f.getOrNull(8)?.toLongOrNull() ?: 0L
+                }
+            }
+            val now = SystemClock.elapsedRealtime()
+            if (prevRx >= 0 && now > prevNetTime) {
+                val dt = (now - prevNetTime) / 1000f
+                netDown = ((rx - prevRx) / 1024f / dt).coerceAtLeast(0f)
+                netUp = ((tx - prevTx) / 1024f / dt).coerceAtLeast(0f)
+            }
+            prevRx = rx; prevTx = tx; prevNetTime = now
+        }
+        // Almacenamiento (df -k /data): total y usado en KB
+        val df = parts.getOrNull(6)?.lines()?.firstOrNull()?.trim()?.split(WS)
+        val stTotal = df?.getOrNull(1)?.toLongOrNull()
+        val stUsed = df?.getOrNull(2)?.toLongOrNull()
         // Batería
-        val batt = parts.getOrNull(3)?.lines().orEmpty()
+        val batt = parts.getOrNull(7)?.lines().orEmpty()
         val battTemp = batt.getOrNull(0)?.trim()?.toFloatOrNull()?.div(10f)
         val battLevel = batt.getOrNull(1)?.trim()?.toIntOrNull()
         // Temperatura de la CPU (máxima de sus sensores, descartando valores imposibles)
-        val cpuTemp = parts.getOrNull(4)?.lines().orEmpty().mapNotNull { it.trim().toFloatOrNull() }
+        val cpuTemp = parts.getOrNull(8)?.lines().orEmpty().mapNotNull { it.trim().toFloatOrNull() }
             .map { if (abs(it) >= 1000f) it / 1000f else it }
             .filter { it > 0f && it < 125f }
             .maxOrNull()
@@ -245,10 +288,10 @@ object QuickStats {
         // disponibles, se usan los otros métodos.
         var fpsValue: Int? = null
         if (fps) {
-            val measured = parts.getOrNull(5)?.let { txt ->
+            val measured = parts.getOrNull(9)?.let { txt ->
                 Regex("fps:\\s*([\\d.]+)").findAll(txt).mapNotNull { it.groupValues[1].toFloatOrNull()?.toInt() }.maxOrNull()
             }?.takeIf { it > 0 }
-            val flips = parts.getOrNull(6)?.let { Regex("Parcel\\(([0-9a-fA-F]+)").find(it)?.groupValues?.get(1)?.toLongOrNull(16) }
+            val flips = parts.getOrNull(10)?.let { Regex("Parcel\\(([0-9a-fA-F]+)").find(it)?.groupValues?.get(1)?.toLongOrNull(16) }
             val now = SystemClock.elapsedRealtime()
             var flipFps: Int? = null
             if (flips != null && prevFlips >= 0 && now > prevFlipTime && flips >= prevFlips) {
@@ -260,7 +303,14 @@ object QuickStats {
             val screen = timeStatsFps()
             fpsValue = screen ?: listOfNotNull(layerFps(), flipFps?.takeIf { it > 0 }, measured).maxOrNull()
         }
-        return Data(cpu, cpuTemp, gpu, ram, battTemp, battLevel, fpsValue)
+        return Data(
+            cpu, cpuTemp, gpu, ram, battTemp, battLevel, fpsValue,
+            cpuMhz = cpuMhz, gpuMhz = gpuMhz,
+            ramUsedKb = if (total > 0) total - (mem["MemAvailable"] ?: 0L) else null,
+            ramTotalKb = total.takeIf { it > 0 },
+            netUpKbs = netUp, netDownKbs = netDown,
+            stUsedKb = stUsed?.let { it }, stTotalKb = stTotal,
+        )
     }
 }
 
