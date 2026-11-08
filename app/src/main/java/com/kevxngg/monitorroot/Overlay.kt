@@ -216,7 +216,7 @@ object QuickStats {
             append("grep -H . /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/kernel/gpu/gpu_busy /sys/kernel/ged/hal/gpu_utilization; echo @@; ")
             append("grep -E '^(MemTotal|MemAvailable):' /proc/meminfo; echo @@; ")
             append("cat /sys/devices/system/cpu/cpufreq/policy*/scaling_cur_freq 2>/dev/null; echo @@; ")
-            append("for g in /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqV2; do [ -e \"$g\" ] && cat \"$g\" && break; done; echo @@; ")
+            append("cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqV2 2>/dev/null | head -n 1; echo @@; ")
             append("cat /proc/net/dev; echo @@; ")
             append("df -k /data | tail -n 1; echo @@; ")
             append("cat /sys/class/power_supply/battery/temp /sys/class/power_supply/battery/capacity; echo @@; ")
