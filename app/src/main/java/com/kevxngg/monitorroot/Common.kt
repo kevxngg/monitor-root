@@ -124,6 +124,10 @@ object Prefs {
     var overlayStyle by mutableIntStateOf(0)    // 0 vertical, 1 horizontal
     var overlaySize by mutableIntStateOf(1)     // 0 pequeño, 1 normal, 2 grande
     var overlayOpacity by mutableIntStateOf(1)  // 0 baja, 1 media, 2 alta
+    // Panel flotante nuevo: estilo (0 completo, 1 compacto, 2 gamer, 3 retro), escala y minimizado
+    var panelStyle by mutableIntStateOf(0)
+    var panelScale by mutableFloatStateOf(1f)   // 0.7..1.4, se gradúa desde la esquina
+    var panelMinimized by mutableStateOf(false)
 
     // Modo juego
     var gameMode by mutableStateOf(false)
@@ -166,6 +170,9 @@ object Prefs {
         overlayStyle = p.getInt("ovStyle", 0)
         overlaySize = p.getInt("ovSize", 1)
         overlayOpacity = p.getInt("ovOpacity", 1)
+        panelStyle = p.getInt("panelStyle", 0)
+        panelScale = p.getFloat("panelScale", 1f)
+        panelMinimized = p.getBoolean("panelMin", false)
         gameMode = p.getBoolean("gmEnabled", false)
         games = p.getStringSet("gmGames", emptySet())?.toSet() ?: emptySet()
         gamePower = p.getInt("gmPower", 1)
@@ -200,6 +207,9 @@ object Prefs {
             ?.putInt("ovStyle", overlayStyle)
             ?.putInt("ovSize", overlaySize)
             ?.putInt("ovOpacity", overlayOpacity)
+            ?.putInt("panelStyle", panelStyle)
+            ?.putFloat("panelScale", panelScale)
+            ?.putBoolean("panelMin", panelMinimized)
             ?.putBoolean("gmEnabled", gameMode)
             ?.putStringSet("gmGames", games)
             ?.putInt("gmPower", gamePower)

@@ -314,61 +314,38 @@ object QuickStats {
     }
 }
 
-/** Mini gráfica del FPS de los últimos segundos (diseño "Gráfica"). */
-class OverlayGraph(ctx: Context) : View(ctx) {
-    var values: List<Int> = emptyList()
-        set(v) { field = v; invalidate() }
-    private val dp = ctx.resources.displayMetrics.density
-    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE; strokeWidth = 1.6f * dp; color = 0xFF60CDFF.toInt(); strokeJoin = Paint.Join.ROUND
-    }
-    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = 0x4460CDFF }
-    private val grid = Paint().apply { color = 0x22FFFFFF; strokeWidth = 1f }
-
-    override fun onMeasure(w: Int, h: Int) = setMeasuredDimension((150 * dp).toInt(), (34 * dp).toInt())
-
+/** Burbuja pequeña y translúcida a la que se minimiza el panel; se pega a los bordes. */
+class BubbleView(ctx: Context) : View(ctx) {
+    private val d = ctx.resources.displayMetrics.density
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun onMeasure(w: Int, h: Int) = setMeasuredDimension((44 * d).toInt(), (44 * d).toInt())
     override fun onDraw(c: Canvas) {
-        val w = width.toFloat()
-        val h = height.toFloat()
-        for (i in 1..3) c.drawLine(0f, h * i / 4f, w, h * i / 4f, grid)
-        if (values.size < 2) return
-        val top = maxOf(60, values.maxOrNull() ?: 60).toFloat()
-        val step = w / (MAX - 1)
-        val p = Path()
-        values.forEachIndexed { i, v ->
-            val x = w - (values.size - 1 - i) * step
-            val y = h - (v / top) * (h - 2 * dp) - dp
-            if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
-        }
-        val area = Path(p).apply {
-            lineTo(w, h); lineTo(w - (values.size - 1) * step, h); close()
-        }
-        c.drawPath(area, fill)
-        c.drawPath(p, line)
+        val r = width / 2f
+        p.style = Paint.Style.FILL; p.color = 0xCC0E1420.toInt()
+        c.drawCircle(r, r, r - d, p)
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1.5f * d; p.color = 0xFF3FA9FF.toInt()
+        c.drawCircle(r, r, r - d, p)
+        // "M" de Monitor
+        p.style = Paint.Style.FILL; p.color = 0xFF3FA9FF.toInt()
+        p.textAlign = Paint.Align.CENTER; p.textSize = 20 * d; p.typeface = Typeface.DEFAULT_BOLD
+        c.drawText("M", r, r + 7 * d, p)
     }
-
-    companion object { const val MAX = 40 }
 }
 
-/** Ventana flotante con CPU, GPU, RAM, temperaturas y FPS encima de cualquier app. */
+/** Ventana flotante: panel con 4 estilos, redimensionable y minimizable a una burbuja. */
 class OverlayService : Service() {
     private var wm: WindowManager? = null
-    private var root: LinearLayout? = null
-    private var label: TextView? = null
-    private var graph: OverlayGraph? = null
+    private var panel: PanelView? = null
+    private var bubble: BubbleView? = null
     private var lp: WindowManager.LayoutParams? = null
     private var last: QuickStats.Data? = null
-    private val fpsHistory = ArrayList<Int>()
     @Volatile private var alive = false
     private val main = Handler(Looper.getMainLooper())
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
+        if (intent?.action == ACTION_STOP) { stopSelf(); return START_NOT_STICKY }
         return START_STICKY
     }
 
@@ -380,24 +357,17 @@ class OverlayService : Service() {
             this, NOTIF_ID, notification(),
             if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0,
         )
-        if (!Settings.canDrawOverlays(this)) {
-            stopSelf()
-            return
-        }
-        addView()
+        if (!Settings.canDrawOverlays(this)) { stopSelf(); return }
+        if (Prefs.panelMinimized) showBubble() else showPanel()
         alive = true
         OverlayState.running = true
         Thread {
             while (alive) {
-                val d = try {
-                    if (RootShell.open()) QuickStats.read(fps = true) else null
-                } catch (_: Exception) {
-                    null
-                }
-                main.post { show(d) }
+                val d = try { if (RootShell.open()) QuickStats.read(fps = true) else null } catch (_: Exception) { null }
+                last = d
+                main.post { panel?.data = d }
                 SystemClock.sleep(1000)
             }
-            // Al cerrar se apagan las estadísticas de SurfaceFlinger
             try { QuickStats.stopTimeStats() } catch (_: Exception) {}
         }.start()
     }
@@ -405,297 +375,183 @@ class OverlayService : Service() {
     override fun onDestroy() {
         alive = false
         OverlayState.running = false
-        root?.let { v -> try { wm?.removeView(v) } catch (_: Exception) {} }
-        root = null
+        removeViews()
         TileService.requestListeningState(this, ComponentName(this, MonitorTileService::class.java))
         super.onDestroy()
     }
 
-    /** Al girar la pantalla, la ventana se recoloca para quedar siempre visible. */
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        main.postDelayed({ placeFromFractions() }, 150)
+        main.postDelayed({ clampToScreen() }, 150)
     }
 
     private fun prefs() = getSharedPreferences("prefs", Context.MODE_PRIVATE)
+    private fun alpha() = when (prefs().getInt("ovOpacity", 1)) { 0 -> 0x99; 2 -> 0xF2; else -> 0xD8 }
 
-    private fun style() = prefs().getInt("ovStyle", 0).coerceIn(0, STYLES - 1)
-
-    // ---- Colores según la carga: verde, amarillo o rojo ----
-    private fun loadColor(v: Int?) = when {
-        v == null -> WHITE
-        v < 60 -> GREEN
-        v < 85 -> AMBER
-        else -> RED
+    private fun removeViews() {
+        panel?.let { try { wm?.removeView(it) } catch (_: Exception) {} }; panel = null
+        bubble?.let { try { wm?.removeView(it) } catch (_: Exception) {} }; bubble = null
     }
 
-    private fun tempColor(t: Float?) = when {
-        t == null -> WHITE
-        t < 45f -> GREEN
-        t < 60f -> AMBER
-        else -> RED
-    }
+    private fun baseParams() = WindowManager.LayoutParams(
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+        PixelFormat.TRANSLUCENT,
+    ).apply { gravity = Gravity.TOP or Gravity.START }
 
-    private fun fpsColor(f: Int?) = when {
-        f == null -> WHITE
-        f >= 50 -> ACCENT
-        f >= 30 -> AMBER
-        else -> RED
-    }
-
-    /** Arma el texto del diseño elegido. */
-    private fun build(d: QuickStats.Data?, style: Int): CharSequence {
-        val sb = SpannableStringBuilder()
-        fun span(text: String, color: Int, vararg extra: Any) {
-            val start = sb.length
-            sb.append(text)
-            sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            extra.forEach { sb.setSpan(it, start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE) }
-        }
-        if (d == null) {
-            span("Monitor  ", WHITE)
-            span(tr("Sin acceso root"), RED)
-            return sb
-        }
-        fun pct(v: Int?) = v?.let { "$it%" } ?: "—"
-        fun deg(t: Float?) = t?.let { "%.0f°".format(it) } ?: "—"
-        val fpsText = d.fps?.toString() ?: "—"
-        fun bigFps(scale: Float) {
-            span(fpsText, fpsColor(d.fps), RelativeSizeSpan(scale), StyleSpan(Typeface.BOLD))
-            span(" FPS", LABEL)
-        }
-        when (style) {
-            // Completo (vertical)
-            0 -> {
-                bigFps(1.7f)
-                listOf(Triple("CPU", d.cpu, d.cpuTemp), Triple("GPU", d.gpu, null), Triple("RAM", d.ram, null), Triple("BAT", d.battLevel, d.battTemp))
-                    .forEach { (name, v, t) ->
-                        sb.append("\n")
-                        span("$name ", LABEL)
-                        span(pct(v).padEnd(4), if (name == "BAT") WHITE else loadColor(v))
-                        if (t != null) span(" " + deg(t), tempColor(t))
-                    }
-            }
-            // Horizontal (una línea)
-            1 -> {
-                bigFps(1.25f)
-                span("  │ ", DIM); span("CPU ", LABEL); span(pct(d.cpu), loadColor(d.cpu)); span(" " + deg(d.cpuTemp), tempColor(d.cpuTemp))
-                span("  │ ", DIM); span("GPU ", LABEL); span(pct(d.gpu), loadColor(d.gpu))
-                span("  │ ", DIM); span("RAM ", LABEL); span(pct(d.ram), loadColor(d.ram))
-                span("  │ ", DIM); span("BAT ", LABEL); span(pct(d.battLevel), WHITE); span(" " + deg(d.battTemp), tempColor(d.battTemp))
-            }
-            // Compacto: FPS, CPU y temperatura
-            2 -> {
-                bigFps(1.25f)
-                span("  ", LABEL); span(pct(d.cpu), loadColor(d.cpu))
-                span("  ", LABEL); span(deg(d.cpuTemp), tempColor(d.cpuTemp))
-            }
-            // Solo FPS
-            3 -> {
-                span(fpsText, fpsColor(d.fps), RelativeSizeSpan(2.2f), StyleSpan(Typeface.BOLD))
-                span("\nFPS", LABEL, RelativeSizeSpan(0.85f))
-            }
-            // Gráfica: FPS + CPU/GPU debajo de la mini gráfica
-            else -> {
-                bigFps(1.5f)
-                span("   CPU ", LABEL); span(pct(d.cpu), loadColor(d.cpu))
-                span("  GPU ", LABEL); span(pct(d.gpu), loadColor(d.gpu))
-            }
-        }
-        return sb
-    }
-
-    /** Aplica diseño, tamaño y opacidad elegidos. */
-    private fun applyLook(style: Int) {
-        val tv = label ?: return
-        val p = prefs()
-        val size = p.getInt("ovSize", 1)
-        val opacity = p.getInt("ovOpacity", 1)
-        val dp = resources.displayMetrics.density
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, when (size) { 0 -> 9.5f; 2 -> 13.5f; else -> 11f })
-        tv.gravity = if (style == 3) Gravity.CENTER else Gravity.START
-        tv.typeface = if (style == 3) Typeface.DEFAULT_BOLD else Typeface.MONOSPACE
-        val alpha = when (opacity) { 0 -> 0x80; 2 -> 0xF0; else -> 0xC0 }
-        (root?.background as? GradientDrawable)?.setColor((alpha shl 24) or 0x161616)
-        val pad = when (size) { 0 -> 7; 2 -> 12; else -> 9 }
-        root?.setPadding((pad * 1.3f * dp).toInt(), (pad * dp).toInt(), (pad * 1.3f * dp).toInt(), (pad * dp).toInt())
-        graph?.visibility = if (style == 4) View.VISIBLE else View.GONE
-    }
-
-    private fun show(d: QuickStats.Data?) {
-        last = d
-        d?.fps?.let {
-            fpsHistory.add(it)
-            while (fpsHistory.size > OverlayGraph.MAX) fpsHistory.removeAt(0)
-        }
-        val style = style()
-        applyLook(style)
-        label?.text = build(d, style)
-        graph?.values = fpsHistory.toList()
-        root?.post { clampToScreen() }
-    }
-
-    // ---- Posición: se guarda como fracción de la pantalla para que sirva en vertical y horizontal ----
-    private fun screen(): Pair<Int, Int> {
-        val m = resources.displayMetrics
-        return m.widthPixels to m.heightPixels
-    }
-
-    private fun clampToScreen() {
-        val v = root ?: return
-        val p = lp ?: return
-        val (w, h) = screen()
-        val maxX = (w - v.width).coerceAtLeast(0)
-        val maxY = (h - v.height).coerceAtLeast(0)
-        val x = p.x.coerceIn(0, maxX)
-        val y = p.y.coerceIn(0, maxY)
-        if (x != p.x || y != p.y) {
-            p.x = x; p.y = y
-            try { wm?.updateViewLayout(v, p) } catch (_: Exception) {}
-        }
-    }
-
-    private fun saveFractions() {
-        val v = root ?: return
-        val p = lp ?: return
-        val (w, h) = screen()
-        val fx = if (w - v.width > 0) p.x.toFloat() / (w - v.width) else 0f
-        val fy = if (h - v.height > 0) p.y.toFloat() / (h - v.height) else 0f
-        prefs().edit().putFloat("overlayFx", fx.coerceIn(0f, 1f)).putFloat("overlayFy", fy.coerceIn(0f, 1f)).apply()
-    }
-
-    private fun placeFromFractions() {
-        val v = root ?: return
-        val p = lp ?: return
-        val (w, h) = screen()
-        p.x = (prefs().getFloat("overlayFx", 0.03f) * (w - v.width).coerceAtLeast(0)).toInt()
-        p.y = (prefs().getFloat("overlayFy", 0.12f) * (h - v.height).coerceAtLeast(0)).toInt()
-        try { wm?.updateViewLayout(v, p) } catch (_: Exception) {}
-    }
-
-    /** Toque: siguiente diseño. Mantener presionado: abrir Monitor Root. Arrastrar: mover. */
-    private fun nextStyle() {
-        val next = (style() + 1) % STYLES
-        prefs().edit().putInt("ovStyle", next).apply()
-        Prefs.overlayStyle = next
-        show(last)
-        root?.post { clampToScreen(); saveFractions() }
-    }
-
+    // ---------- Panel ----------
     @SuppressLint("ClickableViewAccessibility")
-    private fun addView() {
-        val manager = getSystemService(WindowManager::class.java)
-        wm = manager
-        val dp = resources.displayMetrics.density
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = GradientDrawable().apply {
-                cornerRadius = 14 * dp
-                setColor(0xC0161616.toInt())
-                setStroke((1 * dp).toInt(), 0x6660CDFF)
-            }
+    private fun showPanel() {
+        removeViews()
+        val manager = getSystemService(WindowManager::class.java); wm = manager
+        val v = PanelView(this).apply {
+            scale = Prefs.panelScale.coerceIn(0.7f, 1.5f)
+            style = Prefs.panelStyle.coerceIn(0, 3)
+            bgAlpha = alpha()
+            data = last
         }
-        val tv = TextView(this).apply {
-            typeface = Typeface.MONOSPACE
-            setTextColor(WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-            setLineSpacing(0f, 1.1f)
-            setShadowLayer(2f, 0f, 1f, 0xAA000000.toInt())
-            text = "Monitor"
-        }
-        val g = OverlayGraph(this).apply {
-            visibility = View.GONE
-            setPadding(0, (4 * dp).toInt(), 0, 0)
-        }
-        box.addView(tv)
-        box.addView(g)
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT,
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = (16 * dp).toInt()
-            y = (120 * dp).toInt()
-        }
+        val params = baseParams()
         lp = params
-
+        placeFromFractions(params, v)
         val slop = ViewConfiguration.get(this).scaledTouchSlop
-        var startX = 0
-        var startY = 0
-        var touchX = 0f
-        var touchY = 0f
-        var dragging = false
-        var longPressed = false
-        val longPress = Runnable {
-            longPressed = true
-            try {
-                startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            } catch (_: Exception) {}
-        }
-        box.setOnTouchListener { v, e ->
+        var startX = 0; var startY = 0; var touchX = 0f; var touchY = 0f
+        var dragging = false; var resizing = false; var startScale = 1f
+        v.setOnTouchListener { view, e ->
             when (e.action) {
                 MotionEvent.ACTION_DOWN -> {
                     startX = params.x; startY = params.y; touchX = e.rawX; touchY = e.rawY
-                    dragging = false; longPressed = false
-                    main.postDelayed(longPress, 600)
+                    dragging = false; startScale = v.scale
+                    // Esquina inferior derecha (~32dp) = redimensionar
+                    val corner = 36 * resources.displayMetrics.density
+                    resizing = e.x > view.width - corner && e.y > view.height - corner
+                    // Esquina superior derecha (~36dp) = minimizar
+                    if (!resizing && e.x > view.width - corner && e.y < corner) {
+                        minimize(); return@setOnTouchListener true
+                    }
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = e.rawX - touchX
-                    val dy = e.rawY - touchY
-                    if (!dragging && (abs(dx) > slop || abs(dy) > slop)) {
-                        dragging = true
-                        main.removeCallbacks(longPress)
-                    }
-                    if (dragging) {
-                        params.x = startX + dx.toInt()
-                        params.y = startY + dy.toInt()
-                        try { manager.updateViewLayout(v, params) } catch (_: Exception) {}
+                    val dx = e.rawX - touchX; val dy = e.rawY - touchY
+                    if (resizing) {
+                        val factor = 1f + (dx + dy) / (400f * resources.displayMetrics.density)
+                        v.scale = (startScale * factor).coerceIn(0.7f, 1.5f)
+                        v.requestLayout()
+                    } else {
+                        if (!dragging && (abs(dx) > slop || abs(dy) > slop)) dragging = true
+                        if (dragging) {
+                            params.x = startX + dx.toInt(); params.y = startY + dy.toInt()
+                            try { manager.updateViewLayout(view, params) } catch (_: Exception) {}
+                        }
                     }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    main.removeCallbacks(longPress)
-                    if (dragging) {
-                        clampToScreen()
-                        saveFractions()
-                    } else if (!longPressed) {
-                        nextStyle()
+                    if (resizing) { Prefs.panelScale = v.scale; Prefs.save() }
+                    else if (dragging) { clampToScreen(); saveFractions() }
+                    else {
+                        // Toque simple en la esquina superior izquierda del contenido = cambiar estilo
+                        if (e.x < 120 * resources.displayMetrics.density && e.y < 40 * resources.displayMetrics.density) nextStyle()
                     }
+                    resizing = false
                     true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    main.removeCallbacks(longPress); true
                 }
                 else -> false
             }
         }
-        manager.addView(box, params)
-        root = box
-        label = tv
-        graph = g
-        box.post { placeFromFractions() }
+        manager.addView(v, params)
+        panel = v
+        v.post { clampToScreen() }
+    }
+
+    private fun nextStyle() {
+        val next = (Prefs.panelStyle + 1) % 4
+        Prefs.panelStyle = next; Prefs.save()
+        panel?.let { it.style = next; it.requestLayout() }
+    }
+
+    // ---------- Burbuja ----------
+    @SuppressLint("ClickableViewAccessibility")
+    private fun showBubble() {
+        removeViews()
+        val manager = getSystemService(WindowManager::class.java); wm = manager
+        val v = BubbleView(this)
+        val params = baseParams()
+        lp = params
+        val m = resources.displayMetrics
+        params.x = prefs().getInt("bubbleX", 0)
+        params.y = prefs().getInt("bubbleY", (m.heightPixels * 0.3f).toInt())
+        val slop = ViewConfiguration.get(this).scaledTouchSlop
+        var startX = 0; var startY = 0; var touchX = 0f; var touchY = 0f; var dragging = false
+        v.setOnTouchListener { view, e ->
+            when (e.action) {
+                MotionEvent.ACTION_DOWN -> { startX = params.x; startY = params.y; touchX = e.rawX; touchY = e.rawY; dragging = false; true }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = e.rawX - touchX; val dy = e.rawY - touchY
+                    if (!dragging && (abs(dx) > slop || abs(dy) > slop)) dragging = true
+                    if (dragging) { params.x = startX + dx.toInt(); params.y = startY + dy.toInt(); try { manager.updateViewLayout(view, params) } catch (_: Exception) {} }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (dragging) {
+                        // Pegar al borde más cercano (izquierda o derecha)
+                        val maxX = m.widthPixels - view.width
+                        params.x = if (params.x + view.width / 2 < m.widthPixels / 2) 0 else maxX
+                        params.y = params.y.coerceIn(0, m.heightPixels - view.height)
+                        try { manager.updateViewLayout(view, params) } catch (_: Exception) {}
+                        prefs().edit().putInt("bubbleX", params.x).putInt("bubbleY", params.y).apply()
+                    } else expand()
+                    true
+                }
+                else -> false
+            }
+        }
+        manager.addView(v, params)
+        bubble = v
+    }
+
+    private fun minimize() { Prefs.panelMinimized = true; Prefs.save(); showBubble() }
+    private fun expand() { Prefs.panelMinimized = false; Prefs.save(); showPanel() }
+
+    // ---------- Posición ----------
+    private fun screen(): Pair<Int, Int> {
+        val m = resources.displayMetrics; return m.widthPixels to m.heightPixels
+    }
+
+    private fun clampToScreen() {
+        val v = panel ?: return; val params = lp ?: return
+        val (w, h) = screen()
+        params.x = params.x.coerceIn(0, (w - v.width).coerceAtLeast(0))
+        params.y = params.y.coerceIn(0, (h - v.height).coerceAtLeast(0))
+        try { wm?.updateViewLayout(v, params) } catch (_: Exception) {}
+    }
+
+    private fun saveFractions() {
+        val v = panel ?: return; val params = lp ?: return
+        val (w, h) = screen()
+        prefs().edit()
+            .putFloat("panelFx", if (w - v.width > 0) params.x.toFloat() / (w - v.width) else 0f)
+            .putFloat("panelFy", if (h - v.height > 0) params.y.toFloat() / (h - v.height) else 0f)
+            .apply()
+    }
+
+    private fun placeFromFractions(params: WindowManager.LayoutParams, v: View) {
+        val (w, h) = screen()
+        v.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+        params.x = (prefs().getFloat("panelFx", 0.04f) * (w - v.measuredWidth).coerceAtLeast(0)).toInt()
+        params.y = (prefs().getFloat("panelFy", 0.1f) * (h - v.measuredHeight).coerceAtLeast(0)).toInt()
     }
 
     private fun notification(): android.app.Notification {
         val nm = getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= 26) {
-            nm.createNotificationChannel(NotificationChannel(CHANNEL, tr("Monitor flotante"), NotificationManager.IMPORTANCE_LOW))
-        }
-        val stop = PendingIntent.getService(
-            this, 0, Intent(this, OverlayService::class.java).setAction(ACTION_STOP),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val open = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
-        )
+        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(CHANNEL, tr("Monitor flotante"), NotificationManager.IMPORTANCE_LOW))
+        val stop = PendingIntent.getService(this, 0, Intent(this, OverlayService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_fg)
             .setContentTitle(tr("Monitor flotante activo"))
-            .setContentText(tr("Toca el monitor para cambiar de diseño. Mantenlo presionado para abrir la app."))
+            .setContentText(tr("Toca la esquina para cambiar de diseño; minimiza con la esquina superior."))
             .setContentIntent(open)
             .addAction(0, tr("Cerrar"), stop)
             .setOngoing(true)
@@ -703,21 +559,12 @@ class OverlayService : Service() {
     }
 
     companion object {
-        const val STYLES = 5
-        private const val WHITE = 0xFFFFFFFF.toInt()
-        private const val LABEL = 0xFFA8A8A8.toInt()
-        private const val DIM = 0xFF5A5A5A.toInt()
-        private const val ACCENT = 0xFF60CDFF.toInt()
-        private const val GREEN = 0xFF6CCB5F.toInt()
-        private const val AMBER = 0xFFFCE100.toInt()
-        private const val RED = 0xFFFF6B6B.toInt()
         private const val CHANNEL = "overlay"
         private const val NOTIF_ID = 2001
         const val ACTION_STOP = "com.kevxngg.monitorroot.STOP_OVERLAY"
     }
 }
 
-/** Encender y apagar el monitor flotante. */
 object OverlayControl {
     /** Con root se concede el permiso de "mostrar sobre otras apps" sin ir a Ajustes. */
     fun ensurePermission(ctx: Context): Boolean {
