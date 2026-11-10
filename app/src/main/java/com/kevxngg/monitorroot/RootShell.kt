@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
  *  - HELPER: sin root, con el servicio "monitord" que trae la ROM (ver rom/port/)
  */
 object RootShell {
-    enum class Mode { NONE, ROOT, SYSTEM, HELPER }
+    enum class Mode { NONE, ROOT, SYSTEM, HELPER, SHIZUKU }
 
     @Volatile var mode = Mode.NONE
         private set
@@ -50,7 +50,7 @@ object RootShell {
                 mode = Mode.HELPER
                 return true
             }
-            return try {
+            val rooted = try {
                 val p = ProcessBuilder("su").start()
                 val w = OutputStreamWriter(p.outputStream)
                 process = p
@@ -66,6 +66,13 @@ object RootShell {
                 closeLocked()
                 false
             }
+            if (rooted) return true
+            // Sin root: usar Shizuku si está disponible y con permiso (acceso de solo lectura + finalizar apps)
+            if (ShizukuShell.available() && ShizukuShell.hasPermission()) {
+                mode = Mode.SHIZUKU
+                return true
+            }
+            return false
         }
     }
 
@@ -75,6 +82,10 @@ object RootShell {
             if (mode == Mode.HELPER) {
                 helperRun(cmd)?.let { return it }
                 mode = Mode.NONE  // el servicio se detuvo: se reelige modo la próxima vez
+            }
+            if (mode == Mode.SHIZUKU) {
+                ShizukuShell.run(cmd)?.let { return it }
+                mode = Mode.NONE  // Shizuku se detuvo: se reelige modo la próxima vez
             }
             if (process == null) return emptyList()
             return try {

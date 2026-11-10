@@ -1,5 +1,12 @@
 package com.kevxngg.monitorroot
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import android.graphics.Color as AColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -107,12 +114,42 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+private fun NoAccessScreen(onRetry: () -> Unit) {
+    val win = LocalWin.current
+    val ctx = LocalContext.current
+    Column(
+        Modifier.fillMaxSize().padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(tr("Sin acceso al sistema"), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+        Spacer(Modifier.height(10.dp))
+        Text(
+            tr("Monitor necesita root (Magisk, KernelSU…) para todas las funciones, o Shizuku para las de solo lectura."),
+            fontSize = 14.sp, color = win.sub, textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(24.dp))
+        if (ShizukuShell.available()) {
+            Button(onClick = {
+                if (ShizukuShell.hasPermission()) onRetry() else { ShizukuShell.requestPermission(); onRetry() }
+            }) { Text(tr("Usar Shizuku (sin root)")) }
+            Spacer(Modifier.height(8.dp))
+            Text(tr("Algunas funciones, como el modo de energía, seguirán necesitando root."), fontSize = 12.sp, color = win.sub, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(16.dp))
+        }
+        TextButton(onClick = onRetry) { Text(tr("Reintentar con root")) }
+    }
+}
+
+@Composable
 fun App() {
+    val ctx = LocalContext.current
     var hasRoot by remember { mutableStateOf<Boolean?>(null) }
-    LaunchedEffect(Unit) { hasRoot = withContext(Dispatchers.IO) { RootShell.open() } }
+    var tries by remember { mutableIntStateOf(0) }
+    LaunchedEffect(tries) { hasRoot = withContext(Dispatchers.IO) { RootShell.open() } }
     when (hasRoot) {
-        null -> CenterText(tr("Pidiendo acceso root…\nAcepta el aviso de Magisk / KernelSU."))
-        false -> CenterText(tr("No se obtuvo acceso root.\nDale permiso a la app en Magisk / KernelSU y vuelve a abrirla."))
+        null -> CenterText(tr("Conectando…\nAcepta el aviso de Magisk / KernelSU si aparece."))
+        false -> NoAccessScreen { tries++ }
         else -> Shell()
     }
 }
