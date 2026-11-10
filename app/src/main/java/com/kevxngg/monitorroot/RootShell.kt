@@ -55,7 +55,8 @@ object RootShell {
     /** Abre la shell: servicio de la ROM (sin root) o su, en ese orden. */
     fun open(): Boolean {
         synchronized(lock) {
-            if (mode == Mode.HELPER) return true
+            // Ya conectado: salida rápida (se llama a menudo, p. ej. cada segundo desde el flotante)
+            if (mode == Mode.HELPER || mode == Mode.SHIZUKU) return true
             if (process != null) return true
             if (helperRun("id")?.any { it.contains("uid=0") } == true) {
                 mode = Mode.HELPER
@@ -91,22 +92,40 @@ object RootShell {
     /** Ejecuta un comando (o script de varias líneas) y devuelve su salida. */
     fun run(cmd: String): List<String> {
         synchronized(lock) {
-            if (mode == Mode.HELPER) {
-                helperRun(cmd)?.let { return it }
-                mode = Mode.NONE  // el servicio se detuvo: se reelige modo la próxima vez
+            // Dos intentos: si la conexión se perdió (Shizuku reiniciado, su cerrado por
+            // tiempo, etc.), se reconecta sola en vez de dejar la app sin datos.
+            for (attempt in 0..1) {
+                when (mode) {
+                    Mode.HELPER -> {
+                        helperRun(cmd)?.let { return it }
+                        mode = Mode.NONE
+                    }
+                    Mode.SHIZUKU -> {
+                        ShizukuShell.run(cmd)?.let { return it }
+                        mode = Mode.NONE
+                    }
+                    else -> if (process != null) {
+                        try {
+                            return runLocked(cmd)
+                        } catch (e: Exception) {
+                            closeLocked()
+                        }
+                    }
+                }
+                if (attempt == 0 && !reconnectLocked()) return emptyList()
             }
-            if (mode == Mode.SHIZUKU) {
-                ShizukuShell.run(cmd)?.let { return it }
-                mode = Mode.NONE  // Shizuku se detuvo: se reelige modo la próxima vez
-            }
-            if (process == null) return emptyList()
-            return try {
-                runLocked(cmd)
-            } catch (e: Exception) {
-                closeLocked()
-                emptyList()
-            }
+            return emptyList()
         }
+    }
+
+    private var lastReconnect = 0L
+
+    /** Vuelve a abrir la conexión, como mucho una vez cada 5 s (para no saturar al gestor de root). */
+    private fun reconnectLocked(): Boolean {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastReconnect < 5000) return false
+        lastReconnect = now
+        return open()
     }
 
     fun close() {

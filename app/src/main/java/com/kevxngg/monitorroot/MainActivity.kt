@@ -214,7 +214,10 @@ fun App() {
                     error = tr("Shizuku no está activo: ábrelo e inícialo primero."); busy = false; return@launch
                 }
                 if (!ShizukuShell.hasPermission()) {
-                    ShizukuShell.requestPermission()
+                    if (!ShizukuShell.requestPermission()) {
+                        error = tr("Monitor tiene el permiso denegado en Shizuku. Ábrelo y permite Monitor en la lista de apps.")
+                        busy = false; return@launch
+                    }
                     // Esperar a que el usuario acepte el permiso en Shizuku (hasta 30 s)
                     var waited = 0
                     while (!ShizukuShell.hasPermission() && waited < 30_000) { delay(300); waited += 300 }

@@ -219,7 +219,7 @@ object QuickStats {
             append("cat /sys/devices/system/cpu/cpufreq/policy*/scaling_cur_freq 2>/dev/null; echo @@; ")
             append("cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqV2 2>/dev/null | head -n 1; echo @@; ")
             append("cat /proc/net/dev; echo @@; ")
-            append("df -k /data | tail -n 1; echo @@; ")
+            append("echo @@; ")  // (antes df: el almacenamiento ahora se lee con StatFs)
             append("cat /sys/class/power_supply/battery/temp /sys/class/power_supply/battery/capacity; echo @@; ")
             if (z.isNotEmpty()) append("cat ${z.joinToString(" ") { "$it/temp" }}; ")
             append("echo @@; ")
@@ -271,10 +271,10 @@ object QuickStats {
             }
             prevRx = rx; prevTx = tx; prevNetTime = now
         }
-        // Almacenamiento (df -k /data): total y usado en KB
-        val df = parts.getOrNull(6)?.lines()?.firstOrNull()?.trim()?.split(WS)
-        val stTotal = df?.getOrNull(1)?.toLongOrNull()
-        val stUsed = df?.getOrNull(2)?.toLongOrNull()
+        // Almacenamiento con la API de Android: exacto y no depende del formato de df
+        val stat = try { android.os.StatFs(android.os.Environment.getDataDirectory().path) } catch (e: Exception) { null }
+        val stTotal = stat?.totalBytes?.div(1024)?.takeIf { it > 0 }
+        val stUsed = stat?.let { (it.totalBytes - it.availableBytes) / 1024 }
         // Batería
         val batt = parts.getOrNull(7)?.lines().orEmpty()
         var battTemp = batt.getOrNull(0)?.trim()?.toFloatOrNull()?.div(10f)
@@ -368,8 +368,20 @@ class OverlayService : Service() {
             while (alive) {
                 val d = try { if (RootShell.open()) QuickStats.read(fps = true, ctx = applicationContext) else null } catch (_: Exception) { null }
                 last = d
-                main.post { panel?.data = d }
-                SystemClock.sleep(1000)
+                main.post {
+                    panel?.let { v ->
+                        // Diseño o transparencia cambiados en Configuración: se aplican sin reiniciar el servicio
+                        val st = Prefs.panelStyle.coerceIn(0, 3)
+                        val a = alpha()
+                        if (v.style != st || v.bgAlpha != a) {
+                            v.style = st; v.bgAlpha = a
+                            v.requestLayout(); v.invalidate()
+                        }
+                        v.data = d
+                    }
+                }
+                // Minimizado no se muestra nada: leer cada 5 s ahorra batería
+                SystemClock.sleep(if (panel == null) 5000 else 1000)
             }
             try { QuickStats.stopTimeStats() } catch (_: Exception) {}
         }.start()
@@ -385,7 +397,17 @@ class OverlayService : Service() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        main.postDelayed({ clampToScreen() }, 150)
+        main.postDelayed({ clampToScreen(); clampBubble() }, 150)
+    }
+
+    /** Mantiene la burbuja dentro de la pantalla y pegada a su borde (por ejemplo, al girar). */
+    private fun clampBubble() {
+        val v = bubble ?: return; val params = lp ?: return
+        val (w, h) = screen()
+        params.x = if (params.x + v.width / 2 < w / 2) 0 else (w - v.width).coerceAtLeast(0)
+        params.y = params.y.coerceIn(0, (h - v.height).coerceAtLeast(0))
+        try { wm?.updateViewLayout(v, params) } catch (_: Exception) {}
+        prefs().edit().putInt("bubbleX", params.x).putInt("bubbleY", params.y).apply()
     }
 
     private fun prefs() = getSharedPreferences("prefs", Context.MODE_PRIVATE)
@@ -431,7 +453,7 @@ class OverlayService : Service() {
                     resizing = e.x > view.width - corner && e.y > view.height - corner
                     // Esquina superior derecha (~36dp) = minimizar
                     if (!resizing && e.x > view.width - corner && e.y < corner) {
-                        minimize(); return@setOnTouchListener true
+                        main.post { minimize() }; return@setOnTouchListener true
                     }
                     true
                 }
@@ -512,6 +534,7 @@ class OverlayService : Service() {
         }
         manager.addView(v, params)
         bubble = v
+        v.post { clampBubble() }
     }
 
     private fun minimize() { Prefs.panelMinimized = true; Prefs.save(); showBubble() }

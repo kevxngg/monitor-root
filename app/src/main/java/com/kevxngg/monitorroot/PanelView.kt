@@ -156,6 +156,10 @@ class PanelView(ctx: Context) : View(ctx) {
         p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.4f); p.color = color; c.drawPath(path, p)
     }
 
+    /** Porcentaje de almacenamiento usado, o null si no se conoce el total (evita dividir entre 0). */
+    private fun stPct(d: QuickStats.Data?): Long? =
+        d?.stTotalKb?.takeIf { it > 0 }?.let { (d.stUsedKb ?: 0) * 100 / it }
+
     private fun gb(kb: Long?) = kb?.let { "%.1f".format(it / 1048576.0) } ?: "—"
 
     // ---------- Estilo 0: panel completo (Windows 11) ----------
@@ -192,8 +196,8 @@ class PanelView(ctx: Context) : View(ctx) {
         // fila inferior: almacenamiento, red, fps
         val rTop = cardTop + cardH + gap
         val rH = dp(60f); val rw = (width - pad * 2 - gap * 2) / 3
-        drawInfoCard(c, pad, rTop, pad + rw, rTop + rH, "Almacen.", if (d?.stTotalKb != null) "${(d.stUsedKb ?: 0) * 100 / d.stTotalKb}%" else "—",
-            d?.let { "${gb(it.stUsedKb)}/${gb(it.stTotalKb)} GB" } ?: "", (d?.stUsedKb?.toFloat() ?: 0f) / (d?.stTotalKb?.toFloat() ?: 1f))
+        drawInfoCard(c, pad, rTop, pad + rw, rTop + rH, "Almacen.", stPct(d)?.let { "$it%" } ?: "—",
+            d?.let { "${gb(it.stUsedKb)}/${gb(it.stTotalKb)} GB" } ?: "", (stPct(d) ?: 0L) / 100f)
         drawNetCard(c, pad + rw + gap, rTop, pad + rw * 2 + gap, rTop + rH, d)
         drawFpsCard(c, pad + rw * 2 + gap * 2, rTop, width - pad, rTop + rH, d)
     }
@@ -309,7 +313,7 @@ class PanelView(ctx: Context) : View(ctx) {
         val by = height - dp(22f)
         text(c, "FPS ${d?.fps ?: "—"}", dp(18f), by, 11f, cPurple, bold = true)
         text(c, "↓${net(d?.netDownKbs)}  ↑${net(d?.netUpKbs)}", dp(130f), by, 10f, cBlue)
-        text(c, if (d?.stTotalKb != null) "${(d.stUsedKb ?: 0) * 100 / d.stTotalKb}%" else "—", width - dp(18f), by, 11f, cGreen, bold = true, right = true)
+        text(c, stPct(d)?.let { "$it%" } ?: "—", width - dp(18f), by, 11f, cGreen, bold = true, right = true)
     }
 
     // ---------- Estilo 3: retro monocromo ----------
@@ -342,7 +346,7 @@ class PanelView(ctx: Context) : View(ctx) {
             }
         }
         // pie
-        text(c, "FPS: ${d?.fps ?: "—"}  |  NET ↑${net(d?.netUpKbs)} ↓${net(d?.netDownKbs)}  |  ST ${if (d?.stTotalKb != null) "${(d.stUsedKb ?: 0) * 100 / d.stTotalKb}%" else "—"}",
+        text(c, "FPS: ${d?.fps ?: "—"}  |  NET ↑${net(d?.netUpKbs)} ↓${net(d?.netDownKbs)}  |  ST ${stPct(d)?.let { "$it%" } ?: "—"}",
             pad, height - dp(12f), 9.5f, green, face = mono)
     }
 }

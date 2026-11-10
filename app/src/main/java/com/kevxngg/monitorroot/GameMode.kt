@@ -164,7 +164,7 @@ class GameModeService : Service() {
                     tick()
                 } catch (_: Exception) {
                 }
-                SystemClock.sleep(2000)
+                SystemClock.sleep(if (screenActive()) 2000 else 5000)
             }
         }.start()
     }
@@ -190,7 +190,20 @@ class GameModeService : Service() {
         return fg
     }
 
+    /** Pantalla encendida y desbloqueada (si no, no se está jugando). */
+    private fun screenActive(): Boolean {
+        val pm = getSystemService(android.os.PowerManager::class.java)
+        val km = getSystemService(android.app.KeyguardManager::class.java)
+        return (pm?.isInteractive ?: true) && !(km?.isKeyguardLocked ?: false)
+    }
+
     private fun tick() {
+        // Con la pantalla apagada o bloqueada se sale del modo juego: así el gobernador de
+        // rendimiento, No molestar, etc. no siguen activos en el bolsillo.
+        if (!screenActive()) {
+            current?.let { exitGame(it) }
+            return
+        }
         val fg = foreground()
         val cur = current
         val isGame = fg != null && fg in Prefs.games

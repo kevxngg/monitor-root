@@ -26,11 +26,15 @@ object ShizukuShell {
         false
     }
 
-    fun requestPermission() {
-        try {
-            if (!Shizuku.shouldShowRequestPermissionRationale()) Shizuku.requestPermission(REQUEST_CODE)
-        } catch (e: Throwable) {
-        }
+    /**
+     * Pide el permiso. Devuelve false si el usuario lo negó antes: en ese caso Shizuku
+     * ya no muestra el aviso y hay que permitirlo desde la propia app de Shizuku.
+     */
+    fun requestPermission(): Boolean = try {
+        if (Shizuku.shouldShowRequestPermissionRationale()) false
+        else { Shizuku.requestPermission(REQUEST_CODE); true }
+    } catch (e: Throwable) {
+        false
     }
 
     // El método se busca una sola vez (antes se buscaba por reflexión en cada comando)
