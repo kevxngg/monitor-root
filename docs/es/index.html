@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Monitor Root: administrador de tareas para Android con root</title>
-<meta name="description" content="Monitor Root es un monitor del sistema gratuito para Android con root, con el estilo del administrador de tareas de Windows 11: procesos, CPU, GPU, RAM, disco, red, batería y temperaturas en tiempo real.">
+<meta name="description" content="Monitor Root es un monitor del sistema gratuito para Android, con root o Shizuku, con el estilo del administrador de tareas de Windows 11 o del Monitor de Actividad de macOS: procesos, CPU, GPU, RAM, disco, red, batería y temperaturas en tiempo real.">
 <meta name="keywords" content="monitor root, monitor root android, administrador de tareas android, task manager android root, monitor del sistema android, magisk, kernelsu, cpu, gpu, temperatura, procesos">
 <meta name="author" content="kevxngg">
 <link rel="canonical" href="https://kevxngg.github.io/monitor-root/es/">
@@ -492,7 +492,9 @@ footer a { color: var(--sub); }
       <div class="setting"><svg aria-hidden="true"><use href="#i-list"/></svg><div><h3>Detalles</h3><p>Lista completa por PID: cambia la prioridad o la afinidad de núcleos, suspende procesos o finaliza el árbol completo.</p></div></div>
       <div class="setting"><svg aria-hidden="true"><use href="#i-puzzle"/></svg><div><h3>Servicios</h3><p>Servicios nativos de Android y de las apps, con opciones para iniciarlos, detenerlos y reiniciarlos.</p></div></div>
       <div class="setting"><svg aria-hidden="true"><use href="#i-update"/></svg><div><h3>Actualizaciones automáticas</h3><p>La app te avisa cuando hay una versión nueva y se instala sola con un toque, sin pasar por el navegador.</p></div></div>
-      <div class="setting"><svg aria-hidden="true"><use href="#i-float"/></svg><div><h3>Monitor flotante</h3><p>CPU, GPU, RAM, temperaturas y FPS encima de cualquier app, con widget y botón en los ajustes rápidos.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-float"/></svg><div><h3>Monitor flotante</h3><p>Panel encima de cualquier app con medidores de CPU, GPU, RAM y temperatura, gráficas, red, almacenamiento y FPS. Cuatro diseños (completo, compacto, gamer y retro), tamaño ajustable desde la esquina y se minimiza a una burbuja con el logo que se pega al borde.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-grid"/></svg><div><h3>Dos estilos de interfaz</h3><p>Elige entre el administrador de tareas de Windows 11 o el Monitor de Actividad de macOS, en claro, oscuro o negro puro para pantallas AMOLED.</p></div></div>
+      <div class="setting"><svg aria-hidden="true"><use href="#i-puzzle"/></svg><div><h3>Con root o con Shizuku</h3><p>Con root tienes todas las funciones. Sin root, con Shizuku, Monitor lee todo el sistema y puede finalizar apps; lo que cambia el sistema aparece marcado como "Solo con root".</p></div></div>
       <div class="setting"><svg aria-hidden="true"><use href="#i-bolt"/></svg><div><h3>Batería y modo de energía</h3><p>Historial de batería de 24 horas con tiempo restante estimado, y modos de energía como en Windows 11.</p></div></div>
       <div class="setting"><svg aria-hidden="true"><use href="#i-game"/></svg><div><h3>Modo juego</h3><p>Al abrir tus juegos aplica el modo de energía y el monitor flotante, y guarda un resumen de cada partida con FPS, temperatura y batería.</p></div></div>
       <div class="setting"><svg aria-hidden="true"><use href="#i-bell"/></svg><div><h3>Alertas</h3><p>Avisos de temperatura alta, de apps que usan mucha CPU en segundo plano y de límite de carga.</p></div></div>
@@ -501,11 +503,11 @@ footer a { color: var(--sub); }
 
   <section id="instalacion" aria-labelledby="t-instalacion">
     <h2 id="t-instalacion">Instalación</h2>
-    <p class="section-intro">Necesitas un teléfono con root, permanente (Magisk, KernelSU o APatch) o temporal. Son cuatro pasos.</p>
+    <p class="section-intro">Funciona con root (Magisk, KernelSU, APatch o temporal) o, sin root, con Shizuku. Son cuatro pasos.</p>
     <ol class="steps">
       <li><div><strong>Descarga la APK</strong><span>Desde el botón de arriba o en la sección Releases del repositorio.</span></div></li>
       <li><div><strong>Permite instalar apps desconocidas</strong><span>Android te lo pedirá la primera vez para tu navegador o gestor de archivos.</span></div></li>
-      <li><div><strong>Abre Monitor Root y concede root</strong><span>Acepta el aviso de tu gestor de root. Si usas root temporal, actívalo antes de abrir la app.</span></div></li>
+      <li><div><strong>Abre Monitor y elige cómo conectarlo</strong><span>"Conectar con root" (acepta el aviso de tu gestor de root) o "Conectar con Shizuku" (inicia Shizuku antes y acepta su permiso). Puedes cambiarlo luego en Configuración.</span></div></li>
       <li><div><strong>Listo</strong><span>Las siguientes versiones llegan con un aviso dentro de la app.</span></div></li>
     </ol>
   </section>
@@ -516,9 +518,9 @@ footer a { color: var(--sub); }
         <h2 id="t-req">Requisitos</h2>
         <ul class="req">
           <li>Android 8.0 o superior.</li>
-          <li>Root permanente con Magisk, KernelSU o APatch, o root temporal.</li>
+          <li>Root (Magisk, KernelSU, APatch o temporal) para todas las funciones, o <a href="https://shizuku.rikka.app/">Shizuku</a> para usarla sin root.</li>
           <li>Funciona con procesadores Qualcomm Snapdragon, MediaTek y Exynos.</li>
-          <li>Ocupa poco más de 1 MB.</li>
+          <li>Ocupa unos 2 MB.</li>
         </ul>
       </div>
       <div>
@@ -542,7 +544,8 @@ footer a { color: var(--sub); }
 
   <section aria-labelledby="t-faq">
     <h2 id="t-faq">Preguntas frecuentes</h2>
-    <details><summary>¿Funciona sin root?</summary><p>No. Desde Android 8, las apps normales no pueden ver los procesos de otras apps ni leer sensores como la carga de la GPU. Monitor Root usa root para leer esos datos directamente del sistema.</p></details>
+    <details><summary>¿Funciona sin root?</summary><p>Sí, con <a href="https://shizuku.rikka.app/">Shizuku</a>. Monitor lee procesos, CPU, memoria, red, almacenamiento, batería, temperaturas y FPS, y puede finalizar apps. Lo que necesita cambiar el sistema (modo de energía, ajustes de CPU y GPU, prioridad de procesos) y unos pocos datos que Android bloquea (uso de la GPU y actividad del disco) siguen necesitando root, y la app los marca como "Solo con root".</p></details>
+    <details><summary>¿Qué diferencia hay entre root y Shizuku?</summary><p>Shizuku da permisos de nivel ADB: puede leer casi todo el sistema, pero no escribir en los archivos que controlan la CPU y la GPU. Con root, Monitor puede hacer todo. Sin ninguno de los dos, Android no deja ver los procesos de otras apps.</p></details>
     <details><summary>¿Funciona con root temporal?</summary><p>Sí. La app funciona igual mientras el root temporal esté activo. Como ese tipo de root se pierde al reiniciar el teléfono, después de cada reinicio tienes que volver a activarlo para que la app lea los datos del sistema e instale actualizaciones sola.</p></details>
     <details><summary>¿Es gratis?</summary><p>Sí, es gratis, sin anuncios y el código está publicado en GitHub.</p></details>
     <details><summary>¿Puede dañar mi teléfono?</summary><p>Ver información es seguro. Finalizar procesos o servicios del sistema puede hacer que el teléfono se reinicie, por eso la app te pide confirmación antes de hacerlo.</p></details>
@@ -561,7 +564,7 @@ footer a { color: var(--sub); }
     <a href="https://t.me/kevxngg" rel="me">Telegram</a>
     <span>Discord: kevxngg</span>
   </p>
-  Monitor Root es un proyecto de <a href="https://github.com/kevxngg">kevxngg</a>. No está afiliado a Microsoft.
+  Monitor Root es un proyecto de <a href="https://github.com/kevxngg">kevxngg</a>. No está afiliado a Microsoft ni a Apple.
 </footer>
 
 <script>

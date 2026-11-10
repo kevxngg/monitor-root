@@ -6,7 +6,7 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 
 **English** | [Español](README.es.md)
 
-**The task manager for rooted Android.** Monitor Root shows what your phone is using in real time (processes, CPU, GPU, memory, disk, network, battery and temperatures), with the look of the Windows 11 Task Manager.
+**The task manager for Android, with root or Shizuku.** Monitor Root shows what your phone is using in real time (processes, CPU, GPU, memory, disk, network, battery and temperatures), with the look of the Windows 11 Task Manager or the macOS Activity Monitor.
 
 **[Download the latest version (APK)](https://github.com/kevxngg/monitor-root/releases/latest/download/MonitorRoot.apk)** · [Website](https://kevxngg.github.io/monitor-root/) · [All releases](https://github.com/kevxngg/monitor-root/releases)
 
@@ -49,7 +49,7 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 - **Run new task:** open an app by name or run a command, with or without root.
 
 ### Tools
-- **Floating monitor:** CPU, GPU, RAM, temperatures and FPS on top of any app, for example while gaming. Drag it anywhere.
+- **Floating monitor:** a panel on top of any app with CPU, GPU, RAM and temperature gauges, graphs, network, storage and FPS. Four designs (full, compact, gamer and retro), resizable by dragging its corner, adjustable transparency, and it minimizes to a bubble with the app logo that sticks to the screen edge.
 - **Quick Settings button** to turn the floating monitor on or off.
 - **Home screen widget** with CPU, RAM, CPU temperature and battery.
 - **Battery history** for the last 24 hours, with estimated time remaining and charge and discharge rates.
@@ -65,7 +65,9 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 
 ### Settings
 - 11 languages: English, Spanish, French, Portuguese, German, Italian, Russian, Arabic, Chinese, Japanese and Korean.
-- Light, dark or system theme.
+- Two interface styles: **Windows 11** (Task Manager) or **macOS** (Activity Monitor).
+- Light, dark, system or **pure black** theme for AMOLED screens.
+- Connection: **root** or **Shizuku**, changeable at any time.
 - Start page and data refresh speed.
 - Automatic updates: in-app prompt and a notification with an **Update now** button. Checks use GitHub; Android may delay background checks, so notifications are not instantaneous.
 - Failed checks show the type of error and indicate when active private DNS may be related. The app does not change the phone’s DNS.
@@ -75,19 +77,19 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 ## Requirements
 
 - Android 8.0 or later.
-- Permanent root with **Magisk**, **KernelSU** or **APatch**, or **temporary root** (enabled with a tool, without unlocking the bootloader).
+- **Root** (Magisk, KernelSU, APatch or temporary root) for every feature, **or [Shizuku](https://shizuku.rikka.app/)** to use it without root.
 - Qualcomm Snapdragon, MediaTek or Exynos processors.
 
 ## Installation
 
 1. Download the APK from the link above.
 2. Open it and, if Android asks, allow your browser or file manager to install unknown apps.
-3. Open Monitor Root and accept your root manager's prompt. If you use temporary root, enable it before opening the app.
+3. Open Monitor and choose **Connect with root** (accept your root manager's prompt) or **Connect with Shizuku** (start Shizuku first and accept its permission).
 4. Future versions arrive with an in-app prompt and install with one tap.
 
 ## Permissions and privacy
 
-- **Root:** used to read system processes and sensors, and for the actions you choose (ending processes, changing priorities, installing updates).
+- **Root or Shizuku:** used to read system processes and sensors, and for the actions you choose (ending processes, changing priorities, installing updates).
 - **Internet:** only used to check this GitHub repository for a new version.
 - **Usage statistics:** for app history. The data stays on your phone.
 - The app has no ads and doesn't send your data to any server.
@@ -95,7 +97,7 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 ## FAQ
 
 **Does it work without root?**
-No. Since Android 8, regular apps can't see other apps' processes or read sensors like GPU load.
+Yes, with [Shizuku](https://shizuku.rikka.app/). Monitor reads processes, CPU, memory, network, storage, battery, temperatures and FPS, and can close apps. Anything that changes the system (power mode, CPU and GPU settings, process priority) and a few readings Android blocks (GPU usage and disk activity) still need root, and the app marks them **Root only**.
 
 **Does it work with temporary root?**
 Yes. The app works the same while temporary root is active. Because that kind of root is lost when the phone restarts, you need to enable it again after every restart. Until it's active, the app can't read system data or install updates on its own.
@@ -134,4 +136,4 @@ Made by **[kevxngg](https://github.com/kevxngg)**.
 - [Telegram](https://t.me/kevxngg)
 - Discord: `kevxngg`
 
-Monitor Root is not affiliated with Microsoft. Windows is a trademark of Microsoft Corporation.
+Monitor Root is not affiliated with Microsoft or Apple. Windows is a trademark of Microsoft Corporation; macOS is a trademark of Apple Inc.
