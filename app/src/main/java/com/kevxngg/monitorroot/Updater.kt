@@ -253,7 +253,16 @@ object Updater {
             file.delete()
             return false
         }
-        val copied = RootShell.run("cp ${Actions.q(file.path)} $TMP && chmod 644 $TMP && echo OK").any { it.contains("OK") }
+        // Con Shizuku (usuario "shell") no se puede leer la carpeta privada de la app:
+        // la APK se pasa antes por su carpeta externa, que "shell" sí puede leer.
+        val source = if (RootShell.viaShizuku) {
+            val ext = ctx.getExternalFilesDir(null) ?: return false
+            val pub = File(ext, "update.apk")
+            try { file.copyTo(pub, overwrite = true) } catch (e: Exception) { return false }
+            pub
+        } else file
+        val copied = RootShell.run("cp ${Actions.q(source.path)} $TMP && chmod 644 $TMP && echo OK").any { it.contains("OK") }
+        if (source != file) source.delete()
         if (!copied) return false
         RootShell.run(
             "setsid sh -c 'pm install -r $TMP && am start -n ${ctx.packageName}/.MainActivity; rm -f $TMP' " +

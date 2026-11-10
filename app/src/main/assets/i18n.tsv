@@ -485,3 +485,9 @@ Toca la esquina para cambiar de diseño; minimiza con la esquina superior.	Tap t
 Transparencia	Transparency	Transparence	Transparência	Transparenz	Trasparenza	Прозрачность	الشفافية	透明度	透明度	투명도
 con Shizuku no se puede cambiar.	it can't be changed with Shizuku.	il ne peut pas être modifié avec Shizuku.	não pode ser alterado com o Shizuku.	mit Shizuku nicht änderbar.	non si può cambiare con Shizuku.	с Shizuku изменить нельзя.	لا يمكن تغييره مع Shizuku.	使用 Shizuku 时无法更改。	Shizuku では変更できません。	Shizuku로는 변경할 수 없습니다.
 solo con root	root only	root uniquement	somente com root	nur mit Root	solo con root	только с root	بصلاحية الجذر فقط	仅限 root	root のみ	루트 전용
+%d %% usado	%d %% used	%d %% utilisé	%d %% usado	%d %% belegt	%d %% usato	Занято %d %%	%d %% مستخدم	已用 %d %%	%d %% 使用中	%d %% 사용됨
+Actividad y velocidad del disco	Disk activity and speed	Activité et vitesse du disque	Atividade e velocidade do disco	Datenträgeraktivität und -geschwindigkeit	Attività e velocità del disco	Активность и скорость диска	نشاط القرص وسرعته	磁盘活动和速度	ディスクのアクティビティと速度	디스크 활동 및 속도
+Almacenamiento interno	Internal storage	Stockage interne	Armazenamento interno	Interner Speicher	Memoria interna	Внутренняя память	التخزين الداخلي	内部存储	内部ストレージ	내부 저장소
+Usado	Used	Utilisé	Usado	Belegt	Usato	Занято	مستخدم	已用	使用済み	사용됨
+Uso de la GPU	GPU usage	Utilisation du GPU	Uso da GPU	GPU-Auslastung	Utilizzo GPU	Загрузка GPU	استخدام وحدة GPU	GPU 使用率	GPU 使用率	GPU 사용률
+Uso del almacenamiento	Storage usage	Utilisation du stockage	Uso do armazenamento	Speichernutzung	Utilizzo memoria	Использование памяти	استخدام التخزين	存储使用情况	ストレージ使用率	저장소 사용률

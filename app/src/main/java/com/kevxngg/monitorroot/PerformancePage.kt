@@ -36,7 +36,10 @@ private fun netScale(a: List<Float>, b: List<Float>) = niceScale((a + b).maxOrNu
 private fun sideData(r: Res, s: Snapshot, h: History): SideData = when (r) {
     Res.CPU -> SideData(h["cpu"], 100f, "%.0f%%".format(s.cpuTotal), avgGhz(s))
     Res.MEM -> SideData(h["mem"], 100f, "${formatGb(s.mem.usedKb)} / ${formatGb(s.mem.totalKb)}", "%.0f%%".format(s.mem.usedPct))
-    Res.DISK -> SideData(h["dact"], 100f, s.disk?.type ?: "—", "%.0f%%".format(s.disk?.activePct ?: 0f))
+    Res.DISK -> s.disk?.takeIf { !it.ioAvailable }?.let { d ->
+        val used = if (d.totalBytes > 0) (d.totalBytes - d.freeBytes) * 100f / d.totalBytes else 0f
+        SideData(emptyList(), 100f, formatBytes(d.totalBytes), tr("%d %% usado", used.toInt()))
+    } ?: SideData(h["dact"], 100f, s.disk?.type ?: "—", "%.0f%%".format(s.disk?.activePct ?: 0f))
     Res.WIFI -> SideData(
         h["wrx"], netScale(h["wrx"], h["wtx"]), s.wifi.ssid ?: "Wi‑Fi",
         "E: ${formatBits(s.wifi.net.txBps * 8f)} R: ${formatBits(s.wifi.net.rxBps * 8f)}", h["wtx"],
@@ -395,6 +398,21 @@ private fun DiskDetail(s: Snapshot, h: History) {
         return
     }
     val hw = rememberDeviceInfo(s)
+    if (!d.ioAvailable) {
+        DetailHeader(tr("Disco 0"), hw?.storageModel ?: tr("Almacenamiento interno"))
+        val used = d.totalBytes - d.freeBytes
+        val frac = if (d.totalBytes > 0) used.toFloat() / d.totalBytes else 0f
+        StatsBlock(
+            listOf(
+                tr("Usado") to formatBytes(used),
+                tr("Disponible") to formatBytes(d.freeBytes),
+                tr("Capacidad (/data)") to formatBytes(d.totalBytes),
+            ),
+            listOf(tr("Uso del almacenamiento") to "%.0f%%".format(frac * 100)),
+        )
+        RootOnlyCard(tr("Actividad y velocidad del disco"))
+        return
+    }
     DetailHeader(tr("Disco 0"), hw?.storageModel ?: "${d.type} (${d.name})")
     BigGraph(tr("Tiempo activo"), "100%", h["dact"], 100f, color)
     val scale = niceScale((h["drd"] + h["dwr"]).maxOrNull() ?: 0f, 1_048_576f)
@@ -486,7 +504,8 @@ private fun GpuDetail(s: Snapshot, h: History) {
     if (g.load != null) {
         BigGraph("3D", "100%", h["gpu"], 100f, color)
     } else {
-        Text(tr("No se pudo leer el uso de la GPU en este chip."), fontSize = 13.sp, color = win.sub)
+        if (RootShell.viaShizuku) RootOnlyCard(tr("Uso de la GPU"))
+        else Text(tr("No se pudo leer el uso de la GPU en este chip."), fontSize = 13.sp, color = win.sub)
     }
     StatsBlock(
         listOf(

@@ -33,21 +33,42 @@ object ShizukuShell {
         }
     }
 
-    /** Ejecuta un comando con la shell del usuario "shell" (uid 2000). null si falla. */
-    fun run(cmd: String): List<String>? {
-        if (!available() || !hasPermission()) return null
-        return try {
-            // newProcess es oculto; se llama por reflexión, como recomienda la API de Shizuku
-            @Suppress("PrivateApi")
-            val method = Shizuku::class.java.getDeclaredMethod(
+    // El método se busca una sola vez (antes se buscaba por reflexión en cada comando)
+    private val newProcess by lazy {
+        try {
+            Shizuku::class.java.getDeclaredMethod(
                 "newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java,
             ).apply { isAccessible = true }
-            val process = method.invoke(
-                null, arrayOf("sh", "-c", "exec 2>/dev/null; $cmd"), null, null,
+        } catch (e: Throwable) {
+            null
+        }
+    }
+
+    private const val TIMEOUT_MS = 20_000L
+    private val timer = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "Shizuku-timeout").apply { isDaemon = true }
+    }
+
+    /**
+     * Ejecuta un comando con la shell del usuario "shell" (uid 2000). null si falla.
+     * Si tarda más de 20 s (por ejemplo, un servicio del sistema colgado) se cancela,
+     * para no bloquear el resto de la app.
+     */
+    fun run(cmd: String): List<String>? {
+        if (!available() || !hasPermission()) return null
+        val m = newProcess ?: return null
+        return try {
+            val process = m.invoke(
+                null, arrayOf("sh", "-c", "exec 2>/dev/null </dev/null; $cmd"), null, null,
             ) as Process
-            val out = BufferedReader(InputStreamReader(process.inputStream)).readLines()
-            process.waitFor()
-            out
+            val watchdog = timer.schedule({ process.destroy() }, TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            try {
+                val out = BufferedReader(InputStreamReader(process.inputStream)).readLines()
+                process.waitFor()
+                out
+            } finally {
+                watchdog.cancel(false)
+            }
         } catch (e: Throwable) {
             null
         }

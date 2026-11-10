@@ -38,9 +38,9 @@ class WidgetWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
         Prefs.init(ctx)
         I18n.init(ctx)
         val d = if (RootShell.open()) {
-            QuickStats.read(fps = false)
+            QuickStats.read(fps = false, ctx = ctx)
             Thread.sleep(600) // la CPU necesita dos lecturas para calcular el uso
-            QuickStats.read(fps = false)
+            QuickStats.read(fps = false, ctx = ctx)
         } else null
         WidgetUpdater.push(ctx, d?.cpu, d?.ram, d?.cpuTemp, d?.battLevel)
         return Result.success()

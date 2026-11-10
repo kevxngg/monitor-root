@@ -118,10 +118,12 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         PageHeader(tr("Aplicaciones de arranque")) {
             CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
-            CmdButton(Icons.Outlined.CheckCircle, tr("Habilitar"), enabled = selected != null && selected.enabledCount < selected.comps.size) {
+            // Android no deja al usuario "shell" (Shizuku) cambiar componentes de otras apps
+            val canChange = !RootShell.viaShizuku
+            CmdButton(Icons.Outlined.CheckCircle, tr("Habilitar"), enabled = canChange && selected != null && selected.enabledCount < selected.comps.size) {
                 selected?.let { setEnabled(it, true) }
             }
-            CmdButton(Icons.Outlined.DoNotDisturbOn, tr("Deshabilitar"), enabled = selected?.enabled == true) {
+            CmdButton(Icons.Outlined.DoNotDisturbOn, tr("Deshabilitar"), enabled = canChange && selected?.enabled == true) {
                 selected?.let { setEnabled(it, false) }
             }
             CmdMore(
@@ -168,7 +170,12 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                     WinMenu(
                                         menuPkg == r.pkg, { menuPkg = null },
                                         listOf(
-                                            MenuEntry(if (r.enabled) tr("Deshabilitar") else tr("Habilitar"), if (r.enabled) Icons.Outlined.DoNotDisturbOn else Icons.Outlined.CheckCircle) {
+                                            MenuEntry(
+                                                (if (r.enabled) tr("Deshabilitar") else tr("Habilitar")) +
+                                                    (if (RootShell.viaShizuku) " (${tr("solo con root")})" else ""),
+                                                if (r.enabled) Icons.Outlined.DoNotDisturbOn else Icons.Outlined.CheckCircle,
+                                                enabled = !RootShell.viaShizuku,
+                                            ) {
                                                 setEnabled(r, !r.enabled)
                                             },
                                             MenuEntry(tr("Información de la app"), Icons.Outlined.Info) { openAppInfo(ctx, r.pkg) },

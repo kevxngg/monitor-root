@@ -152,10 +152,15 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
         confirm = (title + warn) to action
     }
 
+    // Con Shizuku los servicios nativos no se pueden iniciar ni detener (necesitan root)
+    fun label(text: String, native: Boolean) =
+        if (native && RootShell.viaShizuku) "$text (${tr("solo con root")})" else text
+    fun allowed(native: Boolean) = !(native && RootShell.viaShizuku)
+
     fun menuFor(sv: Service) = listOfNotNull(
-        if (sv.native) MenuEntry(tr("Iniciar"), Icons.Outlined.PlayArrow, enabled = !sv.running) { act(sv, "start") } else null,
-        MenuEntry(tr("Detener"), Icons.Outlined.Stop, enabled = sv.running) { act(sv, "stop") },
-        if (sv.native) MenuEntry(tr("Reiniciar"), Icons.Outlined.RestartAlt, enabled = sv.running) { act(sv, "restart") } else null,
+        if (sv.native) MenuEntry(label(tr("Iniciar"), true), Icons.Outlined.PlayArrow, enabled = !sv.running && allowed(true)) { act(sv, "start") } else null,
+        MenuEntry(label(tr("Detener"), sv.native), Icons.Outlined.Stop, enabled = sv.running && allowed(sv.native)) { act(sv, "stop") },
+        if (sv.native) MenuEntry(label(tr("Reiniciar"), true), Icons.Outlined.RestartAlt, enabled = sv.running && allowed(true)) { act(sv, "restart") } else null,
         sv.pid?.let { p -> MenuEntry(tr("Ir a detalles"), Icons.Outlined.FormatListBulleted) { onGoDetails(p) } },
         MenuEntry(tr("Buscar en línea"), Icons.Outlined.Search) { searchOnline(ctx, "Android ${sv.name}") },
     )

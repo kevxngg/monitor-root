@@ -209,7 +209,8 @@ object QuickStats {
 
     /** [fps] = true también mide los cuadros por segundo de la pantalla. */
     @Synchronized
-    fun read(fps: Boolean): Data {
+    /** [ctx] permite completar batería con la API de Android si /sys está bloqueado (Shizuku). */
+    fun read(fps: Boolean, ctx: Context? = null): Data {
         val z = zones()
         val script = buildString {
             append("head -n 1 /proc/stat; echo @@; ")
@@ -276,13 +277,19 @@ object QuickStats {
         val stUsed = df?.getOrNull(2)?.toLongOrNull()
         // Batería
         val batt = parts.getOrNull(7)?.lines().orEmpty()
-        val battTemp = batt.getOrNull(0)?.trim()?.toFloatOrNull()?.div(10f)
-        val battLevel = batt.getOrNull(1)?.trim()?.toIntOrNull()
+        var battTemp = batt.getOrNull(0)?.trim()?.toFloatOrNull()?.div(10f)
+        var battLevel = batt.getOrNull(1)?.trim()?.toIntOrNull()
+        if ((battTemp == null || battLevel == null) && ctx != null) {
+            val api = AndroidStats.battery(ctx)
+            battTemp = battTemp ?: api.tempC
+            battLevel = battLevel ?: api.level
+        }
         // Temperatura de la CPU (máxima de sus sensores, descartando valores imposibles)
         val cpuTemp = parts.getOrNull(8)?.lines().orEmpty().mapNotNull { it.trim().toFloatOrNull() }
             .map { if (abs(it) >= 1000f) it / 1000f else it }
             .filter { it > 0f && it < 125f }
             .maxOrNull()
+            ?: AndroidStats.cpuTemp()   // sin /sys (Shizuku): servicio de temperaturas del sistema
         // FPS de la pantalla. Primero las estadísticas de SurfaceFlinger (TimeStats),
         // que cuentan los cuadros que la pantalla muestra realmente; si no están
         // disponibles, se usan los otros métodos.
@@ -359,7 +366,7 @@ class OverlayService : Service() {
         OverlayState.running = true
         Thread {
             while (alive) {
-                val d = try { if (RootShell.open()) QuickStats.read(fps = true) else null } catch (_: Exception) { null }
+                val d = try { if (RootShell.open()) QuickStats.read(fps = true, ctx = applicationContext) else null } catch (_: Exception) { null }
                 last = d
                 main.post { panel?.data = d }
                 SystemClock.sleep(1000)

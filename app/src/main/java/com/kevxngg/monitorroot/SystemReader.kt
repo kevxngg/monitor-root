@@ -43,6 +43,8 @@ data class DiskInfo(
     val respMs: Float,
     val totalBytes: Long,
     val freeBytes: Long,
+    /** false si solo se conoce la capacidad (por ejemplo con Shizuku, sin /proc/diskstats). */
+    val ioAvailable: Boolean = true,
 )
 
 data class GpuInfo(
@@ -191,6 +193,7 @@ private val SLOW_SCRIPT = """
 private class DiskPrev(val name: String, val rd: Long, val wr: Long, val ios: Long, val msRw: Long, val msIo: Long)
 
 class SystemReader(context: Context) {
+    private val appCtx = context.applicationContext
     private val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
     private var prevCpu = HashMap<String, Pair<Long, Long>>()
@@ -404,11 +407,17 @@ class SystemReader(context: Context) {
                 if (valid) ThermalInfo(name, c) else null
             }
             .sortedByDescending { it.celsius }
+            .ifEmpty {
+                AndroidStats.thermalSensors().map { s ->
+                    val n = if (s.type == 0 && !CPU_TEMP.containsMatchIn(s.name)) "CPU ${s.name}" else s.name
+                    ThermalInfo(n, s.celsius)
+                }.sortedByDescending { it.celsius }
+            }
         val mainTemp = thermals.filter { CPU_TEMP.containsMatchIn(it.name) }.maxByOrNull { it.celsius }
             ?: thermals.firstOrNull()
 
         // ---- Batería ----
-        val batt = BattInfo(
+        val battSys = BattInfo(
             level = sys[BAT + "capacity"]?.toIntOrNull(),
             tempC = sys[BAT + "temp"]?.toFloatOrNull()?.div(10f),
             // Cada fabricante usa un signo distinto: se normaliza según el estado
@@ -441,6 +450,18 @@ class SystemReader(context: Context) {
             voltageMv = sys[BAT + "voltage_now"]?.toLongOrNull()
                 ?.let { if (it > 100_000) (it / 1000).toInt() else it.toInt() },
         )
+        // Lo que /sys no da (pasa con Shizuku) se completa con la API de batería de Android
+        val batt = if (battSys.level != null && battSys.tempC != null && battSys.voltageMv != null) battSys else {
+            val api = AndroidStats.battery(appCtx)
+            BattInfo(
+                level = battSys.level ?: api.level,
+                tempC = battSys.tempC ?: api.tempC,
+                currentMa = battSys.currentMa ?: api.currentMa,
+                status = battSys.status ?: api.status,
+                health = battSys.health ?: api.health,
+                voltageMv = battSys.voltageMv ?: api.voltageMv,
+            )
+        }
 
         // ---- GPU ----
         var gpuSrc = "No detectada"
@@ -545,6 +566,11 @@ class SystemReader(context: Context) {
                 else -> "Virtual"
             }
             disk = DiskInfo(name, type, act, rBps, wBps, resp.coerceAtLeast(0f), st?.totalBytes ?: 0L, st?.availableBytes ?: 0L)
+        }
+        if (disk == null) {
+            // Sin acceso a /proc/diskstats (Shizuku): se muestra la capacidad, sin actividad
+            val st = try { StatFs(Environment.getDataDirectory().path) } catch (e: Exception) { null }
+            if (st != null) disk = DiskInfo("data", "—", 0f, 0L, 0L, 0f, st.totalBytes, st.availableBytes, ioAvailable = false)
         }
 
         // ---- Red ----

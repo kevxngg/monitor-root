@@ -277,7 +277,7 @@ class GameModeService : Service() {
     }
 
     private fun record() {
-        val d = QuickStats.read(fps = true)
+        val d = QuickStats.read(fps = true, ctx = applicationContext)
         d.fps?.let { fps.add(it) }
         val t = listOfNotNull(d.cpuTemp, d.battTemp).maxOrNull()
         if (t != null) tempMax = maxOf(tempMax ?: t, t)

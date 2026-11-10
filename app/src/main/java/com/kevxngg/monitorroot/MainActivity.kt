@@ -309,7 +309,7 @@ fun Shell() {
                     // Mantiene el modo de eficiencia en procesos nuevos de esas apps
                     if (Prefs.efficiency.isNotEmpty()) {
                         val lagging = r.processes.filter { it.pkg != null && it.pkg in Prefs.efficiency && it.nice < 19 }
-                        if (lagging.isNotEmpty()) Actions.setNice(lagging, 19)
+                        if (lagging.isNotEmpty() && !RootShell.viaShizuku) Actions.setNice(lagging, 19)
                     }
                     r
                 }

@@ -58,7 +58,7 @@ object Alerts {
     }
 
     private fun checkTemp(ctx: Context) {
-        val d = QuickStats.read(fps = false)
+        val d = QuickStats.read(fps = false, ctx = ctx)
         val t = listOfNotNull(d.cpuTemp, d.battTemp).maxOrNull() ?: return
         val limit = Prefs.TEMP_LIMITS.getOrElse(Prefs.alertTempLimit) { 50 }
         if (t >= limit && cooledDown(ctx, "temp")) {
