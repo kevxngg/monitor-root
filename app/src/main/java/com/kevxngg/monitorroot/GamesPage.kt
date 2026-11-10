@@ -66,10 +66,15 @@ fun GamesPage(onRun: () -> Unit) {
                     scope.launch(Dispatchers.IO) { if (on) GameMode.start(app) else GameMode.stop(app) }
                 }
             }
-            SettingCard(Icons.Outlined.Bolt, tr("Modo de energía al jugar"), tr("Se vuelve al modo anterior al salir del juego.")) {
+            SettingCard(
+                Icons.Outlined.Bolt, tr("Modo de energía al jugar"),
+                if (RootShell.viaShizuku) tr("Solo con root") + ": " + tr("con Shizuku no se puede cambiar.")
+                else tr("Se vuelve al modo anterior al salir del juego."),
+            ) {
                 WinDropdown(
                     listOf(tr("Sin cambios"), tr("Mejor rendimiento"), tr("Equilibrado"), tr("Mejor eficiencia energética")),
                     Prefs.gamePower,
+                    enabled = !RootShell.viaShizuku,
                 ) { Prefs.gamePower = it; Prefs.save() }
             }
             SettingCard(Icons.Outlined.PictureInPicture, tr("Mostrar el monitor flotante"), tr("Se oculta al salir del juego.")) {

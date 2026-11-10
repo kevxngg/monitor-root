@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -493,5 +494,36 @@ fun RepeatWhileVisible(intervalMs: Long, key: Any? = Unit, block: suspend () -> 
             }
         }
         if (owner != null) owner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { loop() } else loop()
+    }
+}
+
+/**
+ * Aviso para las funciones que cambian el sistema: con Shizuku Monitor puede leer
+ * todo, pero no escribir en archivos de root (gobernadores, frecuencias, prioridades).
+ */
+@Composable
+fun RootOnlyCard(title: String) {
+    val win = LocalWin.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(corner(8))
+            .background(win.card)
+            .border(1.dp, win.border, corner(8))
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(androidx.compose.material.icons.Icons.Outlined.Lock, null, tint = win.warn, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+            Spacer(Modifier.height(2.dp))
+            Text(tr("Solo con root"), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = win.warn)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                tr("Con Shizuku Monitor puede leer el sistema, pero esta función necesita cambiarlo. Conecta con root en Configuración para usarla."),
+                fontSize = 12.sp, color = win.sub,
+            )
+        }
     }
 }

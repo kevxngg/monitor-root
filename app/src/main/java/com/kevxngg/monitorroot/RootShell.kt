@@ -17,6 +17,17 @@ object RootShell {
     @Volatile var mode = Mode.NONE
         private set
 
+    /** true si la conexión es por Shizuku: se puede leer todo, pero no escribir en archivos de root. */
+    val viaShizuku: Boolean get() = mode == Mode.SHIZUKU
+
+    /** Cierra la conexión actual para volver a elegir modo (por ejemplo, al cambiarlo en Configuración). */
+    fun reset() {
+        synchronized(lock) {
+            closeLocked()
+            mode = Mode.NONE
+        }
+    }
+
     private var process: Process? = null
     private var writer: OutputStreamWriter? = null
     private var reader: BufferedReader? = null
@@ -50,7 +61,8 @@ object RootShell {
                 mode = Mode.HELPER
                 return true
             }
-            val rooted = try {
+            val choice = Prefs.accessMode
+            val rooted = if (choice == 1) false else try {
                 val p = ProcessBuilder("su").start()
                 val w = OutputStreamWriter(p.outputStream)
                 process = p
@@ -68,7 +80,7 @@ object RootShell {
             }
             if (rooted) return true
             // Sin root: usar Shizuku si está disponible y con permiso (acceso de solo lectura + finalizar apps)
-            if (ShizukuShell.available() && ShizukuShell.hasPermission()) {
+            if (choice != 0 && ShizukuShell.available() && ShizukuShell.hasPermission()) {
                 mode = Mode.SHIZUKU
                 return true
             }

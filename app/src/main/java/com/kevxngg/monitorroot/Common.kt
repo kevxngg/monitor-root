@@ -126,6 +126,8 @@ object Prefs {
     var overlaySize by mutableIntStateOf(1)     // 0 pequeño, 1 normal, 2 grande
     var overlayOpacity by mutableIntStateOf(1)  // 0 baja, 1 media, 2 alta
     // Panel flotante nuevo: estilo (0 completo, 1 compacto, 2 gamer, 3 retro), escala y minimizado
+    // Conexión elegida: -1 sin elegir, 0 root, 1 Shizuku
+    var accessMode by mutableIntStateOf(-1)
     var panelStyle by mutableIntStateOf(0)
     var panelScale by mutableFloatStateOf(1f)   // 0.7..1.4, se gradúa desde la esquina
     var panelMinimized by mutableStateOf(false)
@@ -171,6 +173,7 @@ object Prefs {
         overlayStyle = p.getInt("ovStyle", 0)
         overlaySize = p.getInt("ovSize", 1)
         overlayOpacity = p.getInt("ovOpacity", 1)
+        accessMode = p.getInt("accessMode", -1)
         panelStyle = p.getInt("panelStyle", 0)
         panelScale = p.getFloat("panelScale", 1f)
         panelMinimized = p.getBoolean("panelMin", false)
@@ -208,6 +211,7 @@ object Prefs {
             ?.putInt("ovStyle", overlayStyle)
             ?.putInt("ovSize", overlaySize)
             ?.putInt("ovOpacity", overlayOpacity)
+            ?.putInt("accessMode", accessMode)
             ?.putInt("panelStyle", panelStyle)
             ?.putFloat("panelScale", panelScale)
             ?.putBoolean("panelMin", panelMinimized)

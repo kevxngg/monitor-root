@@ -1,5 +1,8 @@
 package com.kevxngg.monitorroot
 
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.material3.TextButton
@@ -113,43 +116,121 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Pantalla para elegir cómo se conecta Monitor: con root (todo) o con Shizuku (sin root). */
 @Composable
-private fun NoAccessScreen(onRetry: () -> Unit) {
+private fun AccessChooser(error: String?, busy: Boolean, onRoot: () -> Unit, onShizuku: () -> Unit) {
     val win = LocalWin.current
-    val ctx = LocalContext.current
     Column(
-        Modifier.fillMaxSize().padding(32.dp),
-        verticalArrangement = Arrangement.Center,
+        Modifier.fillMaxSize().background(win.mica).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(tr("Sin acceso al sistema"), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = win.text)
-        Spacer(Modifier.height(10.dp))
+        AppLogo(56)
+        Spacer(Modifier.height(16.dp))
+        Text(tr("Elige cómo conectar Monitor"), fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = win.text, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(8.dp))
         Text(
-            tr("Monitor necesita root (Magisk, KernelSU…) para todas las funciones, o Shizuku para las de solo lectura."),
-            fontSize = 14.sp, color = win.sub, textAlign = TextAlign.Center,
+            tr("Puedes cambiarlo cuando quieras en Configuración."),
+            fontSize = 13.sp, color = win.sub, textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(24.dp))
-        if (ShizukuShell.available()) {
-            Button(onClick = {
-                if (ShizukuShell.hasPermission()) onRetry() else { ShizukuShell.requestPermission(); onRetry() }
-            }) { Text(tr("Usar Shizuku (sin root)")) }
-            Spacer(Modifier.height(8.dp))
-            Text(tr("Algunas funciones, como el modo de energía, seguirán necesitando root."), fontSize = 12.sp, color = win.sub, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(28.dp))
+        AccessOption(
+            icon = Icons.Outlined.AdminPanelSettings,
+            title = tr("Conectar con root"),
+            text = tr("Magisk, KernelSU o APatch. Todas las funciones, incluidos el modo de energía y los ajustes de CPU y GPU."),
+            enabled = !busy, onClick = onRoot,
+        )
+        Spacer(Modifier.height(12.dp))
+        val shizukuOn = ShizukuShell.available()
+        AccessOption(
+            icon = Icons.Outlined.Adb,
+            title = tr("Conectar con Shizuku"),
+            text = tr("Sin root. Monitor lee todo el sistema y puede finalizar apps; las funciones que cambian el sistema necesitan root."),
+            note = if (shizukuOn) null else tr("Shizuku no está activo: ábrelo e inícialo primero."),
+            enabled = !busy, onClick = onShizuku,
+        )
+        if (busy) {
+            Spacer(Modifier.height(20.dp))
+            Text(tr("Conectando…"), fontSize = 13.sp, color = win.sub)
         }
-        TextButton(onClick = onRetry) { Text(tr("Reintentar con root")) }
+        error?.let {
+            Spacer(Modifier.height(20.dp))
+            Text(it, fontSize = 13.sp, color = win.warn, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+private fun AccessOption(icon: ImageVector, title: String, text: String, note: String? = null, enabled: Boolean, onClick: () -> Unit) {
+    val win = LocalWin.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(corner(10))
+            .background(win.card)
+            .border(1.dp, win.border, corner(10))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = win.accent, modifier = Modifier.size(30.dp))
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+            Spacer(Modifier.height(4.dp))
+            Text(text, fontSize = 12.5.sp, color = win.sub)
+            note?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(it, fontSize = 12.sp, color = win.warn)
+            }
+        }
     }
 }
 
 @Composable
 fun App() {
-    val ctx = LocalContext.current
-    var hasRoot by remember { mutableStateOf<Boolean?>(null) }
-    var tries by remember { mutableIntStateOf(0) }
-    LaunchedEffect(tries) { hasRoot = withContext(Dispatchers.IO) { RootShell.open() } }
-    when (hasRoot) {
-        null -> CenterText(tr("Conectando…\nAcepta el aviso de Magisk / KernelSU si aparece."))
-        false -> NoAccessScreen { tries++ }
+    val scope = rememberCoroutineScope()
+    // null = conectando; true = conectado; false = hay que elegir (o falló)
+    var connected by remember { mutableStateOf<Boolean?>(if (Prefs.accessMode == -1) false else null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+
+    // Al abrir: si ya se eligió un modo, intentar conectar con él
+    LaunchedEffect(Unit) {
+        if (Prefs.accessMode != -1) {
+            val ok = withContext(Dispatchers.IO) { RootShell.open() }
+            if (!ok) error = if (Prefs.accessMode == 1) tr("No se pudo conectar con Shizuku. Comprueba que esté iniciado.")
+            else tr("No se obtuvo acceso root. Dale permiso a Monitor en Magisk / KernelSU.")
+            connected = ok
+        }
+    }
+
+    fun connect(mode: Int) {
+        busy = true; error = null
+        Prefs.accessMode = mode; Prefs.save()
+        RootShell.reset()
+        scope.launch {
+            if (mode == 1) {
+                if (!ShizukuShell.available()) {
+                    error = tr("Shizuku no está activo: ábrelo e inícialo primero."); busy = false; return@launch
+                }
+                if (!ShizukuShell.hasPermission()) {
+                    ShizukuShell.requestPermission()
+                    // Esperar a que el usuario acepte el permiso en Shizuku (hasta 30 s)
+                    var waited = 0
+                    while (!ShizukuShell.hasPermission() && waited < 30_000) { delay(300); waited += 300 }
+                }
+            }
+            val ok = withContext(Dispatchers.IO) { RootShell.open() }
+            busy = false
+            if (ok) connected = true
+            else error = if (mode == 1) tr("No se pudo conectar con Shizuku. Acepta el permiso en Shizuku e inténtalo de nuevo.")
+            else tr("No se obtuvo acceso root. Dale permiso a Monitor en Magisk / KernelSU.")
+        }
+    }
+
+    when (connected) {
+        null -> CenterText(tr("Conectando…"))
+        false -> AccessChooser(error, busy, onRoot = { connect(0) }, onShizuku = { connect(1) })
         else -> Shell()
     }
 }

@@ -185,6 +185,10 @@ object GpuControl {
 /** Ajustes de la GPU (gobernador y frecuencia) para cualquier procesador. */
 @Composable
 fun GpuTuningCard() {
+    if (RootShell.viaShizuku) {
+        RootOnlyCard(tr("Ajustes de la GPU"))
+        return
+    }
     val win = LocalWin.current
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf<GpuControl.State?>(null) }

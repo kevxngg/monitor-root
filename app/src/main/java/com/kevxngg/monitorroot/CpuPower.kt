@@ -290,6 +290,10 @@ object CpuPower {
 
 @Composable
 fun CpuPowerSection() {
+    if (RootShell.viaShizuku) {
+        RootOnlyCard(tr("Modo de energía y ajustes avanzados de la CPU"))
+        return
+    }
     val scope = rememberCoroutineScope()
     var clusters by remember { mutableStateOf<List<CpuPower.Cluster>?>(null) }
     var busy by remember { mutableStateOf(false) }

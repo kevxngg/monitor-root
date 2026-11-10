@@ -81,6 +81,21 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     I18n.apply(Prefs.language)
                 }
             }
+            SettingCard(
+                Icons.Outlined.AdminPanelSettings, tr("Conexión"),
+                if (RootShell.viaShizuku) tr("Shizuku: lectura del sistema. El modo de energía y los ajustes de CPU y GPU necesitan root.")
+                else tr("Root: todas las funciones."),
+            ) {
+                WinDropdown(listOf(tr("Root"), tr("Shizuku")), if (Prefs.accessMode == 1) 1 else 0) {
+                    if (it != (if (Prefs.accessMode == 1) 1 else 0)) {
+                        Prefs.accessMode = it
+                        Prefs.save()
+                        RootShell.reset()
+                        // Reinicia la app para conectarse con el modo elegido
+                        (ctx as? android.app.Activity)?.recreate()
+                    }
+                }
+            }
             SettingCard(Icons.Outlined.Dashboard, tr("Estilo de interfaz"), tr("Cambia el diseño de toda la app. Se reinicia para aplicarlo.")) {
                 WinDropdown(UiStyles.NAMES, Prefs.uiStyle.coerceIn(0, UiStyles.NAMES.size - 1)) {
                     if (it != Prefs.uiStyle) {

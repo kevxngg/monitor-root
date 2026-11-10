@@ -71,14 +71,24 @@ fun DetailsPage(
 
     fun menuFor(p: ProcInfo): List<MenuEntry> {
         val suspended = p.state == 'T' || p.state == 't'
+        // Con Shizuku no se puede enviar señales ni cambiar prioridades de otras apps;
+        // las apps sí se pueden cerrar con "am force-stop".
+        val shizuku = RootShell.viaShizuku
+        fun rootLabel(text: String) = if (shizuku) "$text (${tr("solo con root")})" else text
         return listOf(
-            MenuEntry(tr("Finalizar tarea"), Icons.Outlined.Block) { confirmEnd = p to false },
-            MenuEntry(tr("Finalizar árbol de procesos"), Icons.Outlined.AccountTree) { confirmEnd = p to true },
-            MenuEntry(if (suspended) tr("Reanudar proceso") else tr("Suspender proceso"), if (suspended) Icons.Outlined.PlayArrow else Icons.Outlined.Pause) {
+            MenuEntry(
+                if (shizuku && p.pkg == null) rootLabel(tr("Finalizar tarea")) else tr("Finalizar tarea"),
+                Icons.Outlined.Block, enabled = !shizuku || p.pkg != null,
+            ) { confirmEnd = p to false },
+            MenuEntry(rootLabel(tr("Finalizar árbol de procesos")), Icons.Outlined.AccountTree, enabled = !shizuku) { confirmEnd = p to true },
+            MenuEntry(
+                rootLabel(if (suspended) tr("Reanudar proceso") else tr("Suspender proceso")),
+                if (suspended) Icons.Outlined.PlayArrow else Icons.Outlined.Pause, enabled = !shizuku,
+            ) {
                 scope.launch(Dispatchers.IO) { Actions.kill(listOf(p.pid), if (suspended) "CONT" else "STOP") }
             },
-            MenuEntry(tr("Establecer prioridad"), Icons.Outlined.LowPriority) { prio = p },
-            MenuEntry(tr("Establecer afinidad"), Icons.Outlined.Memory) { affinity = p },
+            MenuEntry(rootLabel(tr("Establecer prioridad")), Icons.Outlined.LowPriority, enabled = !shizuku) { prio = p },
+            MenuEntry(rootLabel(tr("Establecer afinidad")), Icons.Outlined.Memory, enabled = !shizuku) { affinity = p },
             MenuEntry(tr("Buscar en línea"), Icons.Outlined.Search) { searchOnline(ctx, p.pkg ?: p.name) },
             MenuEntry(tr("Propiedades"), Icons.Outlined.Description) { props = p },
         )
@@ -154,7 +164,10 @@ fun DetailsPage(
             confirm = if (tree) tr("Finalizar árbol de procesos") else tr("Finalizar proceso"),
             onConfirm = {
                 val pids = if (tree) Actions.tree(p.pid, s.processes) else listOf(p.pid)
-                scope.launch(Dispatchers.IO) { Actions.kill(pids) }
+                val pkg = p.pkg
+                scope.launch(Dispatchers.IO) {
+                    if (RootShell.viaShizuku && pkg != null) Actions.forceStop(pkg) else Actions.kill(pids)
+                }
                 selPid = null
             },
             onDismiss = { confirmEnd = null },
