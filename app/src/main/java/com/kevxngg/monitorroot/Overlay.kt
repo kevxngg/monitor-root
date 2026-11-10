@@ -321,14 +321,10 @@ class BubbleView(ctx: Context) : View(ctx) {
     override fun onMeasure(w: Int, h: Int) = setMeasuredDimension((44 * d).toInt(), (44 * d).toInt())
     override fun onDraw(c: Canvas) {
         val r = width / 2f
-        p.style = Paint.Style.FILL; p.color = 0xCC0E1420.toInt()
-        c.drawCircle(r, r, r - d, p)
-        p.style = Paint.Style.STROKE; p.strokeWidth = 1.5f * d; p.color = 0xFF3FA9FF.toInt()
-        c.drawCircle(r, r, r - d, p)
-        // "M" de Monitor
-        p.style = Paint.Style.FILL; p.color = 0xFF3FA9FF.toInt()
-        p.textAlign = Paint.Align.CENTER; p.textSize = 20 * d; p.typeface = Typeface.DEFAULT_BOLD
-        c.drawText("M", r, r + 7 * d, p)
+        // Logo de Monitor, algo translúcido para que no tape lo de abajo
+        drawAppLogo(c, context, r, r, r - 2 * d, alpha = 0xE0)
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1.5f * d; p.color = 0x99FFFFFF.toInt()
+        c.drawCircle(r, r, r - 1.5f * d, p)
     }
 }
 

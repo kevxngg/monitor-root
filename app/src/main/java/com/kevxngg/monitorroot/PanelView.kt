@@ -13,6 +13,22 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
+ * Dibuja el logo de Monitor (el mismo de la app): círculo azul con el icono blanco.
+ * [alpha] permite que la burbuja minimizada se vea translúcida.
+ */
+fun drawAppLogo(c: Canvas, ctx: Context, cx: Float, cy: Float, r: Float, alpha: Int = 0xFF) {
+    val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    p.style = Paint.Style.FILL
+    p.color = (alpha shl 24) or 0x117DBB
+    c.drawCircle(cx, cy, r, p)
+    // ic_fg es el primer plano del icono adaptativo: el símbolo ocupa ~55 % del lienzo
+    val icon = androidx.core.content.ContextCompat.getDrawable(ctx, R.drawable.ic_fg) ?: return
+    icon.setBounds((cx - r).toInt(), (cy - r).toInt(), (cx + r).toInt(), (cy + r).toInt())
+    icon.alpha = alpha
+    icon.draw(c)
+}
+
+/**
  * Dibuja el monitor flotante en sus cuatro estilos (completo, compacto, gamer, retro)
  * con Canvas nativo, para que funcione como ventana flotante sin Compose.
  * Reutiliza los datos de QuickStats.Data y mantiene un pequeño historial para las gráficas.
@@ -148,7 +164,8 @@ class PanelView(ctx: Context) : View(ctx) {
         val d = data
         val pad = dp(16f)
         // cabecera
-        text(c, "Monitor", pad + dp(2f), pad + dp(14f), 15f, cText, bold = true)
+        drawAppLogo(c, context, pad + dp(10f), pad + dp(9f), dp(10f))
+        text(c, "Monitor", pad + dp(26f), pad + dp(14f), 15f, cText, bold = true)
         p.style = Paint.Style.FILL; p.color = cGreen
         c.drawCircle(width - pad - dp(96f), pad + dp(9f), dp(3.5f), p)
         text(c, "Live", width - pad - dp(86f), pad + dp(13f), 11f, cGreen)
@@ -270,7 +287,13 @@ class PanelView(ctx: Context) : View(ctx) {
         p.shader = LinearGradient(0f, 0f, width.toFloat(), height.toFloat(), intArrayOf(cBlue, cPurple, cGreen), null, Shader.TileMode.CLAMP)
         c.drawPath(path, p); p.shader = null
         val d = data
-        text(c, "MONITOR ROOT", dp(18f), dp(26f), 11f, cPurple, bold = true)
+        // Logo de la app con un anillo neón alrededor
+        val lx = dp(50f); val ly = dp(56f); val lr = dp(24f)
+        p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f)
+        p.shader = LinearGradient(lx - lr, ly - lr, lx + lr, ly + lr, intArrayOf(cBlue, cPurple), null, Shader.TileMode.CLAMP)
+        c.drawCircle(lx, ly, lr + dp(4f), p); p.shader = null
+        drawAppLogo(c, context, lx, ly, lr)
+        text(c, "MONITOR", lx, ly + lr + dp(18f), 10f, cPurple, bold = true, center = true)
         // cuatro medidores
         val gy = dp(62f); val gr = dp(24f)
         val startX = dp(96f); val span = width - startX - dp(16f); val gw = span / 4
