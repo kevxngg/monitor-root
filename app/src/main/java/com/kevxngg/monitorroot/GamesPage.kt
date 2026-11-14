@@ -42,6 +42,7 @@ fun GamesPage(onRun: () -> Unit) {
     var picking by remember { mutableStateOf(false) }
     var detail by remember { mutableStateOf<GameSession?>(null) }
     var confirmClear by remember { mutableStateOf(false) }
+    var confirmDiablo by remember { mutableStateOf(false) }
 
     // Las partidas nuevas aparecen solas
     RepeatWhileVisible(5000) {
@@ -77,6 +78,18 @@ fun GamesPage(onRun: () -> Unit) {
                     enabled = !RootShell.viaShizuku,
                 ) { Prefs.gamePower = it; Prefs.save() }
             }
+            // Modo Diablo: todo al máximo, con aviso de riesgo y confirmación obligatoria
+            SettingCard(
+                Icons.Outlined.LocalFireDepartment, tr("Modo Diablo"),
+                if (RootShell.viaShizuku) tr("Solo con root") + ": " + tr("con Shizuku no se puede cambiar.")
+                else tr("CPU y GPU fijas en su frecuencia máxima y sin control térmico del fabricante mientras juegas."),
+            ) {
+                WinSwitch(Prefs.gameDiablo) { on ->
+                    if (RootShell.viaShizuku) return@WinSwitch
+                    if (on) confirmDiablo = true else { Prefs.gameDiablo = false; Prefs.save() }
+                }
+            }
+            if (Prefs.gameDiablo) DiabloWarning(compact = true)
             SettingCard(Icons.Outlined.PictureInPicture, tr("Mostrar el monitor flotante"), tr("Se oculta al salir del juego.")) {
                 WinSwitch(Prefs.gameOverlay) { Prefs.gameOverlay = it; Prefs.save() }
             }
@@ -135,6 +148,10 @@ fun GamesPage(onRun: () -> Unit) {
         }
     }
 
+    if (confirmDiablo) DiabloDialog(
+        onConfirm = { Prefs.gameDiablo = true; Prefs.save(); confirmDiablo = false },
+        onDismiss = { confirmDiablo = false },
+    )
     if (picking) GamePickerDialog { picking = false }
     detail?.let { SessionDialog(it) { detail = null } }
     if (confirmClear) {
@@ -317,5 +334,65 @@ private fun SessionDialog(s: GameSession, onDismiss: () -> Unit) {
             }) { Text(tr("Compartir")) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cerrar")) } },
+    )
+}
+
+private val DiabloRed = androidx.compose.ui.graphics.Color(0xFFE5484D)
+
+/** Aviso en rojo del Modo Diablo (versión corta bajo la tarjeta o completa en el diálogo). */
+@Composable
+private fun DiabloWarning(compact: Boolean) {
+    val win = LocalWin.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(corner(8))
+            .background(DiabloRed.copy(alpha = if (win.dark) 0.16f else 0.09f))
+            .border(1.dp, DiabloRed.copy(alpha = 0.6f), corner(8))
+            .padding(12.dp),
+    ) {
+        Icon(Icons.Outlined.WarningAmber, null, tint = DiabloRed, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(tr("Puede sobrecalentar y dañar el teléfono"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DiabloRed)
+            if (!compact) {
+                Text(tr("El teléfono se calentará mucho más de lo normal. El calor sostenido degrada la batería, puede hacer que se hinche y, en casos extremos, dañar componentes."), fontSize = 12.sp, color = win.text)
+                Text(tr("Úsalo con un ventilador para teléfono, sin funda y nunca mientras carga."), fontSize = 12.sp, color = win.text)
+            }
+            Text(
+                tr("Monitor lo desactiva solo si la batería llega a %d °C o la CPU a %d °C, si empieza a cargar o al salir del juego. La protección crítica del sistema no se toca.",
+                    DiabloMode.BATT_LIMIT.toInt(), DiabloMode.CPU_LIMIT.toInt()),
+                fontSize = 12.sp, color = win.sub,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DiabloDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    var accepted by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Outlined.LocalFireDepartment, null, tint = DiabloRed) },
+        title = { Text(tr("Activar Modo Diablo"), fontSize = 18.sp) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(tr("Mientras juegas, la CPU y la GPU quedarán fijas en su frecuencia máxima y se detendrán los servicios del fabricante que bajan la velocidad con el calor."), fontSize = 13.sp)
+                DiabloWarning(compact = false)
+                Row(
+                    Modifier.fillMaxWidth().clickable { accepted = !accepted },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = accepted, onCheckedChange = { accepted = it })
+                    Text(tr("Entiendo los riesgos y lo uso bajo mi responsabilidad"), fontSize = 13.sp)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = accepted) {
+                Text(tr("Activar"), color = if (accepted) DiabloRed else LocalWin.current.sub)
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar")) } },
     )
 }

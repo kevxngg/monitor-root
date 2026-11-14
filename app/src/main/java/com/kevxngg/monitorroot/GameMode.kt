@@ -159,6 +159,7 @@ class GameModeService : Service() {
         Thread {
             // Permiso para saber qué app está en pantalla (se concede con root)
             if (RootShell.open()) RootShell.run("appops set $packageName GET_USAGE_STATS allow")
+            DiabloMode.recoverIfNeeded(applicationContext)
             while (alive) {
                 try {
                     tick()
@@ -213,7 +214,7 @@ class GameModeService : Service() {
             exitGame(cur)
             if (isGame) enterGame(fg!!)
         }
-        if (current != null && Prefs.gameRecord) record()
+        if (current != null && (Prefs.gameRecord || DiabloMode.active)) record()
     }
 
     private fun battery(): Int? {
@@ -230,8 +231,10 @@ class GameModeService : Service() {
         tempMax = null
         battStart = battery()
         if (!RootShell.open()) return
+        // Modo Diablo: todo al máximo (reemplaza al modo de energía mientras dure la partida)
+        val diablo = Prefs.gameDiablo && DiabloMode.enable(applicationContext)
         // Modo de energía (se guarda el estado completo de la CPU para devolverlo al salir)
-        val mode = when (Prefs.gamePower) {
+        val mode = if (diablo) null else when (Prefs.gamePower) {
             1 -> CpuPower.Mode.PERFORMANCE
             2 -> CpuPower.Mode.BALANCED
             3 -> CpuPower.Mode.SAVER
@@ -268,6 +271,7 @@ class GameModeService : Service() {
 
     private fun exitGame(pkg: String) {
         current = null
+        DiabloMode.disable(applicationContext)
         if (RootShell.open()) {
             savedCpu?.let { CpuPower.restore(it) }
             if (changedDnd) RootShell.run("cmd notification set_dnd off")
@@ -291,9 +295,35 @@ class GameModeService : Service() {
 
     private fun record() {
         val d = QuickStats.read(fps = true, ctx = applicationContext)
-        d.fps?.let { fps.add(it) }
-        val t = listOfNotNull(d.cpuTemp, d.battTemp).maxOrNull()
-        if (t != null) tempMax = maxOf(tempMax ?: t, t)
+        if (Prefs.gameRecord) {
+            d.fps?.let { fps.add(it) }
+            val t = listOfNotNull(d.cpuTemp, d.battTemp).maxOrNull()
+            if (t != null) tempMax = maxOf(tempMax ?: t, t)
+        }
+        // Corte de seguridad del Modo Diablo: demasiado calor o el teléfono empezó a cargar
+        if (DiabloMode.active) {
+            val hot = DiabloMode.overheated(d.cpuTemp, d.battTemp)
+            if (hot || DiabloMode.isCharging(applicationContext)) {
+                DiabloMode.disable(applicationContext)
+                notifyDiabloOff(if (hot) d else null)
+            }
+        }
+    }
+
+    private fun notifyDiabloOff(d: QuickStats.Data?) {
+        channel()
+        val text = if (d != null) tr("El teléfono llegó a %s. Se restauró el control térmico para protegerlo.",
+            listOfNotNull(d.battTemp?.let { tr("batería %d °C", it.toInt()) }, d.cpuTemp?.let { tr("CPU %d °C", it.toInt()) }).joinToString(", "))
+        else tr("El teléfono empezó a cargar. Se restauró el control térmico para proteger la batería.")
+        val n = NotificationCompat.Builder(this, SUMMARY_CHANNEL)
+            .setSmallIcon(R.drawable.ic_fg)
+            .setContentTitle(tr("Modo Diablo desactivado"))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+        try { NotificationManagerCompat.from(this).notify(3200, n) } catch (_: SecurityException) {}
     }
 
     // ---- Notificaciones ----
@@ -317,7 +347,7 @@ class GameModeService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val text = if (pkg == null) tr("Esperando a que abras uno de tus juegos.")
-        else tr("Jugando: %s", Apps.meta(pkg)?.label ?: pkg)
+        else tr("Jugando: %s", Apps.meta(pkg)?.label ?: pkg) + if (DiabloMode.active) " · " + tr("Modo Diablo") else ""
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_fg)
             .setContentTitle(tr("Modo juego activo"))

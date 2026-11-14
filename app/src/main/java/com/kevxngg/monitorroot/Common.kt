@@ -140,6 +140,7 @@ object Prefs {
     var gameKill by mutableStateOf(false)
     var gameDnd by mutableStateOf(false)
     var gameRecord by mutableStateOf(true)
+    var gameDiablo by mutableStateOf(false)
 
     // Alertas
     var alertTemp by mutableStateOf(false)
@@ -184,6 +185,7 @@ object Prefs {
         gameKill = p.getBoolean("gmKill", false)
         gameDnd = p.getBoolean("gmDnd", false)
         gameRecord = p.getBoolean("gmRecord", true)
+        gameDiablo = p.getBoolean("gmDiablo", false)
         alertTemp = p.getBoolean("alTemp", false)
         alertTempLimit = p.getInt("alTempLimit", 1)
         alertCpu = p.getBoolean("alCpu", false)
@@ -222,6 +224,7 @@ object Prefs {
             ?.putBoolean("gmKill", gameKill)
             ?.putBoolean("gmDnd", gameDnd)
             ?.putBoolean("gmRecord", gameRecord)
+            ?.putBoolean("gmDiablo", gameDiablo)
             ?.putBoolean("alTemp", alertTemp)
             ?.putInt("alTempLimit", alertTempLimit)
             ?.putBoolean("alCpu", alertCpu)

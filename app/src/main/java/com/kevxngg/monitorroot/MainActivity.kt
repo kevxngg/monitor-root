@@ -270,6 +270,8 @@ fun Shell() {
             UpdateWorker.prepare(context.applicationContext)
             // Si el modo juego estaba activo, se asegura de que siga funcionando
             if (Prefs.gameMode) GameMode.start(context.applicationContext)
+            // Si la app se cerró de golpe con el Modo Diablo activo, se restaura el control térmico
+            DiabloMode.recoverIfNeeded(context.applicationContext)
         }
         (context as LifecycleOwner).repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {

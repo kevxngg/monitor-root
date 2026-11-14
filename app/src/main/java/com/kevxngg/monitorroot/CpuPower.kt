@@ -267,6 +267,19 @@ object CpuPower {
         }
     }
 
+    /**
+     * Modo Diablo: cada clúster fijo en su frecuencia máxima real (mínima = máxima)
+     * con el gobernador performance. Se deshace con [restore] y el estado guardado antes.
+     */
+    fun lockMax(clusters: List<Cluster>) {
+        clusters.forEach { c ->
+            val top = hwMax(c) ?: return@forEach
+            if ("performance" in c.governors) write("${c.path}/scaling_governor", "performance")
+            write("${c.path}/scaling_max_freq", top)
+            write("${c.path}/scaling_min_freq", top)
+        }
+    }
+
     fun snapshot(): Snapshot = Snapshot(read())
 
     /** Vuelve exactamente a como estaba cada clúster. */
