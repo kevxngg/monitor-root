@@ -217,7 +217,8 @@ object QuickStats {
             append("grep -H . /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/kernel/gpu/gpu_busy /sys/kernel/ged/hal/gpu_utilization; echo @@; ")
             append("grep -E '^(MemTotal|MemAvailable):' /proc/meminfo; echo @@; ")
             append("cat /sys/devices/system/cpu/cpufreq/policy*/scaling_cur_freq 2>/dev/null; echo @@; ")
-            append("cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqV2 2>/dev/null | head -n 1; echo @@; ")
+            append("cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqency 2>/dev/null | head -n 1; ")
+            append("for d in /sys/class/devfreq/*; do case \"${'$'}d\" in *mali*|*gpu*|*GPU*|*g3d*) cat \"${'$'}d/cur_freq\" 2>/dev/null; break;; esac; done; echo @@; ")
             append("cat /proc/net/dev; echo @@; ")
             append("echo @@; ")  // (antes df: el almacenamiento ahora se lee con StatFs)
             append("cat /sys/class/power_supply/battery/temp /sys/class/power_supply/battery/capacity; echo @@; ")
@@ -249,9 +250,11 @@ object QuickStats {
         val cpuMhz = parts.getOrNull(3)?.lines().orEmpty().mapNotNull { it.trim().toLongOrNull() }
             .maxOrNull()?.let { (it / 1000).toInt() }
         // Frecuencia de la GPU (kHz o Hz según el driver)
-        val gpuMhz = parts.getOrNull(4)?.lines()?.firstOrNull()?.trim()?.toLongOrNull()?.let {
-            when { it > 10_000_000 -> (it / 1_000_000).toInt(); it > 10_000 -> (it / 1000).toInt(); else -> it.toInt() }
-        }
+        // Frecuencia de la GPU: la primera línea con datos. En MediaTek trae dos números
+        // ("nivel frecuencia"), así que se toma el mayor, igual que en la app principal.
+        val gpuMhz = parts.getOrNull(4)?.lines().orEmpty()
+            .firstNotNullOfOrNull { l -> l.trim().split(WS).mapNotNull { it.toLongOrNull() }.maxOrNull()?.takeIf { it > 0 } }
+            ?.let { when { it > 10_000_000 -> (it / 1_000_000).toInt(); it > 10_000 -> (it / 1000).toInt(); else -> it.toInt() } }
         // Red: diferencia de bytes rx/tx entre lecturas → KB/s
         var netUp: Float? = null; var netDown: Float? = null
         run {
