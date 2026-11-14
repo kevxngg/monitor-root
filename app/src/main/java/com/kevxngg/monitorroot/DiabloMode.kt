@@ -34,6 +34,10 @@ object DiabloMode {
     private const val JOYOSE = "com.xiaomi.joyose"
     private var lastEnforce = 0L
 
+    // Límites pasivos del kernel que se quitaron (para restaurarlos al salir)
+    private var zonesOff: List<String> = emptyList()          // zonas térmicas puestas en "disabled"
+    private var mtkBefore: List<Pair<String, String>> = emptyList()  // archivo de MediaTek → valor original
+
     private var cpuBefore: CpuPower.Snapshot? = null
     private var gpuBefore: GpuControl.State? = null
     private var stopped: List<String> = emptyList()
@@ -70,6 +74,12 @@ object DiabloMode {
             .putBoolean("active", true).putString("services", stopped.joinToString(",")).apply()
         stopped.forEach { RootShell.run("stop ${Actions.q(it)}") }
         pauseJoyose()
+        val (zones, mtk) = liftPassiveLimits()
+        zonesOff = zones; mtkBefore = mtk
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString("zones", zones.joinToString(","))
+            .putString("mtk", mtk.joinToString(";") { "${it.first}=${it.second}" })
+            .apply()
         // 3) CPU y GPU al máximo
         CpuPower.lockMax(cpuBefore?.clusters.orEmpty())
         gpuBefore?.let { g ->
@@ -82,6 +92,50 @@ object DiabloMode {
         }
         active = true
         return true
+    }
+
+    /**
+     * Quita los límites térmicos PASIVOS del kernel (los que bajan la frecuencia con poco calor).
+     * Solo se desactivan las zonas que NO tienen un punto "critical" ni "hot": las que protegen
+     * el hardware de verdad (apagado de emergencia) siguen activas.
+     * En MediaTek también se apagan FPSGO, EARA térmico y la política térmica de PPM.
+     */
+    private fun liftPassiveLimits(): Pair<List<String>, List<Pair<String, String>>> {
+        val zones = RootShell.run(
+            "for z in /sys/class/thermal/thermal_zone*; do " +
+                "echo \"${'$'}z|${'$'}(cat ${'$'}z/mode 2>/dev/null)|${'$'}(cat ${'$'}z/trip_point_*_type 2>/dev/null | tr '\\n' ' ')\"; done"
+        ).mapNotNull { l ->
+            val p = l.split('|')
+            if (p.size < 3) return@mapNotNull null
+            val types = p[2].trim().split(Regex("\\s+")).filter { it.isNotBlank() }.map { it.lowercase() }
+            // Solo zonas activas, con algún punto de corte, y sin protección crítica
+            if (p[1].trim() == "enabled" && types.isNotEmpty() && types.none { it == "critical" || it == "hot" }) p[0] else null
+        }
+        zones.forEach { RootShell.run("echo disabled > ${Actions.q("$it/mode")}") }
+
+        val mtk = ArrayList<Pair<String, String>>()
+        fun setIfExists(file: String, value: String) {
+            val cur = RootShell.run("cat ${Actions.q(file)} 2>/dev/null").firstOrNull()?.trim() ?: return
+            if (cur.isEmpty()) return
+            mtk.add(file to cur)
+            RootShell.run("echo $value > ${Actions.q(file)}")
+        }
+        setIfExists("/sys/kernel/fpsgo/common/fpsgo_enable", "0")
+        setIfExists("/sys/kernel/eara_thermal/enable", "0")
+        // PPM: desactivar solo la política térmica (las demás se dejan)
+        val ppm = RootShell.run("cat /proc/ppm/policy_status 2>/dev/null")
+        ppm.firstOrNull { it.contains("THERMAL", ignoreCase = true) && it.contains("enabled", ignoreCase = true) }
+            ?.let { Regex("""\[(\d+)]""").find(it)?.groupValues?.get(1) }
+            ?.let { idx ->
+                mtk.add("/proc/ppm/policy_status" to "$idx 1")
+                RootShell.run("echo '$idx 0' > /proc/ppm/policy_status")
+            }
+        return zones to mtk
+    }
+
+    private fun restorePassiveLimits(zones: List<String>, mtk: List<Pair<String, String>>) {
+        zones.forEach { RootShell.run("echo enabled > ${Actions.q("$it/mode")}") }
+        mtk.forEach { (file, value) -> RootShell.run("echo ${Actions.q(value)} > ${Actions.q(file)}") }
     }
 
     /** Pausa Joyose (Xiaomi/HyperOS) si está instalado y en marcha. Vuelve a iniciarse solo después. */
@@ -107,6 +161,12 @@ object DiabloMode {
         if (drifted) CpuPower.lockMax(clusters)
         thermalServices().filter { it in stopped }.forEach { RootShell.run("stop ${Actions.q(it)}") }
         pauseJoyose()
+        zonesOff.forEach { RootShell.run("echo disabled > ${Actions.q("$it/mode")}") }
+        mtkBefore.forEach { (file, _) ->
+            when {
+                file.endsWith("fpsgo_enable") || file.endsWith("eara_thermal/enable") -> RootShell.run("echo 0 > ${Actions.q(file)}")
+            }
+        }
     }
 
     /** Devuelve todo a como estaba antes de activarlo. */
@@ -115,6 +175,7 @@ object DiabloMode {
         if (!active) return
         active = false
         if (RootShell.open()) {
+            restorePassiveLimits(zonesOff, mtkBefore)
             stopped.forEach { RootShell.run("start ${Actions.q(it)}") }
             cpuBefore?.let { CpuPower.restore(it) }
             gpuBefore?.let { g ->
@@ -124,8 +185,9 @@ object DiabloMode {
                 }
             }
         }
-        stopped = emptyList(); cpuBefore = null; gpuBefore = null
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("active", false).remove("services").apply()
+        stopped = emptyList(); cpuBefore = null; gpuBefore = null; zonesOff = emptyList(); mtkBefore = emptyList()
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean("active", false).remove("services").remove("zones").remove("mtk").apply()
     }
 
     /**
@@ -137,10 +199,14 @@ object DiabloMode {
         val sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!sp.getBoolean("active", false)) return
         if (!RootShell.open()) return
+        val zones = sp.getString("zones", "").orEmpty().split(',').filter { it.isNotBlank() }
+        val mtk = sp.getString("mtk", "").orEmpty().split(';').filter { it.contains('=') }
+            .map { it.substringBefore('=') to it.substringAfter('=') }
+        restorePassiveLimits(zones, mtk)
         sp.getString("services", "").orEmpty().split(',').filter { it.isNotBlank() }
             .forEach { RootShell.run("start ${Actions.q(it)}") }
         CpuPower.apply(CpuPower.Mode.BALANCED, CpuPower.read())
         GpuControl.read()?.let { GpuControl.reset(it) }
-        sp.edit().putBoolean("active", false).remove("services").apply()
+        sp.edit().putBoolean("active", false).remove("services").remove("zones").remove("mtk").apply()
     }
 }

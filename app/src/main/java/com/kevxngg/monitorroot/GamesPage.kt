@@ -348,7 +348,7 @@ private fun DiabloDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         title = { Text(tr("Activar Modo Diablo"), fontSize = 18.sp) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(tr("Mientras juegas, la CPU y la GPU quedarán fijas en su frecuencia máxima y se detendrán los servicios del fabricante que bajan la velocidad con el calor."), fontSize = 13.sp)
+                Text(tr("Mientras juegas, la CPU y la GPU quedarán fijas en su frecuencia máxima y se quitarán los límites que bajan la velocidad con el calor: los servicios del fabricante y los límites pasivos del kernel."), fontSize = 13.sp)
                 DiabloWarning(compact = false)
                 Row(
                     Modifier.fillMaxWidth().clickable { accepted = !accepted },
