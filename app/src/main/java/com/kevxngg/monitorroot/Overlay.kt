@@ -214,7 +214,7 @@ object QuickStats {
         val z = zones()
         val script = buildString {
             append("head -n 1 /proc/stat; echo @@; ")
-            append("grep -H . /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/kernel/gpu/gpu_busy /sys/kernel/ged/hal/gpu_utilization; echo @@; ")
+            append("grep -H . /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/kernel/gpu/gpu_busy /sys/kernel/ged/hal/gpu_utilization /sys/module/ged/parameters/gpu_loading; echo @@; ")
             append("grep -E '^(MemTotal|MemAvailable):' /proc/meminfo; echo @@; ")
             append("cat /sys/devices/system/cpu/cpufreq/policy*/scaling_cur_freq 2>/dev/null; echo @@; ")
             append("cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqency 2>/dev/null | head -n 1; ")
@@ -237,9 +237,10 @@ object QuickStats {
             prevTotal = total; prevIdle = idle
         }
         // GPU
-        val gpu = parts.getOrNull(1)?.lines()?.firstNotNullOfOrNull { l ->
+        // Se toma el mayor de las fuentes (en MediaTek, gpu_utilization suele dar 0 y gpu_loading es el real)
+        val gpu = parts.getOrNull(1)?.lines().orEmpty().mapNotNull { l ->
             Regex("\\d+").find(l.substringAfter(':'))?.value?.toIntOrNull()
-        }?.coerceIn(0, 100)
+        }.maxOrNull()?.coerceIn(0, 100)
         // RAM
         val mem = parts.getOrNull(2)?.lines().orEmpty().associate { l ->
             l.substringBefore(':') to (l.split(WS).getOrNull(1)?.toLongOrNull() ?: 0L)
@@ -333,7 +334,9 @@ class BubbleView(ctx: Context) : View(ctx) {
         val r = width / 2f
         // Logo de Monitor, algo translúcido para que no tape lo de abajo
         drawAppLogo(c, context, r, r, r - 2 * d, alpha = 0xE0)
-        p.style = Paint.Style.STROKE; p.strokeWidth = 1.5f * d; p.color = 0x99FFFFFF.toInt()
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = (if (DiabloMode.active) 2.5f else 1.5f) * d
+        p.color = if (DiabloMode.active) 0xFFFF4D4F.toInt() else 0x99FFFFFF.toInt()
         c.drawCircle(r, r, r - 1.5f * d, p)
     }
 }
@@ -372,6 +375,7 @@ class OverlayService : Service() {
                 val d = try { if (RootShell.open()) QuickStats.read(fps = true, ctx = applicationContext) else null } catch (_: Exception) { null }
                 last = d
                 main.post {
+                    bubble?.invalidate()  // el anillo rojo sigue el estado del Modo Diablo
                     panel?.let { v ->
                         // Diseño o transparencia cambiados en Configuración: se aplican sin reiniciar el servicio
                         val st = Prefs.panelStyle.coerceIn(0, 3)

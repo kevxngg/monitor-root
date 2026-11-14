@@ -70,6 +70,8 @@ class PanelView(ctx: Context) : View(ctx) {
     private val cSub = 0xFF9AA4B2.toInt()
     private val cTrack = 0x33FFFFFF
     private val cGreenFps = 0xFF36D399.toInt()
+    private val cDiablo = 0xFFFF4D4F.toInt()
+    private val diablo get() = DiabloMode.active
 
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private val textP = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = cText }
@@ -170,9 +172,13 @@ class PanelView(ctx: Context) : View(ctx) {
         // cabecera
         drawAppLogo(c, context, pad + dp(10f), pad + dp(9f), dp(10f))
         text(c, "Monitor", pad + dp(26f), pad + dp(14f), 15f, cText, bold = true)
-        p.style = Paint.Style.FILL; p.color = cGreen
-        c.drawCircle(width - pad - dp(96f), pad + dp(9f), dp(3.5f), p)
-        text(c, "Live", width - pad - dp(86f), pad + dp(13f), 11f, cGreen)
+        if (diablo) {
+            text(c, "🔥 Diablo", width - pad - dp(100f), pad + dp(13f), 11f, cDiablo, bold = true)
+        } else {
+            p.style = Paint.Style.FILL; p.color = cGreen
+            c.drawCircle(width - pad - dp(96f), pad + dp(9f), dp(3.5f), p)
+            text(c, "Live", width - pad - dp(86f), pad + dp(13f), 11f, cGreen)
+        }
         // cuatro medidores
         val gy = pad + dp(58f); val gr = dp(26f)
         val cols = 4; val gw = (width - pad * 2) / cols
@@ -248,7 +254,7 @@ class PanelView(ctx: Context) : View(ctx) {
 
     // ---------- Estilo 1: compacto (una línea horizontal) ----------
     private fun drawCompact(c: Canvas) {
-        roundBg(c, 0x0E1420, dp(14f), 0x553FA9FF)
+        roundBg(c, 0x0E1420, dp(14f), if (diablo) cDiablo else 0x553FA9FF)
         val d = data
         val items = listOf(
             Triple("CPU", pct(d?.cpu), load(d?.cpu)),
@@ -297,7 +303,7 @@ class PanelView(ctx: Context) : View(ctx) {
         p.shader = LinearGradient(lx - lr, ly - lr, lx + lr, ly + lr, intArrayOf(cBlue, cPurple), null, Shader.TileMode.CLAMP)
         c.drawCircle(lx, ly, lr + dp(4f), p); p.shader = null
         drawAppLogo(c, context, lx, ly, lr)
-        text(c, "MONITOR", lx, ly + lr + dp(18f), 10f, cPurple, bold = true, center = true)
+        text(c, if (diablo) "🔥 DIABLO" else "MONITOR", lx, ly + lr + dp(18f), 10f, if (diablo) cDiablo else cPurple, bold = true, center = true)
         // cuatro medidores
         val gy = dp(62f); val gr = dp(24f)
         val startX = dp(96f); val span = width - startX - dp(16f); val gw = span / 4
@@ -325,8 +331,12 @@ class PanelView(ctx: Context) : View(ctx) {
         val green = 0xFF4ADE80.toInt(); val d = data
         val pad = dp(14f)
         text(c, "Monitor Root v3.0", pad, pad + dp(12f), 11f, green, bold = true, face = mono)
-        p.style = Paint.Style.FILL; p.color = green; c.drawCircle(width - pad - dp(40f), pad + dp(8f), dp(3f), p)
-        text(c, "Live", width - pad - dp(32f), pad + dp(12f), 10f, green, face = mono)
+        if (diablo) {
+            text(c, "DIABLO", width - pad - dp(46f), pad + dp(12f), 10f, cDiablo, bold = true, face = mono)
+        } else {
+            p.style = Paint.Style.FILL; p.color = green; c.drawCircle(width - pad - dp(40f), pad + dp(8f), dp(3f), p)
+            text(c, "Live", width - pad - dp(32f), pad + dp(12f), 10f, green, face = mono)
+        }
         // columna izquierda: valores
         val lines = listOf("CPU" to pct(d?.cpu), "GPU" to pct(d?.gpu), "RAM" to pct(d?.ram), "TEMP" to (d?.cpuTemp?.let { "%.0f°C".format(it) } ?: "—"))
         var y = pad + dp(34f)

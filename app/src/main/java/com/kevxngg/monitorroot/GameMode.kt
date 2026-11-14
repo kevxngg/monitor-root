@@ -207,15 +207,29 @@ class GameModeService : Service() {
         }
         val fg = foreground()
         val cur = current
-        val isGame = fg != null && fg in Prefs.games
-        if (cur == null && isGame) {
-            enterGame(fg!!)
-        } else if (cur != null && fg != null && fg != cur && fg != packageName) {
-            exitGame(cur)
-            if (isGame) enterGame(fg!!)
+        if (cur != null) {
+            // La partida sigue mientras el juego esté abierto, aunque cambies un momento a otra
+            // app (anuncios, inicio de sesión, otra ventana). Termina al cerrarlo (quitarlo de
+            // recientes), al abrir otro de tus juegos o al bloquear la pantalla.
+            val running = if (fg == cur) true else isRunning(cur)
+            val otherGame = fg != null && fg != cur && fg in Prefs.games
+            // Sin poder comprobar el proceso, se vuelve a la regla anterior (otra app en pantalla)
+            val closed = running == false || (running == null && fg != null && fg != cur && fg != packageName)
+            if (closed || otherGame) {
+                exitGame(cur)
+                if (otherGame) enterGame(fg!!)
+            }
+        } else if (fg != null && fg in Prefs.games) {
+            enterGame(fg)
         }
-        if (current != null && (Prefs.gameRecord || DiabloMode.active)) record()
+        if (current != null && (Prefs.gameRecord || DiabloMode.active)) record(inGame = fg == current)
+        // Mantener el Modo Diablo: si algo cambió las frecuencias o reactivó el control térmico, se corrige
+        if (DiabloMode.active) DiabloMode.enforce()
     }
+
+    /** true si el proceso del juego sigue vivo; null si no se puede comprobar (sin root ni Shizuku). */
+    private fun isRunning(pkg: String): Boolean? =
+        if (!RootShell.open()) null else RootShell.run("pidof ${Actions.q(pkg)}").any { it.isNotBlank() }
 
     private fun battery(): Int? {
         val i = registerReceiver(null, IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED)) ?: return null
@@ -293,9 +307,10 @@ class GameModeService : Service() {
         updateNotification(null)
     }
 
-    private fun record() {
+    private fun record(inGame: Boolean) {
         val d = QuickStats.read(fps = true, ctx = applicationContext)
-        if (Prefs.gameRecord) {
+        // Las estadísticas de la partida solo cuentan con el juego en pantalla
+        if (Prefs.gameRecord && inGame) {
             d.fps?.let { fps.add(it) }
             val t = listOfNotNull(d.cpuTemp, d.battTemp).maxOrNull()
             if (t != null) tempMax = maxOf(tempMax ?: t, t)

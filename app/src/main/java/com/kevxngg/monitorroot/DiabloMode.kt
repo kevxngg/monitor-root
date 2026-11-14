@@ -30,6 +30,10 @@ object DiabloMode {
     @Volatile var active = false
         private set
 
+    // Servicio de Xiaomi/HyperOS que ajusta la frecuencia de los juegos por su cuenta
+    private const val JOYOSE = "com.xiaomi.joyose"
+    private var lastEnforce = 0L
+
     private var cpuBefore: CpuPower.Snapshot? = null
     private var gpuBefore: GpuControl.State? = null
     private var stopped: List<String> = emptyList()
@@ -65,6 +69,7 @@ object DiabloMode {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putBoolean("active", true).putString("services", stopped.joinToString(",")).apply()
         stopped.forEach { RootShell.run("stop ${Actions.q(it)}") }
+        pauseJoyose()
         // 3) CPU y GPU al máximo
         CpuPower.lockMax(cpuBefore?.clusters.orEmpty())
         gpuBefore?.let { g ->
@@ -77,6 +82,31 @@ object DiabloMode {
         }
         active = true
         return true
+    }
+
+    /** Pausa Joyose (Xiaomi/HyperOS) si está instalado y en marcha. Vuelve a iniciarse solo después. */
+    private fun pauseJoyose() {
+        if (RootShell.run("pidof $JOYOSE").any { it.isNotBlank() }) RootShell.run("am force-stop $JOYOSE")
+    }
+
+    /**
+     * Mantiene el modo mientras dura (se llama cada pocos segundos): si otra app o el
+     * sistema cambió las frecuencias, reactivó un servicio térmico o Joyose, se corrige.
+     */
+    @Synchronized
+    fun enforce() {
+        if (!active) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastEnforce < 4000) return
+        lastEnforce = now
+        val clusters = CpuPower.read()
+        val drifted = clusters.any { c ->
+            val top = c.hwMaxKhz ?: c.freqsKhz.maxOrNull() ?: return@any false
+            (c.minKhz ?: 0L) < top || ("performance" in c.governors && c.governor != "performance")
+        }
+        if (drifted) CpuPower.lockMax(clusters)
+        thermalServices().filter { it in stopped }.forEach { RootShell.run("stop ${Actions.q(it)}") }
+        pauseJoyose()
     }
 
     /** Devuelve todo a como estaba antes de activarlo. */

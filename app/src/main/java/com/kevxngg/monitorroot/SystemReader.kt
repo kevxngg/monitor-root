@@ -163,6 +163,7 @@ private val SYS_FILES = listOf(
     "/sys/class/kgsl/kgsl/page_alloc",
     "/sys/kernel/gpu/gpu_busy", "/sys/kernel/gpu/gpu_clock", "/sys/kernel/gpu/gpu_model", "/sys/kernel/gpu/gpu_max_clock",
     "/sys/kernel/ged/hal/gpu_utilization", "/sys/kernel/ged/hal/current_freqency",
+    "/sys/module/ged/parameters/gpu_loading",
     "/sys/class/devfreq/*/cur_freq",
     "/sys/class/devfreq/*/max_freq",
     "/sys/class/misc/mali0/device/gpuinfo",
@@ -491,7 +492,12 @@ class SystemReader(context: Context) {
             }
             "/sys/kernel/ged/hal/gpu_utilization" in sys -> {
                 gpuSrc = "Mali (MediaTek)"
-                gpuLoad = nums(sys["/sys/kernel/ged/hal/gpu_utilization"]).firstOrNull()?.toInt()
+                // gpu_utilization da 0 siempre en muchos kernels nuevos; gpu_loading es el fiable.
+                // Se usa el mayor de los dos.
+                gpuLoad = listOfNotNull(
+                    nums(sys["/sys/kernel/ged/hal/gpu_utilization"]).firstOrNull(),
+                    nums(sys["/sys/module/ged/parameters/gpu_loading"]).firstOrNull(),
+                ).maxOrNull()?.toInt()?.coerceIn(0, 100)
                 gpuFreqRaw = sys["/sys/kernel/ged/hal/current_freqency"]
             }
             else -> {
