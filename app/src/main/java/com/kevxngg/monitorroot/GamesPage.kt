@@ -357,7 +357,7 @@ private fun DiabloWarning(compact: Boolean) {
             Text(tr("Puede sobrecalentar y dañar el teléfono"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DiabloRed)
             if (!compact) {
                 Text(tr("El teléfono se calentará mucho más de lo normal. El calor sostenido degrada la batería, puede hacer que se hinche y, en casos extremos, dañar componentes."), fontSize = 12.sp, color = win.text)
-                Text(tr("Úsalo con un ventilador para teléfono, sin funda y nunca mientras carga."), fontSize = 12.sp, color = win.text)
+                Text(tr("Úsalo con un cooler para teléfono, sin funda y nunca mientras carga."), fontSize = 12.sp, color = win.text)
             }
             Text(
                 tr("Monitor lo desactiva solo si la batería llega a %d °C o la CPU a %d °C, si empieza a cargar o al salir del juego. La protección crítica del sistema no se toca.",
