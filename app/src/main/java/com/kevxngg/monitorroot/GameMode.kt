@@ -87,6 +87,11 @@ object GameSessions {
     }
 }
 
+/** Qué juego se está jugando ahora (para mostrarlo en la página Juegos). */
+object GameModeState {
+    @Volatile var playing: String? = null
+}
+
 object GameMode {
     /** Apps que Android marca como juegos (para sugerirlas). */
     @Suppress("DEPRECATION")
@@ -240,16 +245,17 @@ class GameModeService : Service() {
 
     private fun enterGame(pkg: String) {
         current = pkg
+        GameModeState.playing = pkg
         sessionStart = System.currentTimeMillis()
         fps.clear()
         tempMax = null
         battStart = battery()
         if (!RootShell.open()) return
-        // Modo Diablo: todo al máximo (reemplaza al modo de energía mientras dure la partida)
-        val diablo = Prefs.gameDiablo && DiabloMode.enable(applicationContext)
+        // Perfil Diablo: todo al máximo. Si no se puede (por ejemplo, cargando), se usa Mejor rendimiento
+        val diablo = Prefs.gamePower == 4 && DiabloMode.enable(applicationContext)
         // Modo de energía (se guarda el estado completo de la CPU para devolverlo al salir)
         val mode = if (diablo) null else when (Prefs.gamePower) {
-            1 -> CpuPower.Mode.PERFORMANCE
+            1, 4 -> CpuPower.Mode.PERFORMANCE
             2 -> CpuPower.Mode.BALANCED
             3 -> CpuPower.Mode.SAVER
             else -> null
@@ -285,6 +291,7 @@ class GameModeService : Service() {
 
     private fun exitGame(pkg: String) {
         current = null
+        GameModeState.playing = null
         DiabloMode.disable(applicationContext)
         if (RootShell.open()) {
             savedCpu?.let { CpuPower.restore(it) }

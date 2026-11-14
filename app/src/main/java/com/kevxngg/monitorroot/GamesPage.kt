@@ -4,7 +4,9 @@ import android.content.Intent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -43,9 +45,11 @@ fun GamesPage(onRun: () -> Unit) {
     var detail by remember { mutableStateOf<GameSession?>(null) }
     var confirmClear by remember { mutableStateOf(false) }
     var confirmDiablo by remember { mutableStateOf(false) }
+    var playing by remember { mutableStateOf(GameModeState.playing) }
 
-    // Las partidas nuevas aparecen solas
-    RepeatWhileVisible(5000) {
+    // Las partidas nuevas y el juego en curso se actualizan solos
+    RepeatWhileVisible(3000) {
+        playing = GameModeState.playing
         sessions = withContext(Dispatchers.IO) { GameSessions.read(ctx) }
     }
 
@@ -58,76 +62,43 @@ fun GamesPage(onRun: () -> Unit) {
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            SectionLabel(tr("Modo juego"))
-            SettingCard(Icons.Outlined.SportsEsports, tr("Modo juego"), tr("Al abrir uno de tus juegos se aplican estos ajustes y se guarda el resumen de la partida.")) {
-                WinSwitch(Prefs.gameMode) { on ->
-                    Prefs.gameMode = on
-                    Prefs.save()
-                    val app = ctx.applicationContext
-                    scope.launch(Dispatchers.IO) { if (on) GameMode.start(app) else GameMode.stop(app) }
-                }
-            }
-            SettingCard(
-                Icons.Outlined.Bolt, tr("Modo de energía al jugar"),
-                if (RootShell.viaShizuku) tr("Solo con root") + ": " + tr("con Shizuku no se puede cambiar.")
-                else tr("Se vuelve al modo anterior al salir del juego."),
-            ) {
-                WinDropdown(
-                    listOf(tr("Sin cambios"), tr("Mejor rendimiento"), tr("Equilibrado"), tr("Mejor eficiencia energética")),
-                    Prefs.gamePower,
-                    enabled = !RootShell.viaShizuku,
-                ) { Prefs.gamePower = it; Prefs.save() }
-            }
-            // Modo Diablo: todo al máximo, con aviso de riesgo y confirmación obligatoria
-            SettingCard(
-                Icons.Outlined.LocalFireDepartment, tr("Modo Diablo"),
-                if (RootShell.viaShizuku) tr("Solo con root") + ": " + tr("con Shizuku no se puede cambiar.")
-                else tr("CPU y GPU fijas en su frecuencia máxima y sin control térmico del fabricante mientras juegas."),
-            ) {
-                WinSwitch(Prefs.gameDiablo) { on ->
-                    if (RootShell.viaShizuku) return@WinSwitch
-                    if (on) confirmDiablo = true else { Prefs.gameDiablo = false; Prefs.save() }
-                }
-            }
-            if (Prefs.gameDiablo) DiabloWarning(compact = true)
-            SettingCard(Icons.Outlined.PictureInPicture, tr("Mostrar el monitor flotante"), tr("Se oculta al salir del juego.")) {
-                WinSwitch(Prefs.gameOverlay) { Prefs.gameOverlay = it; Prefs.save() }
-            }
-            SettingCard(Icons.Outlined.CleaningServices, tr("Cerrar apps en segundo plano"), tr("Libera memoria al abrir el juego.")) {
-                WinSwitch(Prefs.gameKill) { Prefs.gameKill = it; Prefs.save() }
-            }
-            SettingCard(Icons.Outlined.DoNotDisturbOn, tr("No molestar"), tr("Silencia las notificaciones mientras juegas.")) {
-                WinSwitch(Prefs.gameDnd) { Prefs.gameDnd = it; Prefs.save() }
-            }
-            SettingCard(Icons.Outlined.Assessment, tr("Guardar resumen de partidas"), tr("FPS, temperatura y batería de cada partida.")) {
-                WinSwitch(Prefs.gameRecord) { Prefs.gameRecord = it; Prefs.save() }
+            // ---- Estado del modo juego ----
+            GameStatusCard(playing) { on ->
+                Prefs.gameMode = on
+                Prefs.save()
+                val app = ctx.applicationContext
+                scope.launch(Dispatchers.IO) { if (on) GameMode.start(app) else GameMode.stop(app) }
             }
 
+            // ---- Perfil de rendimiento (el Modo Diablo es uno más) ----
+            Spacer(Modifier.height(8.dp))
+            SectionLabel(tr("Perfil de rendimiento"))
+            Text(tr("Se aplica al abrir uno de tus juegos y se deshace al cerrarlo."), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+            ProfilePicker(Prefs.gamePower) { chosen ->
+                if (chosen == 4) confirmDiablo = true else { Prefs.gamePower = chosen; Prefs.save() }
+            }
+            if (Prefs.gamePower == 4) DiabloWarning(compact = true)
+
+            // ---- Durante la partida ----
+            Spacer(Modifier.height(8.dp))
+            SectionLabel(tr("Durante la partida"))
+            GameCard {
+                GameToggle(Icons.Outlined.PictureInPicture, tr("Mostrar el monitor flotante"), tr("Se oculta al salir del juego."), Prefs.gameOverlay) { Prefs.gameOverlay = it; Prefs.save() }
+                ToggleDivider()
+                GameToggle(Icons.Outlined.CleaningServices, tr("Cerrar apps en segundo plano"), tr("Libera memoria al abrir el juego."), Prefs.gameKill) { Prefs.gameKill = it; Prefs.save() }
+                ToggleDivider()
+                GameToggle(Icons.Outlined.DoNotDisturbOn, tr("No molestar"), tr("Silencia las notificaciones mientras juegas."), Prefs.gameDnd) { Prefs.gameDnd = it; Prefs.save() }
+                ToggleDivider()
+                GameToggle(Icons.Outlined.Assessment, tr("Guardar resumen de partidas"), tr("FPS, temperatura y batería de cada partida."), Prefs.gameRecord) { Prefs.gameRecord = it; Prefs.save() }
+            }
+
+            // ---- Tus juegos en cuadrícula ----
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Tus juegos (%d)", Prefs.games.size))
             val myGames = remember(Prefs.games) { Prefs.games.mapNotNull { Apps.meta(it) }.sortedBy { it.label.lowercase() } }
-            GameCard {
-                if (myGames.isEmpty()) {
-                    Text(tr("Todavía no elegiste juegos."), fontSize = 13.sp, color = win.sub, modifier = Modifier.padding(14.dp))
-                } else {
-                    myGames.forEachIndexed { i, a ->
-                        if (i > 0) Box(Modifier.padding(start = 50.dp).fillMaxWidth().height(1.dp).background(win.divider))
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            AppIcon(a.icon, a.label, 24.dp)
-                            Spacer(Modifier.width(12.dp))
-                            Text(a.label, fontSize = 14.sp, color = win.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Icon(
-                                Icons.Outlined.Close, tr("Quitar"), tint = win.sub,
-                                modifier = Modifier.size(20.dp).clip(corner(4)).clickable {
-                                    Prefs.games = Prefs.games - a.pkg
-                                    Prefs.save()
-                                },
-                            )
-                        }
-                    }
-                }
-                Box(Modifier.fillMaxWidth().height(1.dp).background(win.divider))
-                TextButton(onClick = { picking = true }, modifier = Modifier.padding(horizontal = 6.dp)) { Text(tr("Elegir juegos")) }
+            GameGrid(myGames, onAdd = { picking = true }) { pkg ->
+                Prefs.games = Prefs.games - pkg
+                Prefs.save()
             }
 
             Spacer(Modifier.height(8.dp))
@@ -149,7 +120,7 @@ fun GamesPage(onRun: () -> Unit) {
     }
 
     if (confirmDiablo) DiabloDialog(
-        onConfirm = { Prefs.gameDiablo = true; Prefs.save(); confirmDiablo = false },
+        onConfirm = { Prefs.gamePower = 4; Prefs.save(); confirmDiablo = false },
         onDismiss = { confirmDiablo = false },
     )
     if (picking) GamePickerDialog { picking = false }
@@ -395,4 +366,204 @@ private fun DiabloDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar")) } },
     )
+}
+
+// ===================== Componentes del rediseño de Juegos =====================
+
+/** Tarjeta de estado: modo juego encendido o apagado, juego en curso y perfil. */
+@Composable
+private fun GameStatusCard(playing: String?, onToggle: (Boolean) -> Unit) {
+    val win = LocalWin.current
+    val on = Prefs.gameMode
+    val diablo = Prefs.gamePower == 4
+    val accent = if (diablo && on) DiabloRed else win.accent
+    val label = playing?.let { Apps.meta(it)?.label ?: it }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(corner(12))
+            .background(if (on) accent.copy(alpha = if (win.dark) 0.18f else 0.10f) else win.card)
+            .border(1.dp, if (on) accent.copy(alpha = 0.55f) else win.border, corner(12))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(46.dp).clip(corner(12)).background(if (on) accent else win.hover),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                if (diablo && on) Icons.Outlined.LocalFireDepartment else Icons.Outlined.SportsEsports, null,
+                tint = if (on) androidx.compose.ui.graphics.Color.White else win.sub, modifier = Modifier.size(26.dp),
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(tr("Modo juego"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+            Text(
+                when {
+                    !on -> tr("Desactivado")
+                    label != null -> tr("Jugando: %s", label)
+                    else -> tr("Esperando a que abras uno de tus juegos.")
+                },
+                fontSize = 13.sp, color = if (on && label != null) accent else win.sub,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            if (on) Text(tr("Perfil: %s", profileName(Prefs.gamePower)), fontSize = 12.sp, color = win.sub)
+        }
+        WinSwitch(on, onToggle)
+    }
+}
+
+private fun profileName(i: Int) = when (i) {
+    0 -> tr("Sin cambios")
+    1 -> tr("Rendimiento")
+    2 -> tr("Equilibrado")
+    3 -> tr("Eficiencia")
+    else -> tr("Modo Diablo")
+}
+
+/** Los cinco perfiles como tarjetas; el Modo Diablo ocupa una fila entera y va en rojo. */
+@Composable
+private fun ProfilePicker(selected: Int, onPick: (Int) -> Unit) {
+    val rootOnly = RootShell.viaShizuku
+    data class P(val id: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val title: String, val desc: String)
+    val items = listOf(
+        P(0, Icons.Outlined.DoNotDisturbAlt, tr("Sin cambios"), tr("El teléfono decide")),
+        P(3, Icons.Outlined.EnergySavingsLeaf, tr("Eficiencia"), tr("Menos calor y batería")),
+        P(2, Icons.Outlined.Balance, tr("Equilibrado"), tr("Como viene de fábrica")),
+        P(1, Icons.Outlined.Bolt, tr("Rendimiento"), tr("CPU al máximo")),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { p ->
+                    ProfileTile(
+                        p.icon, p.title, p.desc, selected == p.id,
+                        enabled = p.id == 0 || !rootOnly, red = false, modifier = Modifier.weight(1f),
+                    ) { onPick(p.id) }
+                }
+            }
+        }
+        ProfileTile(
+            Icons.Outlined.LocalFireDepartment, tr("Modo Diablo"),
+            tr("CPU y GPU fijas en su frecuencia máxima y sin control térmico del fabricante mientras juegas."),
+            selected == 4, enabled = !rootOnly, red = true, modifier = Modifier.fillMaxWidth(),
+        ) { onPick(4) }
+        if (rootOnly) Text(tr("Solo con root") + ": " + tr("con Shizuku no se puede cambiar."), fontSize = 12.sp, color = LocalWin.current.warn, modifier = Modifier.padding(start = 4.dp))
+    }
+}
+
+@Composable
+private fun ProfileTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, desc: String,
+    selected: Boolean, enabled: Boolean, red: Boolean, modifier: Modifier, onClick: () -> Unit,
+) {
+    val win = LocalWin.current
+    val tint = if (red) DiabloRed else win.accent
+    Column(
+        modifier
+            .clip(corner(10))
+            .background(
+                when {
+                    selected -> tint.copy(alpha = if (win.dark) 0.20f else 0.11f)
+                    red -> DiabloRed.copy(alpha = if (win.dark) 0.07f else 0.04f)
+                    else -> win.card
+                }
+            )
+            .border(if (selected) 2.dp else 1.dp, if (selected) tint else if (red) DiabloRed.copy(alpha = 0.45f) else win.border, corner(10))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(12.dp)
+            .then(if (enabled) Modifier else Modifier.background(androidx.compose.ui.graphics.Color.Transparent)),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = if (enabled) tint else win.sub, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                color = if (!enabled) win.sub else if (red) DiabloRed else win.text,
+                modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            if (selected) Icon(Icons.Outlined.CheckCircle, null, tint = tint, modifier = Modifier.size(18.dp))
+        }
+        Text(desc, fontSize = 11.5.sp, color = win.sub, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun GameToggle(
+    icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, desc: String,
+    checked: Boolean, onChange: (Boolean) -> Unit,
+) {
+    val win = LocalWin.current
+    Row(
+        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = win.sub, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 14.sp, color = win.text)
+            Text(desc, fontSize = 12.sp, color = win.sub)
+        }
+        Spacer(Modifier.width(8.dp))
+        WinSwitch(checked, onChange)
+    }
+}
+
+@Composable
+private fun ToggleDivider() {
+    Box(Modifier.padding(start = 50.dp).fillMaxWidth().height(1.dp).background(LocalWin.current.divider))
+}
+
+/** Tus juegos en cuadrícula de 4, con un botón para añadir. Mantén pulsado un juego para quitarlo. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun GameGrid(games: List<AppMeta>, onAdd: () -> Unit, onRemove: (String) -> Unit) {
+    val win = LocalWin.current
+    var removing by remember { mutableStateOf<AppMeta?>(null) }
+    val cells: List<AppMeta?> = games + listOf(null)   // null = botón de añadir
+    GameCard {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            cells.chunked(4).forEach { row ->
+                Row(Modifier.fillMaxWidth()) {
+                    row.forEach { a ->
+                        Column(
+                            Modifier
+                                .weight(1f)
+                                .clip(corner(8))
+                                .combinedClickable(
+                                    onClick = { if (a == null) onAdd() },
+                                    onLongClick = { if (a != null) removing = a },
+                                )
+                                .padding(vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            if (a != null) {
+                                AppIcon(a.icon, a.label, 44.dp)
+                            } else {
+                                Box(
+                                    Modifier.size(44.dp).clip(corner(12)).border(1.5.dp, win.border, corner(12)),
+                                    contentAlignment = Alignment.Center,
+                                ) { Icon(Icons.Outlined.Add, tr("Elegir juegos"), tint = win.accent) }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                a?.label ?: tr("Añadir"), fontSize = 11.sp,
+                                color = if (a == null) win.accent else win.text,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
+                        }
+                    }
+                    repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+            if (games.isEmpty()) Text(tr("Todavía no elegiste juegos."), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(4.dp))
+            else Text(tr("Mantén pulsado un juego para quitarlo."), fontSize = 11.sp, color = win.sub, modifier = Modifier.padding(horizontal = 4.dp))
+        }
+    }
+    removing?.let { a ->
+        ConfirmDialog(a.label, tr("¿Quitar este juego de la lista?"), tr("Quitar"), onConfirm = { onRemove(a.pkg) }, onDismiss = { removing = null })
+    }
 }

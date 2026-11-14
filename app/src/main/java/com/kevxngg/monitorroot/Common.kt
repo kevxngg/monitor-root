@@ -135,7 +135,7 @@ object Prefs {
     // Modo juego
     var gameMode by mutableStateOf(false)
     var games by mutableStateOf(setOf<String>())
-    var gamePower by mutableIntStateOf(1)       // 0 sin cambios, 1 rendimiento, 2 equilibrado, 3 eficiencia
+    var gamePower by mutableIntStateOf(1)       // 0 sin cambios, 1 rendimiento, 2 equilibrado, 3 eficiencia, 4 Diablo
     var gameOverlay by mutableStateOf(true)
     var gameKill by mutableStateOf(false)
     var gameDnd by mutableStateOf(false)
@@ -185,7 +185,8 @@ object Prefs {
         gameKill = p.getBoolean("gmKill", false)
         gameDnd = p.getBoolean("gmDnd", false)
         gameRecord = p.getBoolean("gmRecord", true)
-        gameDiablo = p.getBoolean("gmDiablo", false)
+        gameDiablo = false
+        if (p.getBoolean("gmDiablo", false)) gamePower = 4
         alertTemp = p.getBoolean("alTemp", false)
         alertTempLimit = p.getInt("alTempLimit", 1)
         alertCpu = p.getBoolean("alCpu", false)
@@ -224,7 +225,7 @@ object Prefs {
             ?.putBoolean("gmKill", gameKill)
             ?.putBoolean("gmDnd", gameDnd)
             ?.putBoolean("gmRecord", gameRecord)
-            ?.putBoolean("gmDiablo", gameDiablo)
+            ?.putBoolean("gmDiablo", false)
             ?.putBoolean("alTemp", alertTemp)
             ?.putInt("alTempLimit", alertTempLimit)
             ?.putBoolean("alCpu", alertCpu)
