@@ -123,7 +123,7 @@ fun DetailsPage(
     Column(Modifier.fillMaxSize()) {
         PageHeader(tr("Detalles")) {
             CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
-            CmdButton(Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null) { selected?.let { confirmEnd = it to false } }
+            CmdButton(Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null && !(RootShell.viaShizuku && selected.pkg == null)) { selected?.let { confirmEnd = it to false } }
             CmdMore(selected?.let { menuFor(it).drop(1) } ?: listOf(MenuEntry(tr("Selecciona un proceso"), enabled = false) {}))
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {

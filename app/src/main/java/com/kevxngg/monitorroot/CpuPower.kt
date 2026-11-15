@@ -315,14 +315,17 @@ fun CpuPowerSection() {
     val scope = rememberCoroutineScope()
     var clusters by remember { mutableStateOf<List<CpuPower.Cluster>?>(null) }
     var busy by remember { mutableStateOf(false) }
+    // While a game is open, game mode owns the CPU: it would undo or fight any manual change
+    var gaming by remember { mutableStateOf(GameModeState.playing != null) }
 
     // Re-read every few seconds: some vendors change the values on their own
-    RepeatWhileVisible(5000) {
+    RepeatWhileVisible(2000) {
+        gaming = GameModeState.playing != null
         if (!busy) clusters = withContext(Dispatchers.IO) { CpuPower.read() }
     }
 
     fun run(action: () -> Unit) {
-        if (busy) return
+        if (busy || GameModeState.playing != null) return
         busy = true
         scope.launch {
             clusters = withContext(Dispatchers.IO) {
@@ -334,8 +337,14 @@ fun CpuPowerSection() {
     }
 
     val list = clusters
-    PowerModeCard(list, busy) { mode -> run { CpuPower.apply(mode, list.orEmpty()) } }
-    CpuAdvancedCard(list, busy, ::run)
+    if (gaming) {
+        Text(
+            tr("Hay un juego abierto: el modo juego controla la CPU. Cambia el perfil en la página Juegos."),
+            fontSize = 12.sp, color = LocalWin.current.warn,
+        )
+    }
+    PowerModeCard(list, busy || gaming) { mode -> run { CpuPower.apply(mode, list.orEmpty()) } }
+    CpuAdvancedCard(list, busy || gaming, ::run)
 }
 
 @Composable

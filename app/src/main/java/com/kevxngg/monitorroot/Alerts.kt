@@ -57,11 +57,21 @@ object Alerts {
         if (Prefs.alertCpu) checkCpu(ctx)
     }
 
+    private const val CPU_HOT = 90f
+
     private fun checkTemp(ctx: Context) {
         val d = QuickStats.read(fps = false, ctx = ctx)
-        val t = listOfNotNull(d.cpuTemp, d.battTemp).maxOrNull() ?: return
         val limit = Prefs.TEMP_LIMITS.getOrElse(Prefs.alertTempLimit) { 50 }
-        if (t >= limit && cooledDown(ctx, "temp")) {
+        // The chosen limit (45–60 °C) is for the battery, which is what tells how hot the phone is.
+        // The processor passes 50 °C in normal use, so it only counts when it is really hot.
+        val batt = d.battTemp
+        val cpu = d.cpuTemp
+        val t = when {
+            batt != null && batt >= limit -> batt
+            cpu != null && cpu >= CPU_HOT -> cpu
+            else -> return
+        }
+        if (cooledDown(ctx, "temp")) {
             notify(ctx, 4001, tr("El teléfono está caliente"), tr("Llegó a %d °C. Deja que se enfríe o cierra las apps pesadas.", t.toInt()))
             mark(ctx, "temp")
         }

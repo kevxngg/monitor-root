@@ -1,13 +1,6 @@
 ## What's new
-- Battery: real capacity and design capacity, remaining charge in mAh, charge cycles, technology and charge type. The charge or discharge rate (% per hour) and the remaining time now appear right away, estimated from the current being drawn, until there is enough history to measure them.
-- GPU: memory in use on Mali (MediaTek) and the screen resolution and refresh rate. Long values such as the driver version no longer hide their label.
-- Mobile data: carrier, network type (4G, 5G, Wi-Fi calling) and roaming.
-- Wi-Fi: band and channel. Disk: used space, file system and data read and written since boot. Memory: free, active, inactive, ZRAM compression and more. CPU: temperature and load average.
-- Floating monitor: same typeface as the app and battery level and temperature in every style. The network speed no longer counts VPN or tethering traffic twice, the panel can no longer be resized wider than the screen, and the Transparency setting was inverted (High now really is more transparent).
-- Game mode: a game left in the background ends its session after a while (1 minute with Diablo Mode), turning game mode off restores everything reliably, and if Android kills the app in the middle of a game the CPU goes back to normal on the next start.
-- Leaving a game no longer turns a temporary limit set by the system (for example from heat) into a permanent CPU limit.
-- Diablo Mode turns itself off if no temperature can be read, and does not start if the CPU state could not be saved.
-- The battery charge alert no longer repeats on phones with a charge limit.
-- Confirmation before suspending a system process and before deleting the usage history. "Remove all" in efficiency mode now really restores the apps' priority.
-- Rotating the phone no longer restarts the app. In macOS style, dialogs were shown twice.
-- Text fixes: the search box read "Check" in some languages, and other small wording and icon corrections.
+- While a game is open, the manual CPU controls on the Performance page are locked and say why: game mode is in charge, and changing them by hand used to be undone or to conflict with it.
+- With Shizuku, the buttons that need root (ending native processes, starting or stopping system services) are now disabled instead of failing silently.
+- The temperature alert now uses the battery temperature for the limit you chose; the processor only triggers it when it is really hot (90 °C). Before, it could fire during normal use.
+- Updates are only installed automatically when the file's SHA-256 fingerprint has been checked.
+- In right-to-left languages such as Arabic, the back arrow and the chevrons now point the right way.

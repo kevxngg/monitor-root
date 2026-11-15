@@ -175,11 +175,11 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
     Column(Modifier.fillMaxSize()) {
         PageHeader(tr("Servicios")) {
             CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
-            CmdButton(Icons.Outlined.PlayArrow, tr("Iniciar"), enabled = selected != null && selected.native && !selected.running) {
+            CmdButton(Icons.Outlined.PlayArrow, tr("Iniciar"), enabled = selected != null && selected.native && !selected.running && allowed(true)) {
                 selected?.let { act(it, "start") }
             }
-            CmdButton(Icons.Outlined.Stop, tr("Detener"), enabled = selected?.running == true) { selected?.let { act(it, "stop") } }
-            CmdButton(Icons.Outlined.RestartAlt, tr("Reiniciar"), enabled = selected != null && selected.native && selected.running) {
+            CmdButton(Icons.Outlined.Stop, tr("Detener"), enabled = selected?.running == true && allowed(selected.native)) { selected?.let { act(it, "stop") } }
+            CmdButton(Icons.Outlined.RestartAlt, tr("Reiniciar"), enabled = selected != null && selected.native && selected.running && allowed(true)) {
                 selected?.let { act(it, "restart") }
             }
             CmdMore(

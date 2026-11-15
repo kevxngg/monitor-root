@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -348,9 +349,8 @@ fun Chevron(expanded: Boolean, visible: Boolean, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         if (visible) {
-            @Suppress("DEPRECATION")
             Icon(
-                if (expanded) Icons.Outlined.KeyboardArrowDown else Icons.Outlined.KeyboardArrowRight,
+                if (expanded) Icons.Outlined.KeyboardArrowDown else Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 null, tint = win.sub, modifier = Modifier.size(16.dp),
             )
         }

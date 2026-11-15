@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -109,8 +110,7 @@ fun AboutEntry(onOpen: () -> Unit) {
                 Text("Monitor", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = win.text)
                 Text("${tr("Versión")} $version", fontSize = 12.sp, color = win.sub)
             }
-            @Suppress("DEPRECATION")
-            Icon(Icons.Outlined.KeyboardArrowRight, null, tint = win.sub, modifier = Modifier.size(20.dp))
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = win.sub, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -144,8 +144,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.clip(corner(4)).clickable(onClick = onBack).padding(10.dp)) {
-                @Suppress("DEPRECATION")
-                Icon(Icons.Outlined.ArrowBack, tr("Volver"), tint = win.text, modifier = Modifier.size(20.dp))
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, tr("Volver"), tint = win.text, modifier = Modifier.size(20.dp))
             }
             Text(tr("Acerca de"), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = win.text)
         }
@@ -272,8 +271,7 @@ private fun AboutRow(icon: ImageVector, title: String, value: String, copyIcon: 
             Text(value, fontSize = 12.sp, color = win.sub, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         if (onClick != null) {
-            @Suppress("DEPRECATION")
-            Icon(if (copyIcon) Icons.Outlined.ContentCopy else Icons.Outlined.OpenInNew, null, tint = win.sub, modifier = Modifier.size(16.dp))
+            Icon(if (copyIcon) Icons.Outlined.ContentCopy else Icons.AutoMirrored.Outlined.OpenInNew, null, tint = win.sub, modifier = Modifier.size(16.dp))
         }
     }
 }

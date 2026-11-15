@@ -153,7 +153,9 @@ object Updater {
             if (a.optString("name") == "MonitorRoot.apk") {
                 // The release title is "Monitor 2.3": the trailing number is taken
                 val version = json.optString("name").substringAfterLast(' ').takeIf { v -> v.matches(Regex("\\d+(\\.\\d+)+")) } ?: ""
-                return validated(UpdateInfo(build, json.optString("name"), json.optString("body"), a.getString("browser_download_url"), a.optLong("size"), version = version))
+                return validated(UpdateInfo(build, json.optString("name"), json.optString("body"), a.getString("browser_download_url"), a.optLong("size"), version = version,
+                    // GitHub publishes each file's fingerprint as "sha256:<hex>"
+                    sha256 = a.optString("digest").removePrefix("sha256:")))
             }
         }
         error("Release has no MonitorRoot.apk")
@@ -287,7 +289,8 @@ object Updater {
         when {
             !file.exists() || file.length() == 0L -> false
             size != null && size > 0 && file.length() != size -> false
-            !sha256.isNullOrBlank() && !sha256Of(file).equals(sha256, ignoreCase = true) -> false
+            // Without a published fingerprint nothing is installed automatically
+            sha256.isNullOrBlank() || !sha256Of(file).equals(sha256, ignoreCase = true) -> false
             archive == null || archive.packageName != ctx.packageName -> false
             PackageInfoCompat.getLongVersionCode(archive) <= PackageInfoCompat.getLongVersionCode(installed) -> false
             // Shares at least one certificate (supports Android 9+ key rotation)

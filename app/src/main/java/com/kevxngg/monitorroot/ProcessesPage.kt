@@ -138,7 +138,9 @@ fun ProcessesPage(
                 expanded = if (r.key in expanded) expanded - r.key else expanded + r.key
             })
         }
-        add(MenuEntry(tr("Finalizar tarea"), Icons.Outlined.Block) { requestEnd(r) })
+        // With Shizuku only apps can be closed (native processes need root)
+        val canEnd = !(RootShell.viaShizuku && r.pkg == null)
+        add(MenuEntry(if (canEnd) tr("Finalizar tarea") else tr("Finalizar tarea") + " (${tr("solo con root")})", Icons.Outlined.Block, enabled = canEnd) { requestEnd(r) })
         if (r.pkg != null) {
             val on = r.pkg in Prefs.efficiency
             add(MenuEntry(if (on) tr("Desactivar modo de eficiencia") else tr("Modo de eficiencia"), Icons.Outlined.Eco) { toggleEfficiency(r) })
@@ -176,7 +178,7 @@ fun ProcessesPage(
     Column(Modifier.fillMaxSize()) {
         PageHeader(tr("Procesos")) {
             CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
-            CmdButton(Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null) { selected?.let(::requestEnd) }
+            CmdButton(Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null && !(RootShell.viaShizuku && selected.pkg == null)) { selected?.let(::requestEnd) }
             CmdButton(Icons.Outlined.Eco, tr("Modo de eficiencia"), enabled = selected?.pkg != null) { selected?.let(::toggleEfficiency) }
             CmdMore(
                 listOf(

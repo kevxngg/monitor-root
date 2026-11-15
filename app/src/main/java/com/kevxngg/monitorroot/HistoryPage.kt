@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -192,7 +193,7 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                     WinMenu(
                                         menuPkg == r.pkg, { menuPkg = null },
                                         listOf(
-                                            MenuEntry(tr("Abrir"), Icons.Outlined.OpenInNew) {
+                                            MenuEntry(tr("Abrir"), Icons.AutoMirrored.Outlined.OpenInNew) {
                                                 Apps.pm()?.getLaunchIntentForPackage(r.pkg)?.let { ctx.startActivity(it) }
                                             },
                                             MenuEntry(tr("Información de la app"), Icons.Outlined.Info) { openAppInfo(ctx, r.pkg) },
