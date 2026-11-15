@@ -38,6 +38,8 @@ object GpuControl {
         val freqsKhz: List<Long>,
         /** MediaTek v2: kHz → index into the frequency table. */
         val oppIndex: Map<Long, Int> = emptyMap(),
+        /** Minimum frequency the GPU may drop to, in kHz (devfreq and Exynos; null if unknown). */
+        val minKhz: Long? = null,
     )
 
     private val INT = Regex("-?\\d+")
@@ -51,14 +53,14 @@ object GpuControl {
           case "§d" in *kgsl*|*mali*|*gpu*|*GPU*|*g3d*)
             if [ -e "§d/governor" ]; then
               echo "path=§d"; echo "gov=§(cat §d/governor)"; echo "govs=§(cat §d/available_governors)"
-              echo "max=§(cat §d/max_freq)"; echo "freqs=§(cat §d/available_frequencies)"; break
+              echo "max=§(cat §d/max_freq)"; echo "min=§(cat §d/min_freq)"; echo "freqs=§(cat §d/available_frequencies)"; break
             fi;;
           esac
         done
         echo @@EXYNOS
         if [ -e /sys/kernel/gpu/gpu_max_clock ]; then
           echo "gov=§(cat /sys/kernel/gpu/gpu_governor)"; echo "govs=§(cat /sys/kernel/gpu/gpu_available_governor)"
-          echo "max=§(cat /sys/kernel/gpu/gpu_max_clock)"
+          echo "max=§(cat /sys/kernel/gpu/gpu_max_clock)"; echo "min=§(cat /sys/kernel/gpu/gpu_min_clock)"
           echo "freqs=§(cat /sys/kernel/gpu/gpu_freq_table /sys/kernel/gpu/gpu_available_frequencies)"
         fi
         echo @@MTK2
@@ -101,6 +103,7 @@ object GpuControl {
             return State(
                 Kind.DEVFREQ, m["path"]!!, m["gov"]?.ifBlank { null }, words(m["govs"]), fixed = false,
                 currentKhz = longs(m["max"]).firstOrNull()?.div(1000), freqsKhz = freqs,
+                minKhz = longs(m["min"]).firstOrNull()?.div(1000),
             )
         }
         kv(sec["EXYNOS"]).takeIf { it.containsKey("max") }?.let { m ->
@@ -109,6 +112,7 @@ object GpuControl {
             return State(
                 Kind.EXYNOS, "/sys/kernel/gpu", m["gov"]?.ifBlank { null }, words(m["govs"]), fixed = false,
                 currentKhz = longs(m["max"]).firstOrNull()?.times(1000), freqsKhz = freqs,
+                minKhz = longs(m["min"]).firstOrNull()?.times(1000),
             )
         }
         sec["MTK2"]?.takeIf { it.isNotEmpty() }?.let { lines ->
@@ -176,9 +180,32 @@ object GpuControl {
         }
     }
 
+    /**
+     * Raises the minimum frequency to the maximum ([pin] = true), so the GPU cannot scale down with
+     * load, or puts it back at the lowest one. Only where the frequency is not already pinned
+     * another way (devfreq, including Qualcomm Adreno, and Exynos).
+     */
+    fun pinMin(s: State, pin: Boolean) {
+        val khz = (if (pin) s.freqsKhz.maxOrNull() else s.freqsKhz.minOrNull()) ?: return
+        when (s.kind) {
+            Kind.DEVFREQ -> {
+                Tuning.write("${s.path}/min_freq", (khz * 1000).toString())
+                if (s.path.contains("kgsl")) {
+                    // Adreno: power level 0 is the fastest; the minimum level is what keeps it from dropping
+                    val k = "/sys/class/kgsl/kgsl-3d0"
+                    if (pin) Tuning.write("$k/min_pwrlevel", "0")
+                    else RootShell.run("n=${'$'}(cat $k/num_pwrlevels) && echo ${'$'}((n - 1)) > $k/min_pwrlevel")
+                }
+            }
+            Kind.EXYNOS -> Tuning.write("/sys/kernel/gpu/gpu_min_clock", (khz / 1000).toString())
+            else -> Unit
+        }
+    }
+
     fun reset(s: State) {
         Prefs.defaultGpuGovernor.takeIf { it.isNotEmpty() && it in s.governors }?.let { setGovernor(s, it) }
         setFreq(s, null)
+        if (!s.fixed) pinMin(s, false)
     }
 }
 

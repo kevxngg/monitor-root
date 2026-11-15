@@ -115,6 +115,8 @@ object DiabloMode {
         } else {
             if ("performance" in g.governors && g.governor != "performance") GpuControl.setGovernor(g, "performance")
             if (top != null && g.currentKhz != null && g.currentKhz < top) GpuControl.setFreq(g, null)
+            // Without a cap it could still scale down with load: the minimum is raised to the maximum
+            if (top != null && g.minKhz != top) GpuControl.pinMin(g, true)
         }
     }
 
@@ -211,6 +213,7 @@ object DiabloMode {
             cpuBefore?.let { CpuPower.restore(it) }
             gpuBefore?.let { g ->
                 GpuControl.read()?.let { now ->
+                    if (!now.fixed) GpuControl.pinMin(now, false)
                     g.governor?.takeIf { it in now.governors }?.let { GpuControl.setGovernor(now, it) }
                     GpuControl.setFreq(now, if (g.fixed) g.currentKhz else g.currentKhz.takeIf { it != g.freqsKhz.maxOrNull() })
                 }
