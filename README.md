@@ -4,24 +4,52 @@
 
 Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 kevxngg.
 
-**English** | [Español](README.es.md)
-
 **The task manager for Android, with root or Shizuku.** Monitor Root shows what your phone is using in real time (processes, CPU, GPU, memory, disk, network, battery and temperatures), with the look of the Windows 11 Task Manager or the macOS Activity Monitor.
 
 **[Download the latest version (APK)](https://github.com/kevxngg/monitor-root/releases/latest/download/MonitorRoot.apk)** · [Website](https://kevxngg.github.io/monitor-root/) · [All releases](https://github.com/kevxngg/monitor-root/releases)
 
 ## Screenshots
 
+All screenshots were taken on a Redmi Note 14 Pro 4G (MediaTek Helio G99) with root.
+
+### Windows 11 style (Task Manager)
+
 <table>
   <tr>
-    <td align="center"><img src="docs/img/procesos.jpg" width="240" alt="Processes tab"><br><sub>Processes</sub></td>
-    <td align="center"><img src="docs/img/rendimiento-cpu.jpg" width="240" alt="CPU performance"><br><sub>Performance: CPU</sub></td>
-    <td align="center"><img src="docs/img/procesadores-logicos.jpg" width="240" alt="Usage per logical processor"><br><sub>Logical processors</sub></td>
+    <td align="center"><img src="docs/img/screens/processes.jpg" width="200" alt="Processes"><br><sub>Processes</sub></td>
+    <td align="center"><img src="docs/img/screens/cpu.jpg" width="200" alt="Performance: CPU"><br><sub>Performance: CPU</sub></td>
+    <td align="center"><img src="docs/img/screens/memory.jpg" width="200" alt="Performance: Memory"><br><sub>Performance: Memory</sub></td>
+    <td align="center"><img src="docs/img/screens/disk.jpg" width="200" alt="Performance: Disk"><br><sub>Performance: Disk</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/img/gpu.jpg" width="240" alt="GPU performance"><br><sub>Performance: GPU</sub></td>
-    <td align="center"><img src="docs/img/historial.jpg" width="240" alt="App history"><br><sub>App history</sub></td>
-    <td></td>
+    <td align="center"><img src="docs/img/screens/gpu.jpg" width="200" alt="Performance: GPU"><br><sub>Performance: GPU</sub></td>
+    <td align="center"><img src="docs/img/screens/battery.jpg" width="200" alt="Performance: Battery"><br><sub>Performance: Battery</sub></td>
+    <td align="center"><img src="docs/img/screens/app-history.jpg" width="200" alt="App history"><br><sub>App history</sub></td>
+    <td align="center"><img src="docs/img/screens/startup-apps.jpg" width="200" alt="Startup apps"><br><sub>Startup apps</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/img/screens/users.jpg" width="200" alt="Users"><br><sub>Users</sub></td>
+    <td align="center"><img src="docs/img/screens/details.jpg" width="200" alt="Details"><br><sub>Details</sub></td>
+    <td align="center"><img src="docs/img/screens/services.jpg" width="200" alt="Services"><br><sub>Services</sub></td>
+    <td align="center"><img src="docs/img/screens/settings.jpg" width="200" alt="Settings"><br><sub>Settings</sub></td>
+  </tr>
+</table>
+
+### Game mode
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/img/screens/games.jpg" width="200" alt="Game mode and performance profiles"><br><sub>Game mode and performance profiles</sub></td>
+    <td align="center"><img src="docs/img/screens/games-options.jpg" width="200" alt="Options during the game"><br><sub>Options during the game</sub></td>
+  </tr>
+</table>
+
+### macOS style (Activity Monitor)
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/img/screens/macos-processes.jpg" width="200" alt="macOS style: Processes"><br><sub>macOS style: Processes</sub></td>
+    <td align="center"><img src="docs/img/screens/macos-performance.jpg" width="200" alt="macOS style: Performance"><br><sub>macOS style: Performance</sub></td>
   </tr>
 </table>
 
@@ -35,10 +63,13 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 
 ### Performance
 - 60-second graphs for CPU, memory, disk, Wi‑Fi, mobile data, GPU and temperature.
-- CPU: overall or per logical processor, frequency of each core, processes, threads and up time.
-- Memory: in use, available, cached, ZRAM and memory composition.
-- GPU: real chip model, utilization, frequency and temperature (Adreno, Mali and others).
-- Battery: charge, temperature, current, voltage, status and health, plus every temperature sensor.
+- CPU: overall or per logical processor, frequency of each core, processes, threads, up time, temperature, load average, core types and caches.
+- Memory: in use, available, cached, free, active and inactive, ZRAM with its compression ratio, and memory composition.
+- Disk: active time, read and write speed, response time, capacity, used space, file system and data read and written since boot.
+- Wi‑Fi: speed, signal strength and quality, standard, band and channel, link speed and addresses.
+- Mobile data: speed, carrier, network type (4G, 5G, Wi‑Fi calling) and roaming.
+- GPU: real chip model, utilization, frequency, temperature, driver and Vulkan version, memory in use, and the screen resolution and refresh rate (Adreno, Mali and others).
+- Battery: charge, power, current, voltage, temperature, status and health; real and design capacity, remaining charge in mAh, charge cycles, technology and charge type; plus every temperature sensor.
 
 ### More sections
 - **App history:** usage time, CPU time, and Wi‑Fi and mobile data per app.
@@ -52,16 +83,18 @@ Source code is available under the [MIT license](LICENSE). Copyright (c) 2026 ke
 - **Floating monitor:** a panel on top of any app with CPU, GPU, RAM and temperature gauges, graphs, network, storage and FPS. Four designs (full, compact, gamer and retro), resizable by dragging its corner, adjustable transparency, and it minimizes to a bubble with the app logo that sticks to the screen edge.
 - **Quick Settings button** to turn the floating monitor on or off.
 - **Home screen widget** with CPU, RAM, CPU temperature and battery.
-- **Battery history** for the last 24 hours, with estimated time remaining and charge and discharge rates.
+- **Battery history** for the last 24 hours, with estimated time remaining and charge and discharge rates (% per hour), shown from the first moment.
 - **Power mode** like Windows 11 (best power efficiency, balanced or best performance), which switches the CPU governor with root.
 - **Advanced CPU and GPU settings:** governor and maximum frequency per CPU cluster, and GPU control on any processor (Qualcomm, MediaTek, Exynos, Tensor, Unisoc).
 
 ### Games
-- **Game mode:** when one of your games opens, it applies the power mode you choose, shows the floating monitor, can close background apps and turn on Do not disturb. Everything goes back when you leave.
+- **Game mode:** when one of your games opens, it applies the performance profile you choose, shows the floating monitor, can close background apps and turn on Do not disturb. Everything goes back when you leave.
+- **Performance profiles:** no change, efficiency, balanced, performance or Diablo Mode. Changing the profile while a game is open applies right away.
+- **Diablo Mode** (root only): locks the CPU and GPU at their maximum frequency and removes the limits that slow them down with heat while the game is open. It warns you first, never touches the kernel's critical thermal protection, and turns itself off if the battery reaches 46 °C, the CPU reaches 95 °C, the phone starts charging or you leave the game.
 - **Session summary:** average and low FPS, max temperature and battery used for each session, with an FPS graph you can share.
 
 ### Alerts
-- High temperature, an app using a lot of CPU in the background (with a button to end it), and a charge limit to protect the battery.
+- High battery temperature, an app using a lot of CPU in the background (with a button to end it), and a charge limit to protect the battery.
 
 ### Settings
 - 11 languages: English, Spanish, French, Portuguese, German, Italian, Russian, Arabic, Chinese, Japanese and Korean.
