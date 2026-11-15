@@ -1,14 +1,6 @@
 ## What's new
-- New floating monitor: a panel with CPU, GPU, RAM and temperature gauges, graphs, network, storage and FPS. It has four layouts (full, compact, gamer and retro), resizes by dragging the bottom-right corner, and the top-right corner minimizes it to a bubble with the app logo that snaps to the edge of the screen.
-- Works without root through Shizuku: when you open the app you choose "Connect with root" or "Connect with Shizuku" (you can change it in Settings). With Shizuku, Monitor reads processes, CPU, memory, network, storage, battery, temperatures and FPS, and can end apps. Anything that needs to change the system is marked "Root only".
-- With Shizuku, battery, temperatures and storage are read through alternative paths when Android blocks the system files.
-
-## Fixes
-- If the root or Shizuku connection was lost, the app had no data until it was closed. It now reconnects on its own.
-- Game mode stayed active with the screen locked (full performance in your pocket). It now turns off when the screen goes off and turns back on when you return to the game.
-- With Shizuku, automatic updates failed; they now install correctly.
-- The floating monitor could close while calculating storage, the bubble went off-screen when rotating, and layout or transparency changes were not applied until it was reopened.
-- Root-only actions (system services, startup apps, process priority) no longer fail silently with Shizuku: they are marked.
-
-## Note
-- The first time you open this version you will see the screen to choose the connection. If you use root, choose "Connect with root" and you're done.
+- Diablo Mode (root only): a new game mode profile that locks the CPU and GPU at their maximum frequency and removes the limits that slow them down with heat (the manufacturer's thermal services, Xiaomi's Joyose and the kernel's passive limits) while your game is open. It asks for confirmation and shows a warning first, and an indicator appears on the floating monitor.
+- Built-in safety for Diablo Mode: it turns off automatically if the battery or CPU gets too hot, if the phone starts charging, or when you leave the game. The kernel's critical thermal protection is never touched.
+- Redesigned Games page: choose the performance profile applied during the game (the phone decides, less heat and battery use, as it comes from the factory, CPU at maximum, or Diablo Mode). Press and hold a game to remove it from the list.
+- The floating monitor now shows the GPU frequency on MediaTek and Mali phones too.
+- The project is now in English for everyone. The app still follows your phone's language (11 languages), and a few texts that were not translated now are.
