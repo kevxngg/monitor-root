@@ -89,6 +89,26 @@ object BatteryLog {
     fun dischargeRate(entries: List<Entry>) = rate(entries, charging = false)
     fun chargeRate(entries: List<Entry>) = rate(entries, charging = true)
 
+    /** Estimate from the current being drawn right now. */
+    class Instant(val charging: Boolean, val pctPerHour: Float, val minutes: Int?)
+
+    /**
+     * Rate and remaining time from the instant current and the real capacity
+     * (null if the phone does not report them or the current is negligible).
+     */
+    fun instant(b: BattInfo): Instant? {
+        val ma = b.currentMa ?: return null
+        val full = b.fullMah ?: b.designMah ?: return null
+        if (full <= 0 || kotlin.math.abs(ma) < 20) return null
+        val charging = ma > 0
+        val level = b.level ?: return null
+        // Remaining charge: the counter if it is consistent with the level, otherwise derived from the level
+        val left = b.chargeMah?.takeIf { it in 1..(full * 11 / 10) } ?: (full * level / 100)
+        val mah = if (charging) (full - left).coerceAtLeast(0) else left
+        val minutes = (mah * 60L / kotlin.math.abs(ma)).toInt().takeIf { it in 1..(72 * 60) }
+        return Instant(charging, kotlin.math.abs(ma) * 100f / full, minutes)
+    }
+
     /** Estimated minutes until empty (discharging) or full (charging). */
     fun estimateMinutes(ctx: Context, entries: List<Entry>): Pair<Boolean, Int>? {
         val now = entries.lastOrNull() ?: return null
@@ -110,7 +130,7 @@ fun formatHoursMinutes(minutes: Int): String =
 
 /** Card with the last-24-hours chart and the estimates. */
 @Composable
-fun BatteryHistoryCard(refreshKey: Long, color: Color) {
+fun BatteryHistoryCard(refreshKey: Long, color: Color, batt: BattInfo? = null) {
     val win = LocalWin.current
     val ctx = LocalContext.current
     val entries = remember(refreshKey / 60) { BatteryLog.read(ctx) }
@@ -184,13 +204,22 @@ fun BatteryHistoryCard(refreshKey: Long, color: Color) {
             Text(tr("Descargando"), fontSize = 11.sp, color = win.sub)
         }
 
+        // Measured over the last minutes; until there is enough history, the instant current is used (≈)
+        val instant = batt?.let { BatteryLog.instant(it) }
         val est = BatteryLog.estimateMinutes(ctx, entries)
+        val discharge = BatteryLog.dischargeRate(entries)
+        val charge = BatteryLog.chargeRate(entries)
         val rows = buildList {
             if (est != null) {
                 add((if (est.first) tr("Tiempo hasta carga completa") else tr("Tiempo restante estimado")) to formatHoursMinutes(est.second))
+            } else if (instant?.minutes != null) {
+                add((if (instant.charging) tr("Tiempo hasta carga completa") else tr("Tiempo restante estimado")) to "≈ " + formatHoursMinutes(instant.minutes))
             }
-            BatteryLog.dischargeRate(entries)?.let { add(tr("Velocidad de descarga") to tr("%.1f %% por hora", it)) }
-            BatteryLog.chargeRate(entries)?.let { add(tr("Velocidad de carga") to tr("%.1f %% por hora", it)) }
+            discharge?.let { add(tr("Velocidad de descarga") to tr("%.1f %% por hora", it)) }
+            charge?.let { add(tr("Velocidad de carga") to tr("%.1f %% por hora", it)) }
+            if (discharge == null && charge == null && instant != null) {
+                add((if (instant.charging) tr("Velocidad de carga") else tr("Velocidad de descarga")) to "≈ " + tr("%.1f %% por hora", instant.pctPerHour))
+            }
             day.maxByOrNull { it.tempC }?.let { add(tr("Temperatura máxima (24 h)") to "%.1f °C".format(it.tempC)) }
         }
         if (rows.isEmpty()) {

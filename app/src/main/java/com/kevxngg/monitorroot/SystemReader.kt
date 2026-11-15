@@ -45,6 +45,11 @@ data class DiskInfo(
     val freeBytes: Long,
     /** false if only the capacity is known (e.g. with Shizuku, without /proc/diskstats). */
     val ioAvailable: Boolean = true,
+    /** Bytes read and written since boot. */
+    val readTotal: Long = 0,
+    val writeTotal: Long = 0,
+    /** File system of /data (f2fs, ext4…). */
+    val fsType: String? = null,
 )
 
 data class GpuInfo(
@@ -65,6 +70,14 @@ data class BattInfo(
     val status: String?,
     val health: String?,
     val voltageMv: Int?,
+    /** Real capacity now, design capacity and remaining charge, in mAh. */
+    val fullMah: Int? = null,
+    val designMah: Int? = null,
+    val chargeMah: Int? = null,
+    val cycles: Int? = null,
+    val technology: String? = null,
+    /** Charge type as reported by the kernel (Fast, Standard, Trickle…). */
+    val chargeType: String? = null,
 )
 
 data class WifiData(
@@ -93,6 +106,11 @@ data class MemInfo(
     val swapFreeKb: Long,
     val zramOrigBytes: Long,
     val zramUsedBytes: Long,
+    val freeKb: Long = 0,
+    val activeKb: Long = 0,
+    val inactiveKb: Long = 0,
+    val dirtyKb: Long = 0,
+    val pageTablesKb: Long = 0,
 ) {
     val usedKb get() = totalKb - availKb
     val usedPct get() = if (totalKb > 0) usedKb * 100f / totalKb else 0f
@@ -116,6 +134,11 @@ data class Snapshot(
     val mobile: NetStat?,
     val mobileIfaces: List<String>,
     val processes: List<ProcInfo>,
+    /** System load average (1, 5 and 15 minutes). */
+    val loadAvg: String? = null,
+    val operator: String? = null,
+    val netType: String? = null,
+    val roaming: Boolean? = null,
 )
 
 private val WS = Regex("\\s+")
@@ -146,6 +169,25 @@ private fun toMhz(v: Long): Int = when {
     else -> v
 }.toInt()
 
+/** Readable name of the mobile network type reported by Android (gsm.network.type). */
+private fun networkLabel(t: String): String = when (t.uppercase()) {
+    "NR", "NR_SA", "NR_NSA" -> "5G"
+    "LTE", "LTE_CA" -> "4G (LTE)"
+    "HSPA", "HSPAP", "HSDPA", "HSUPA", "UMTS", "TD_SCDMA" -> "3G ($t)"
+    "GPRS", "EDGE", "GSM", "CDMA", "1XRTT" -> "2G ($t)"
+    "IWLAN" -> "Wi‑Fi (IWLAN)"
+    else -> t
+}
+
+/** Wi-Fi channel number from the frequency in MHz. */
+fun wifiChannel(mhz: Int): Int? = when (mhz) {
+    2484 -> 14
+    in 2412..2472 -> (mhz - 2407) / 5
+    in 5160..5895 -> (mhz - 5000) / 5
+    in 5955..7115 -> (mhz - 5950) / 5
+    else -> null
+}
+
 private const val KG = "/sys/class/kgsl/kgsl-3d0/"
 private const val BAT = "/sys/class/power_supply/battery/"
 
@@ -157,6 +199,10 @@ private val SYS_FILES = listOf(
     "/sys/class/thermal/thermal_zone*/temp",
     "/sys/class/thermal/thermal_zone*/mode",
     "${BAT}capacity", "${BAT}temp", "${BAT}current_now", "${BAT}status", "${BAT}health", "${BAT}voltage_now",
+    "${BAT}charge_full", "${BAT}charge_full_design", "${BAT}charge_counter", "${BAT}cycle_count",
+    "${BAT}technology", "${BAT}charge_type",
+    "/proc/loadavg",
+    "/proc/mtk_mali/gpu_memory",
     "/sys/block/zram0/mm_stat",
     "${KG}gpu_busy_percentage", "${KG}gpubusy", "${KG}devfreq/cur_freq", "${KG}gpuclk",
     "${KG}gpu_model", "${KG}max_gpuclk", "${KG}devfreq/max_freq",
@@ -189,6 +235,8 @@ private val SLOW_SCRIPT = """
     echo @@SSID; cmd wifi status
     echo @@MAC; cat /sys/class/net/wlan0/address
     echo @@GPUOPP; cat /proc/gpufreqv2/gpu_working_opp_table /proc/gpufreqv2/gpu_signed_opp_table /proc/gpufreq/gpufreq_opp_dump
+    echo @@TEL; echo "op=${'$'}(getprop gsm.operator.alpha)"; echo "type=${'$'}(getprop gsm.network.type)"; echo "roam=${'$'}(getprop gsm.operator.isroaming)"
+    echo @@FS; grep ' /data ' /proc/mounts
 """.trimIndent()
 
 private class DiskPrev(val name: String, val rd: Long, val wr: Long, val ios: Long, val msRw: Long, val msIo: Long)
@@ -207,6 +255,10 @@ class SystemReader(context: Context) {
     private var ssid: String? = null
     private var mac: String? = null
     private var gpuOppMaxMhz: Int? = null
+    private var operator: String? = null
+    private var netType: String? = null
+    private var roaming: Boolean? = null
+    private var fsType: String? = null
     private val lastTemp = HashMap<String, Float>()
     private val stuckTemp = HashMap<String, Int>()
 
@@ -235,6 +287,13 @@ class SystemReader(context: Context) {
             gpuOppMaxMhz = slow["GPUOPP"].orEmpty()
                 .mapNotNull { OPP_FREQ.find(it)?.groupValues?.get(1)?.toLongOrNull() }
                 .maxOrNull()?.let(::toMhz) ?: gpuOppMaxMhz
+            // Mobile network: with two SIMs the values come separated by commas
+            fun prop(key: String) = slow["TEL"]?.firstOrNull { it.startsWith("$key=") }?.substringAfter('=')
+                ?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() && !it.equals("unknown", ignoreCase = true) }
+            operator = prop("op")?.distinct()?.joinToString(" / ")?.ifEmpty { null }
+            netType = prop("type")?.distinct()?.joinToString(" / ") { networkLabel(it) }?.ifEmpty { null }
+            roaming = prop("roam")?.takeIf { it.isNotEmpty() }?.any { it == "true" }
+            fsType = slow["FS"]?.firstOrNull()?.trim()?.split(WS)?.getOrNull(2) ?: fsType
             GlInfo.load()
         }
         counter++
@@ -374,6 +433,11 @@ class SystemReader(context: Context) {
             swapFreeKb = memKb("SwapFree"),
             zramOrigBytes = zram.getOrNull(0) ?: 0L,
             zramUsedBytes = zram.getOrNull(2) ?: 0L,
+            freeKb = memKb("MemFree"),
+            activeKb = memKb("Active"),
+            inactiveKb = memKb("Inactive"),
+            dirtyKb = memKb("Dirty"),
+            pageTablesKb = memKb("PageTables"),
         )
 
         // ---- Cores ----
@@ -418,6 +482,9 @@ class SystemReader(context: Context) {
             ?: thermals.firstOrNull()
 
         // ---- Battery ----
+        // Capacities come in µAh on most kernels and in mAh on some: both are normalized to mAh
+        fun battMah(key: String) = sys[BAT + key]?.toLongOrNull()?.takeIf { it > 0 }
+            ?.let { if (it > 100_000) (it / 1000).toInt() else it.toInt() }
         val battSys = BattInfo(
             level = sys[BAT + "capacity"]?.toIntOrNull(),
             tempC = sys[BAT + "temp"]?.toFloatOrNull()?.div(10f),
@@ -450,6 +517,12 @@ class SystemReader(context: Context) {
             },
             voltageMv = sys[BAT + "voltage_now"]?.toLongOrNull()
                 ?.let { if (it > 100_000) (it / 1000).toInt() else it.toInt() },
+            fullMah = battMah("charge_full"),
+            designMah = battMah("charge_full_design"),
+            chargeMah = battMah("charge_counter"),
+            cycles = sys[BAT + "cycle_count"]?.toIntOrNull()?.takeIf { it > 0 },
+            technology = sys[BAT + "technology"]?.takeIf { it.isNotBlank() && it != "Unknown" },
+            chargeType = sys[BAT + "charge_type"]?.takeIf { it.isNotBlank() && it != "Unknown" && it != "N/A" },
         )
         // What /sys does not provide (happens with Shizuku) is filled in with Android's battery API
         val batt = if (battSys.level != null && battSys.tempC != null && battSys.voltageMv != null) battSys else {
@@ -461,6 +534,12 @@ class SystemReader(context: Context) {
                 status = battSys.status ?: api.status,
                 health = battSys.health ?: api.health,
                 voltageMv = battSys.voltageMv ?: api.voltageMv,
+                fullMah = battSys.fullMah,
+                designMah = battSys.designMah,
+                chargeMah = battSys.chargeMah ?: api.chargeMah,
+                cycles = battSys.cycles,
+                technology = battSys.technology ?: api.technology,
+                chargeType = battSys.chargeType,
             )
         }
 
@@ -507,6 +586,11 @@ class SystemReader(context: Context) {
                     gpuFreqRaw = sys[d]
                 }
             }
+        }
+        // Mali on MediaTek: memory in use, in 4 KB pages ("mali0  106209")
+        if (gpuMem == null) {
+            gpuMem = sys["/proc/mtk_mali/gpu_memory"]?.trim()?.split(WS)?.getOrNull(1)?.toLongOrNull()
+                ?.takeIf { it > 0 }?.times(4096)
         }
         // GPU devfreq (Mali on MediaTek/Exynos and others)
         val gpuDevfreq = sys.keys
@@ -571,12 +655,15 @@ class SystemReader(context: Context) {
                 name.startsWith("nvme") -> "NVMe"
                 else -> "Virtual"
             }
-            disk = DiskInfo(name, type, act, rBps, wBps, resp.coerceAtLeast(0f), st?.totalBytes ?: 0L, st?.availableBytes ?: 0L)
+            disk = DiskInfo(
+                name, type, act, rBps, wBps, resp.coerceAtLeast(0f), st?.totalBytes ?: 0L, st?.availableBytes ?: 0L,
+                readTotal = rd, writeTotal = wr, fsType = fsType,
+            )
         }
         if (disk == null) {
             // No access to /proc/diskstats (Shizuku): capacity is shown, without activity
             val st = try { StatFs(Environment.getDataDirectory().path) } catch (e: Exception) { null }
-            if (st != null) disk = DiskInfo("data", "—", 0f, 0L, 0L, 0f, st.totalBytes, st.availableBytes, ioAvailable = false)
+            if (st != null) disk = DiskInfo("data", "—", 0f, 0L, 0L, 0f, st.totalBytes, st.availableBytes, ioAvailable = false, fsType = fsType)
         }
 
         // ---- Network ----
@@ -641,6 +728,10 @@ class SystemReader(context: Context) {
             mobile = mobile,
             mobileIfaces = mobileNames,
             processes = procs,
+            loadAvg = sys["/proc/loadavg"]?.split(WS)?.take(3)?.takeIf { it.size == 3 }?.joinToString("  "),
+            operator = operator,
+            netType = netType,
+            roaming = roaming,
         )
     }
 }

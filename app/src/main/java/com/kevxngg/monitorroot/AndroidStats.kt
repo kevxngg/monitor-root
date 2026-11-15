@@ -18,6 +18,7 @@ object AndroidStats {
     class Battery(
         val level: Int?, val tempC: Float?, val voltageMv: Int?,
         val currentMa: Int?, val status: String?, val health: String?,
+        val chargeMah: Int? = null, val technology: String? = null,
     )
 
     fun battery(ctx: Context): Battery {
@@ -58,6 +59,10 @@ object AndroidStats {
             currentMa = ma,
             status = status,
             health = health,
+            // Remaining charge in µAh (not every phone reports it)
+            chargeMah = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
+                ?.takeIf { it != Int.MIN_VALUE && it > 0 }?.let { if (it > 100_000) it / 1000 else it },
+            technology = i.getStringExtra(BatteryManager.EXTRA_TECHNOLOGY)?.takeIf { it.isNotBlank() },
         )
     }
 

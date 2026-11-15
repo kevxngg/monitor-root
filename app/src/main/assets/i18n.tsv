@@ -520,3 +520,31 @@ Mientras juegas, la CPU y la GPU quedarán fijas en su frecuencia máxima y se q
 (sin salida)	(no output)	(aucune sortie)	(sem saída)	(keine Ausgabe)	(nessun output)	(нет вывода)	(لا يوجد إخراج)	(无输出)	(出力なし)	(출력 없음)
 Monitor de Actividad	Activity Monitor	Moniteur d'activité	Monitor de Atividade	Aktivitätsanzeige	Monitoraggio Attività	Мониторинг системы	مراقب النشاط	活动监视器	アクティビティモニタ	활성 상태 보기
 El teléfono está cargando: el Modo Diablo no se activa mientras carga y se usa Rendimiento.	The phone is charging: Diablo Mode does not turn on while charging and Performance is used instead.	Le téléphone est en charge : le mode Diablo ne s’active pas pendant la charge et Performances est utilisé.	O telefone está carregando: o Modo Diablo não é ativado durante a carga e é usado Desempenho.	Das Telefon wird geladen: Der Diablo-Modus wird beim Laden nicht aktiviert, stattdessen wird Leistung verwendet.	Il telefono è in carica: la Modalità Diablo non si attiva durante la ricarica e viene usato Prestazioni.	Телефон заряжается: режим «Дьябло» не включается во время зарядки, используется «Производительность».	الهاتف قيد الشحن: لا يعمل وضع ديابلو أثناء الشحن ويُستخدم وضع الأداء بدلاً منه.	手机正在充电：充电时不会开启恶魔模式，将改用性能模式。	充電中です。充電中はディアブロ モードはオンにならず、代わりにパフォーマンスが使用されます。	휴대폰이 충전 중입니다. 충전 중에는 디아블로 모드가 켜지지 않고 성능 모드가 사용됩니다.
+Capacidad	Capacity	Capacité	Capacidade	Kapazität	Capacità	Ёмкость	السعة	容量	容量	용량
+Capacidad de diseño	Design capacity	Capacité d’origine	Capacidade de fábrica	Nennkapazität	Capacità di progetto	Проектная ёмкость	السعة التصميمية	设计容量	設計容量	설계 용량
+Carga restante	Remaining charge	Charge restante	Carga restante	Restladung	Carica residua	Остаток заряда	الشحن المتبقي	剩余电量	残量	남은 충전량
+Ciclos de carga	Charge cycles	Cycles de charge	Ciclos de carga	Ladezyklen	Cicli di ricarica	Циклы зарядки	دورات الشحن	充电循环	充電サイクル	충전 사이클
+Tecnología	Technology	Technologie	Tecnologia	Technologie	Tecnologia	Технология	التقنية	电池类型	テクノロジー	기술
+Tipo de carga	Charge type	Type de charge	Tipo de carga	Ladeart	Tipo di ricarica	Тип зарядки	نوع الشحن	充电类型	充電の種類	충전 유형
+Rápida	Fast	Rapide	Rápida	Schnell	Rapida	Быстрая	سريع	快速	急速	고속
+Estándar	Standard	Standard	Padrão	Standard	Standard	Обычная	عادي	标准	標準	표준
+Lenta	Slow	Lente	Lenta	Langsam	Lenta	Медленная	بطيء	慢速	低速	저속
+Libre	Free	Libre	Livre	Frei	Libera	Свободно	حرة	空闲	空き	여유
+Activa	Active	Active	Ativa	Aktiv	Attiva	Активная	نشطة	活跃	アクティブ	활성
+Inactiva	Inactive	Inactive	Inativa	Inaktiv	Inattiva	Неактивная	غير نشطة	不活跃	非アクティブ	비활성
+Compresión de ZRAM	ZRAM compression	Compression ZRAM	Compressão do ZRAM	ZRAM-Komprimierung	Compressione ZRAM	Сжатие ZRAM	ضغط ZRAM	ZRAM 压缩率	ZRAM 圧縮率	ZRAM 압축률
+Pendiente de escribir	Waiting to be written	En attente d’écriture	Aguardando gravação	Noch zu schreiben	In attesa di scrittura	Ожидает записи	بانتظار الكتابة	待写入	書き込み待ち	쓰기 대기
+Tablas de páginas	Page tables	Tables de pages	Tabelas de páginas	Seitentabellen	Tabelle delle pagine	Таблицы страниц	جداول الصفحات	页表	ページ テーブル	페이지 테이블
+Carga media	Load average	Charge moyenne	Carga média	Durchschnittslast	Carico medio	Средняя нагрузка	متوسط الحمل	平均负载	ロード アベレージ	평균 부하
+Leído desde el encendido	Read since boot	Lu depuis le démarrage	Lido desde a inicialização	Seit dem Start gelesen	Letto dall’avvio	Прочитано с момента включения	المقروء منذ التشغيل	开机以来读取	起動後の読み取り	부팅 후 읽음
+Escrito desde el encendido	Written since boot	Écrit depuis le démarrage	Gravado desde a inicialização	Seit dem Start geschrieben	Scritto dall’avvio	Записано с момента включения	المكتوب منذ التشغيل	开机以来写入	起動後の書き込み	부팅 후 기록
+Sistema de archivos	File system	Système de fichiers	Sistema de arquivos	Dateisystem	File system	Файловая система	نظام الملفات	文件系统	ファイル システム	파일 시스템
+Banda	Band	Bande	Banda	Band	Banda	Диапазон	النطاق	频段	帯域	대역
+Canal	Channel	Canal	Canal	Kanal	Canale	Канал	القناة	信道	チャンネル	채널
+Operador	Carrier	Opérateur	Operadora	Mobilfunkanbieter	Operatore	Оператор	شركة الاتصالات	运营商	通信事業者	통신사
+Tipo de red	Network type	Type de réseau	Tipo de rede	Netzwerktyp	Tipo di rete	Тип сети	نوع الشبكة	网络类型	ネットワークの種類	네트워크 유형
+Itinerancia	Roaming	Itinérance	Roaming	Roaming	Roaming	Роуминг	التجوال	漫游	ローミング	로밍
+No	No	Non	Não	Nein	No	Нет	لا	否	いいえ	아니요
+Pantalla	Display	Écran	Tela	Bildschirm	Schermo	Экран	الشاشة	屏幕	ディスプレイ	디스플레이
+Memoria de GPU en uso	GPU memory in use	Mémoire GPU utilisée	Memória da GPU em uso	Verwendeter GPU-Speicher	Memoria GPU in uso	Используемая память GPU	ذاكرة GPU المستخدمة	已用 GPU 内存	使用中の GPU メモリ	사용 중인 GPU 메모리
+60 segundos	60 seconds	60 secondes	60 segundos	60 Sekunden	60 secondi	60 секунд	60 ثانية	60 秒	60 秒	60초

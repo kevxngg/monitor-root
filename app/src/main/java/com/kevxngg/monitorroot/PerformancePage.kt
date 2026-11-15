@@ -199,7 +199,7 @@ private fun BigGraph(
         if (bottomLabels) {
             Spacer(Modifier.height(3.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("60 segundos", fontSize = 11.sp, color = win.sub)
+                Text(tr("60 segundos"), fontSize = 11.sp, color = win.sub)
                 Text("0", fontSize = 11.sp, color = win.sub)
             }
         }
@@ -313,6 +313,8 @@ private fun CpuDetail(s: Snapshot, h: History, logical: Boolean) {
             tr("Gobernador") to (s.governor ?: "—"),
             tr("Arquitectura") to (Build.SUPPORTED_ABIS.firstOrNull() ?: "—"),
         ) + listOfNotNull(
+            s.mainTempC?.let { tr("Temperatura") to "%.0f °C".format(it) },
+            s.loadAvg?.let { tr("Carga media") to it },
             hw?.coreTypes?.let { tr("Tipos de núcleo") to it },
         ) + hw?.caches.orEmpty().map { (level, size) -> tr("Caché %s", level) to size },
     )
@@ -380,7 +382,14 @@ private fun MemDetail(s: Snapshot, h: History) {
             nominalGb?.let { gb -> tr("Reservada para hardware") to formatKb((gb * 1024L * 1024L - m.totalKb).coerceAtLeast(0)) },
         ) + listOf(
             tr("Datos en ZRAM") to formatBytes(m.zramOrigBytes),
+        ) + listOfNotNull(
+            if (m.zramUsedBytes > 0 && m.zramOrigBytes > 0) tr("Compresión de ZRAM") to "%.1f×".format(m.zramOrigBytes.toFloat() / m.zramUsedBytes) else null,
+            tr("Libre") to formatKb(m.freeKb),
+            if (m.activeKb > 0) tr("Activa") to formatGb(m.activeKb) else null,
+            if (m.inactiveKb > 0) tr("Inactiva") to formatGb(m.inactiveKb) else null,
             tr("Búferes") to formatKb(m.buffersKb),
+            tr("Pendiente de escribir") to formatKb(m.dirtyKb),
+            if (m.pageTablesKb > 0) tr("Tablas de páginas") to formatKb(m.pageTablesKb) else null,
         ),
     )
 }
@@ -408,7 +417,10 @@ private fun DiskDetail(s: Snapshot, h: History) {
                 tr("Disponible") to formatBytes(d.freeBytes),
                 tr("Capacidad (/data)") to formatBytes(d.totalBytes),
             ),
-            listOf(tr("Uso del almacenamiento") to "%.0f%%".format(frac * 100)),
+            listOfNotNull(
+                tr("Uso del almacenamiento") to "%.0f%%".format(frac * 100),
+                d.fsType?.let { tr("Sistema de archivos") to it },
+            ),
         )
         RootOnlyCard(tr("Actividad y velocidad del disco"))
         return
@@ -425,11 +437,16 @@ private fun DiskDetail(s: Snapshot, h: History) {
             tr("Velocidad de lectura") to formatRate(d.readBps.toFloat()),
             tr("Velocidad de escritura") to formatRate(d.writeBps.toFloat()),
         ),
-        listOf(
+        listOfNotNull(
             tr("Capacidad (/data)") to formatBytes(d.totalBytes),
+            tr("Usado") to formatBytes(d.totalBytes - d.freeBytes) +
+                (if (d.totalBytes > 0) " (%.0f%%)".format((d.totalBytes - d.freeBytes) * 100f / d.totalBytes) else ""),
             tr("Disponible") to formatBytes(d.freeBytes),
             tr("Disco del sistema") to tr("Sí"),
             tr("Tipo") to "${d.type} (${d.name})",
+            d.fsType?.let { tr("Sistema de archivos") to it },
+            tr("Leído desde el encendido") to formatBytes(d.readTotal),
+            tr("Escrito desde el encendido") to formatBytes(d.writeTotal),
         ),
     )
 }
@@ -455,7 +472,8 @@ private fun WifiDetail(s: Snapshot, h: History) {
             tr("Nombre del adaptador") to "wlan0",
             tr("Tipo de conexión") to (wifiStandardLabel(w.standard, w.freqMhz) ?: "—"),
             "SSID" to (w.ssid ?: "—"),
-            tr("Tipo de conexión") to (w.freqMhz?.let { band(it) } ?: "—"),
+            tr("Banda") to (w.freqMhz?.let { band(it) } ?: "—"),
+            tr("Canal") to (w.freqMhz?.let { f -> wifiChannel(f)?.let { "$it ($f MHz)" } ?: "$f MHz" } ?: "—"),
             tr("Calidad de señal") to (w.rssi?.let(::signalQuality) ?: "—"),
             tr("Velocidad del vínculo") to (w.linkMbps?.let { "$it Mbps" } ?: "—"),
             tr("Dirección IPv4") to (w.ip ?: "—"),
@@ -483,7 +501,10 @@ private fun MobileDetail(s: Snapshot, h: History) {
             tr("Enviar") to formatBits((m?.txBps ?: 0L) * 8f),
             tr("Recibir") to formatBits((m?.rxBps ?: 0L) * 8f),
         ),
-        listOf(
+        listOfNotNull(
+            s.operator?.let { tr("Operador") to it },
+            s.netType?.let { tr("Tipo de red") to it },
+            s.roaming?.let { tr("Itinerancia") to if (it) tr("Sí") else tr("No") },
             tr("Interfaces") to (s.mobileIfaces.joinToString(", ").ifEmpty { "—" }),
             tr("Recibido desde el encendido") to formatBytes(m?.rxTotal ?: 0L),
             tr("Enviado desde el encendido") to formatBytes(m?.txTotal ?: 0L),
@@ -497,6 +518,17 @@ private fun MobileDetail(s: Snapshot, h: History) {
 private fun GpuDetail(s: Snapshot, h: History) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val vulkan = remember { vulkanVersion(ctx.packageManager) }
+    // Screen the GPU draws on: resolution and refresh rate
+    val screen = remember {
+        try {
+            @Suppress("DEPRECATION")
+            val d = (ctx.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager).defaultDisplay
+            val mode = d.mode
+            "${mode.physicalWidth} × ${mode.physicalHeight} · %.0f Hz".format(d.refreshRate)
+        } catch (_: Exception) {
+            null
+        }
+    }
     val win = LocalWin.current
     val color = Res.GPU.color(win)
     val g = s.gpu
@@ -519,7 +551,8 @@ private fun GpuDetail(s: Snapshot, h: History) {
             vulkan?.let { "Vulkan" to it },
             g.model?.let { tr("Modelo") to it },
             tr("Frecuencia máxima") to (g.maxMhz?.let { "$it MHz" } ?: "—"),
-            g.memBytes?.let { tr("Memoria de GPU compartida") to formatBytes(it) },
+            g.memBytes?.let { (if (g.source == "Adreno") tr("Memoria de GPU compartida") else tr("Memoria de GPU en uso")) to formatBytes(it) },
+            screen?.let { tr("Pantalla") to it },
         ),
     )
     GpuTuningCard()
@@ -535,7 +568,7 @@ private fun TempDetail(s: Snapshot, h: History) {
     // Actual power in watts: + charging in, − draining out
     val watts = if (b.voltageMv != null && b.currentMa != null) b.voltageMv * b.currentMa / 1_000_000f else null
     DetailHeader(tr("Batería"), b.health?.let { tr("Salud de la batería") + ": " + tr(it) } ?: "")
-    BatteryHistoryCard(s.uptimeSec, color)
+    BatteryHistoryCard(s.uptimeSec, color, b)
     StatsBlock(
         listOf(
             tr("Carga") to (b.level?.let { "$it%" } ?: "—"),
@@ -545,7 +578,24 @@ private fun TempDetail(s: Snapshot, h: History) {
             tr("Voltaje") to (b.voltageMv?.let { "%.2f V".format(it / 1000f) } ?: "—"),
             tr("Temperatura") to (b.tempC?.let { "%.1f °C".format(it) } ?: "—"),
         ),
-        emptyList(),
+        listOfNotNull(
+            b.fullMah?.let { full ->
+                val pct = b.designMah?.takeIf { it > 0 }?.let { " (%d%%)".format((full * 100L / it).toInt().coerceAtMost(100)) } ?: ""
+                tr("Capacidad") to "$full mAh$pct"
+            },
+            b.designMah?.let { tr("Capacidad de diseño") to "$it mAh" },
+            b.chargeMah?.let { tr("Carga restante") to "$it mAh" },
+            b.cycles?.let { tr("Ciclos de carga") to it.toString() },
+            b.technology?.let { tr("Tecnología") to it },
+            b.chargeType?.takeIf { (b.currentMa ?: 0) > 0 }?.let {
+                tr("Tipo de carga") to when (it) {
+                    "Fast" -> tr("Rápida")
+                    "Standard" -> tr("Estándar")
+                    "Trickle" -> tr("Lenta")
+                    else -> it
+                }
+            },
+        ),
     )
     // Phone temperatures
     Text(tr("Temperaturas"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
