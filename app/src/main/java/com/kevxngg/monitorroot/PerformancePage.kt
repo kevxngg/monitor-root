@@ -430,13 +430,13 @@ private fun DiskDetail(s: Snapshot, h: History) {
         return
     }
     DetailHeader(tr("Disco 0"), hw?.storageModel ?: "${d.type} (${d.name})")
-    BigGraph(tr("Tiempo activo"), "100%", h["dact"], 100f, color)
+    BigGraph(tr("Actividad"), "100%", h["dact"], 100f, color)
     val scale = niceScale((h["drd"] + h["dwr"]).maxOrNull() ?: 0f, 1_048_576f)
     BigGraph(tr("Velocidad de transferencia del disco"), formatRate(scale), h["drd"], scale, color, second = h["dwr"], height = 90)
     Legend(color, tr("Velocidad de lectura"), tr("Velocidad de escritura"))
     StatsBlock(
         listOf(
-            tr("Tiempo activo") to "%.0f%%".format(d.activePct),
+            tr("Actividad") to "%.0f%%".format(d.activePct),
             tr("Tiempo de respuesta medio") to "%.1f ms".format(d.respMs),
             tr("Velocidad de lectura") to formatRate(d.readBps.toFloat()),
             tr("Velocidad de escritura") to formatRate(d.writeBps.toFloat()),
@@ -625,7 +625,7 @@ private fun summary(r: Res, s: Snapshot): String {
         )
         Res.DISK -> s.disk?.let {
             listOf(
-                "${tr("Disco 0")} (${it.type})", line("Tiempo activo", "%.0f%%".format(it.activePct)),
+                "${tr("Disco 0")} (${it.type})", line("Actividad", "%.0f%%".format(it.activePct)),
                 line("Velocidad de lectura", formatRate(it.readBps.toFloat())),
                 line("Velocidad de escritura", formatRate(it.writeBps.toFloat())),
             )

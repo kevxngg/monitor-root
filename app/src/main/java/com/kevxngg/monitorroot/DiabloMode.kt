@@ -16,7 +16,7 @@ import android.os.BatteryManager
  *  - Does not touch the kernel's critical thermal protection (thermal_zone), which shuts down the
  *    phone if it reaches a dangerous temperature.
  *  - Automatic cutoff if the battery reaches [BATT_LIMIT] or the CPU reaches [CPU_LIMIT].
- *  - Not activated while the phone is charging.
+ *  - It also works while charging (the temperature cutoff is what protects the battery).
  *  - If the app is killed abruptly, the services are re-enabled when it is reopened
  *    (and always on phone reboot, since none of this is permanent).
  */
@@ -60,11 +60,11 @@ object DiabloMode {
     fun overheated(cpuTemp: Float?, battTemp: Float?): Boolean =
         (battTemp ?: 0f) >= BATT_LIMIT || (cpuTemp ?: 0f) >= CPU_LIMIT
 
-    /** Activates the mode. Returns false if it can't (no root, Shizuku, or charging). */
+    /** Activates the mode. Returns false if it can't (no root or Shizuku). */
     @Synchronized
     fun enable(ctx: Context): Boolean {
         if (active) return true
-        if (!RootShell.open() || RootShell.viaShizuku || isCharging(ctx)) return false
+        if (!RootShell.open() || RootShell.viaShizuku) return false
         // 1) Save the current state to restore it exactly
         val before = CpuPower.snapshot()
         // Without the CPU state there would be nothing to restore later: it is not activated
@@ -85,16 +85,20 @@ object DiabloMode {
             .apply()
         // 3) CPU and GPU at maximum
         CpuPower.lockMax(cpuBefore?.clusters.orEmpty())
-        gpuBefore?.let { g ->
-            if (g.fixed) {
-                g.freqsKhz.maxOrNull()?.let { GpuControl.setFreq(g, it) }
-            } else {
-                if ("performance" in g.governors) GpuControl.setGovernor(g, "performance")
-                GpuControl.setFreq(g, null)
-            }
-        }
+        gpuBefore?.let { pinGpu(it) }
         active = true
         return true
+    }
+
+    /** GPU at its maximum: pinned on the chips that allow it, otherwise performance governor without a cap. */
+    private fun pinGpu(g: GpuControl.State) {
+        val top = g.freqsKhz.maxOrNull()
+        if (g.fixed) {
+            if (top != null && g.currentKhz != top) GpuControl.setFreq(g, top)
+        } else {
+            if ("performance" in g.governors && g.governor != "performance") GpuControl.setGovernor(g, "performance")
+            if (top != null && g.currentKhz != null && g.currentKhz < top) GpuControl.setFreq(g, null)
+        }
     }
 
     /**
@@ -162,6 +166,8 @@ object DiabloMode {
             (c.minKhz ?: 0L) < top || ("performance" in c.governors && c.governor != "performance")
         }
         if (drifted) CpuPower.lockMax(clusters)
+        // The GPU too: the vendor's power service can undo the pinned frequency
+        GpuControl.read()?.let { pinGpu(it) }
         thermalServices().filter { it in stopped }.forEach { RootShell.run("stop ${Actions.q(it)}") }
         pauseJoyose()
         zonesOff.forEach { RootShell.run("echo disabled > ${Actions.q("$it/mode")}") }

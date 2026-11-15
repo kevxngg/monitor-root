@@ -234,7 +234,7 @@ private val SCRIPT = """
 private val SLOW_SCRIPT = """
     echo @@SSID; cmd wifi status
     echo @@MAC; cat /sys/class/net/wlan0/address
-    echo @@GPUOPP; cat /proc/gpufreqv2/gpu_working_opp_table /proc/gpufreqv2/gpu_signed_opp_table /proc/gpufreq/gpufreq_opp_dump
+    echo @@GPUOPP; cat /proc/gpufreqv2/gpu_working_opp_table || cat /proc/gpufreqv2/gpu_signed_opp_table /proc/gpufreq/gpufreq_opp_dump
     echo @@TEL; echo "op=${'$'}(getprop gsm.operator.alpha)"; echo "type=${'$'}(getprop gsm.network.type)"; echo "roam=${'$'}(getprop gsm.operator.isroaming)"
     echo @@FS; grep ' /data ' /proc/mounts
 """.trimIndent()

@@ -303,7 +303,7 @@ class GameModeService : Service() {
     private fun applyProfile() {
         val power = Prefs.gamePower
         appliedPower = power
-        // Diablo profile: everything at maximum. If not possible (e.g. while charging), Mejor rendimiento (Best performance) is used
+        // Diablo profile: everything at maximum. If not possible, Mejor rendimiento (Best performance) is used
         val diablo = power == 4 && DiabloMode.enable(applicationContext)
         // Power mode (the full CPU state is saved to restore it on exit)
         val mode = if (diablo) null else when (power) {
@@ -374,12 +374,12 @@ class GameModeService : Service() {
             val t = listOfNotNull(d.cpuTemp, d.battTemp).maxOrNull()
             if (t != null) tempMax = maxOf(tempMax ?: t, t)
         }
-        // Diablo Mode safety cutoff: too hot or the phone started charging
+        // Diablo Mode safety cutoff: too hot, or the temperature cannot be read
         if (DiabloMode.active) {
             val hot = DiabloMode.overheated(d.cpuTemp, d.battTemp)
             // Without any temperature reading the cutoff cannot protect the phone: the mode is turned off
             blindTicks = if (d.cpuTemp == null && d.battTemp == null) blindTicks + 1 else 0
-            if (hot || blindTicks >= 3 || DiabloMode.isCharging(applicationContext)) {
+            if (hot || blindTicks >= 3) {
                 DiabloMode.disable(applicationContext)
                 notifyDiabloOff(if (hot) d else null)
                 current?.let { updateNotification(it) }   // the notification no longer says "Diablo Mode"
@@ -391,7 +391,7 @@ class GameModeService : Service() {
         channel()
         val text = if (d != null) tr("El teléfono llegó a %s. Se restauró el control térmico para protegerlo.",
             listOfNotNull(d.battTemp?.let { tr("batería %d °C", it.toInt()) }, d.cpuTemp?.let { tr("CPU %d °C", it.toInt()) }).joinToString(", "))
-        else tr("El teléfono empezó a cargar. Se restauró el control térmico para proteger la batería.")
+        else tr("No se pudo leer la temperatura. Se restauró el control térmico para proteger el teléfono.")
         val n = NotificationCompat.Builder(this, SUMMARY_CHANNEL)
             .setSmallIcon(R.drawable.ic_fg)
             .setContentTitle(tr("Modo Diablo desactivado"))

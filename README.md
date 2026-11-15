@@ -90,7 +90,7 @@ All screenshots were taken on a Redmi Note 14 Pro 4G (MediaTek Helio G99) with r
 ### Games
 - **Game mode:** when one of your games opens, it applies the performance profile you choose, shows the floating monitor, can close background apps and turn on Do not disturb. Everything goes back when you leave.
 - **Performance profiles:** no change, efficiency, balanced, performance or Diablo Mode. Changing the profile while a game is open applies right away.
-- **Diablo Mode** (root only): locks the CPU and GPU at their maximum frequency and removes the limits that slow them down with heat while the game is open. It warns you first, never touches the kernel's critical thermal protection, and turns itself off if the battery reaches 46 °C, the CPU reaches 95 °C, the phone starts charging or you leave the game.
+- **Diablo Mode** (root only): locks the CPU and GPU at their maximum frequency and removes the limits that slow them down with heat while the game is open. It warns you first, never touches the kernel's critical thermal protection, and turns itself off if the battery reaches 46 °C, the CPU reaches 95 °C or you leave the game. It also works while charging; use the original charger so the phone gets all the power it needs.
 - **Session summary:** average and low FPS, max temperature and battery used for each session, with an FPS graph you can share.
 
 ### Alerts
