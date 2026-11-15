@@ -3,3 +3,4 @@
 - Diablo Mode keeps the GPU pinned: if the manufacturer's power service undoes the fixed frequency, it is set again within a few seconds.
 - GPU: the maximum frequency shown is now the real one the chip can run at (on MediaTek it showed a higher value from a table that is not in use).
 - Disk: "Active time" was labelled "Up time" in English and other languages.
+- Game mode now detects a game that was already on screen when it started (for example right after the app updates itself in the middle of a session).

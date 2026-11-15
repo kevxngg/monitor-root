@@ -195,7 +195,10 @@ class GameModeService : Service() {
     private fun foreground(): String? {
         val usm = getSystemService(UsageStatsManager::class.java) ?: return lastFg
         val now = System.currentTimeMillis()
-        val events = usm.queryEvents(now - 15_000, now)
+        // The first time (service just started, maybe with the game already on screen) a long window
+        // is read: otherwise a game opened before the service started would never be detected
+        val window = if (lastFg == null) 12 * 3600_000L else 15_000L
+        val events = usm.queryEvents(now - window, now)
         val e = UsageEvents.Event()
         var fg = lastFg
         while (events.hasNextEvent()) {
