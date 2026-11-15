@@ -1,5 +1,13 @@
 ## What's new
-- Diablo Mode: the warning is now shown only the first time you turn it on. Tapping the profile again when it is already selected no longer opens the dialog.
-- Changing the performance profile while a game is open now applies right away (before, it only took effect the next time you opened the game, so Diablo Mode could stay on or off until then).
-- The Games page now tells you when the phone is charging, because Diablo Mode does not turn on while charging and the Performance profile is used instead.
-- More reliable recovery of the thermal control if root is not available at the moment Diablo Mode turns off, or if the app is opened while the mode is starting.
+- Battery: real capacity and design capacity, remaining charge in mAh, charge cycles, technology and charge type. The charge or discharge rate (% per hour) and the remaining time now appear right away, estimated from the current being drawn, until there is enough history to measure them.
+- GPU: memory in use on Mali (MediaTek) and the screen resolution and refresh rate. Long values such as the driver version no longer hide their label.
+- Mobile data: carrier, network type (4G, 5G, Wi-Fi calling) and roaming.
+- Wi-Fi: band and channel. Disk: used space, file system and data read and written since boot. Memory: free, active, inactive, ZRAM compression and more. CPU: temperature and load average.
+- Floating monitor: same typeface as the app and battery level and temperature in every style. The network speed no longer counts VPN or tethering traffic twice, the panel can no longer be resized wider than the screen, and the Transparency setting was inverted (High now really is more transparent).
+- Game mode: a game left in the background ends its session after a while (1 minute with Diablo Mode), turning game mode off restores everything reliably, and if Android kills the app in the middle of a game the CPU goes back to normal on the next start.
+- Leaving a game no longer turns a temporary limit set by the system (for example from heat) into a permanent CPU limit.
+- Diablo Mode turns itself off if no temperature can be read, and does not start if the CPU state could not be saved.
+- The battery charge alert no longer repeats on phones with a charge limit.
+- Confirmation before suspending a system process and before deleting the usage history. "Remove all" in efficiency mode now really restores the apps' priority.
+- Rotating the phone no longer restarts the app. In macOS style, dialogs were shown twice.
+- Text fixes: the search box read "Check" in some languages, and other small wording and icon corrections.

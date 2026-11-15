@@ -251,8 +251,12 @@ private fun KeyValues(items: List<Pair<String, String>>) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         items.forEach { (k, v) ->
             Row(Modifier.fillMaxWidth()) {
-                Text("$k:", fontSize = 12.sp, color = win.sub, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(v, fontSize = 12.sp, color = win.text, modifier = Modifier.padding(start = 8.dp), maxLines = 1)
+                // The label keeps its width; a long value (e.g. the driver version) is cut with "…" instead of hiding the label
+                Text("$k:", fontSize = 12.sp, color = win.sub, maxLines = 1)
+                Text(
+                    v, fontSize = 12.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End, modifier = Modifier.weight(1f).padding(start = 8.dp),
+                )
             }
         }
     }
