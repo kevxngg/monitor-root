@@ -12,11 +12,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Control de la GPU para cualquier procesador. Se detecta el "controlador" que
- * expone el kernel del teléfono:
- *  - DEVFREQ: estándar de Linux (Qualcomm Adreno, Google Tensor, Unisoc, muchos Mali)
- *  - EXYNOS:  /sys/kernel/gpu de Samsung
- *  - MTK_V2 / MTK_V1: gpufreq de MediaTek (frecuencia fija o automática)
+ * GPU control for any processor. Detects the "driver" that
+ * the phone's kernel exposes:
+ *  - DEVFREQ: Linux standard (Qualcomm Adreno, Google Tensor, Unisoc, many Mali)
+ *  - EXYNOS:  Samsung's /sys/kernel/gpu
+ *  - MTK_V2 / MTK_V1: MediaTek's gpufreq (fixed or automatic frequency)
  */
 object GpuControl {
     enum class Kind(val label: String) {
@@ -31,12 +31,12 @@ object GpuControl {
         val path: String,
         val governor: String?,
         val governors: List<String>,
-        /** true = la frecuencia se fija; false = se limita la máxima. */
+        /** true = the frequency is pinned; false = the maximum is capped. */
         val fixed: Boolean,
-        /** Ajuste actual en kHz; null = automático / sin límite. */
+        /** Current setting in kHz; null = automatic / no limit. */
         val currentKhz: Long?,
         val freqsKhz: List<Long>,
-        /** MediaTek v2: kHz → índice de la tabla de frecuencias. */
+        /** MediaTek v2: kHz → index into the frequency table. */
         val oppIndex: Map<Long, Int> = emptyMap(),
     )
 
@@ -44,7 +44,7 @@ object GpuControl {
     private val OPP_V2 = Regex("\\[(\\d+)]\\s*freq:\\s*(\\d+)")
     private val OPP_V1 = Regex("\\[(\\d+)]\\s*freq\\s*=\\s*(\\d+)")
 
-    // "§" se cambia por "$" para que el script sea legible dentro de Kotlin
+    // "§" is replaced with "$" so the script stays readable inside Kotlin
     private val SCRIPT = """
         echo @@DEVFREQ
         for d in /sys/class/kgsl/kgsl-3d0/devfreq /sys/class/devfreq/*; do
@@ -104,7 +104,7 @@ object GpuControl {
             )
         }
         kv(sec["EXYNOS"]).takeIf { it.containsKey("max") }?.let { m ->
-            // Exynos usa MHz
+            // Exynos uses MHz
             val freqs = longs(m["freqs"]).map { it * 1000 }.filter { it > 0 }.distinct().sortedDescending()
             return State(
                 Kind.EXYNOS, "/sys/kernel/gpu", m["gov"]?.ifBlank { null }, words(m["govs"]), fixed = false,
@@ -145,18 +145,18 @@ object GpuControl {
             Kind.EXYNOS -> Tuning.write("/sys/kernel/gpu/gpu_governor", gov)
             else -> Unit
         }
-        // Con performance la GPU va a la máxima real: se quita cualquier límite
+        // With performance the GPU runs at its real maximum: any limit is removed
         if (gov == "performance") setFreq(s, null)
     }
 
-    /** Texto de la frecuencia cuando el gobernador la deja fija (null = se puede limitar). */
+    /** Frequency text when the governor leaves it pinned (null = it can be capped). */
     fun pinnedLabel(s: State): String? = when (s.governor) {
         "performance" -> s.freqsKhz.maxOrNull()?.let { tr("Fija en la máxima") + ": " + mhz(it) }
         "powersave" -> s.freqsKhz.minOrNull()?.let { tr("Fija en la mínima") + ": " + mhz(it) }
         else -> null
     }
 
-    /** [khz] = null vuelve a automático (o quita el límite). */
+    /** [khz] = null goes back to automatic (or removes the limit). */
     fun setFreq(s: State, khz: Long?) {
         when (s.kind) {
             Kind.DEVFREQ -> {
@@ -182,7 +182,7 @@ object GpuControl {
     }
 }
 
-/** Ajustes de la GPU (gobernador y frecuencia) para cualquier procesador. */
+/** GPU settings (governor and frequency) for any processor. */
 @Composable
 fun GpuTuningCard() {
     if (RootShell.viaShizuku) {

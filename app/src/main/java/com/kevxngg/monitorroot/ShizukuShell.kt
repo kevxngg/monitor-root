@@ -5,15 +5,15 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 
 /**
- * Ejecuta comandos de shell a través de Shizuku (permisos de nivel ADB, sin root).
- * Permite leer todos los procesos y sensores, y finalizar apps, en teléfonos sin root.
- * No puede escribir en archivos propiedad de root (gobernadores de CPU/GPU): eso sigue
- * necesitando root de verdad.
+ * Runs shell commands through Shizuku (ADB-level permissions, no root).
+ * Allows reading all processes and sensors, and killing apps, on non-rooted phones.
+ * It cannot write to root-owned files (CPU/GPU governors): that still
+ * requires real root.
  */
 object ShizukuShell {
     private const val REQUEST_CODE = 4210
 
-    /** true si el servicio Shizuku está vivo y la versión soporta ejecución remota. */
+    /** true if the Shizuku service is alive and the version supports remote execution. */
     fun available(): Boolean = try {
         Shizuku.pingBinder() && !Shizuku.isPreV11()
     } catch (e: Throwable) {
@@ -27,8 +27,8 @@ object ShizukuShell {
     }
 
     /**
-     * Pide el permiso. Devuelve false si el usuario lo negó antes: en ese caso Shizuku
-     * ya no muestra el aviso y hay que permitirlo desde la propia app de Shizuku.
+     * Requests the permission. Returns false if the user denied it before: in that case Shizuku
+     * no longer shows the prompt and it must be allowed from the Shizuku app itself.
      */
     fun requestPermission(): Boolean = try {
         if (Shizuku.shouldShowRequestPermissionRationale()) false
@@ -37,7 +37,7 @@ object ShizukuShell {
         false
     }
 
-    // El método se busca una sola vez (antes se buscaba por reflexión en cada comando)
+    // The method is looked up only once (it used to be looked up via reflection on every command)
     private val newProcess by lazy {
         try {
             Shizuku::class.java.getDeclaredMethod(
@@ -54,9 +54,9 @@ object ShizukuShell {
     }
 
     /**
-     * Ejecuta un comando con la shell del usuario "shell" (uid 2000). null si falla.
-     * Si tarda más de 20 s (por ejemplo, un servicio del sistema colgado) se cancela,
-     * para no bloquear el resto de la app.
+     * Runs a command with the "shell" user's shell (uid 2000). null on failure.
+     * If it takes more than 20 s (for example, a hung system service) it is cancelled,
+     * so it doesn't block the rest of the app.
      */
     fun run(cmd: String): List<String>? {
         if (!available() || !hasPermission()) return null

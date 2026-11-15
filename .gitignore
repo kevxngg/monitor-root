@@ -4,7 +4,7 @@ local.properties
 .idea/
 *.iml
 
-# Claves de firma: solo en los Secrets de GitHub
+# Signing keys: only in GitHub Secrets
 *.jks
 *.p12
 *.keystore

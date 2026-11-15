@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 
-/** Paleta de la app: estilo Windows 11 en claro, oscuro o negro puro (AMOLED). */
+/** App palette: Windows 11 style in light, dark or pure black (AMOLED). */
 object UiStyles {
     const val WINDOWS = 0
     const val MACOS = 1
@@ -29,8 +29,8 @@ object UiStyles {
         sub = Color(0xFF8A8A8E),
         border = Color(0xFFD6D6D6),
         divider = Color(0xFFE8E8E8),
-        hover = Color(0xFFE4E4E6),        // gris de la pestaña/botón activo (como en el recorte)
-        select = Color(0xFF0A66FF),      // azul de la fila seleccionada
+        hover = Color(0xFFE4E4E6),        // gray of the active tab/button (as in the cutout)
+        select = Color(0xFF0A66FF),      // blue of the selected row
         accent = Color(0xFF0A66FF),
     )
     private val MAC_DARK = DarkWin.copy(
@@ -42,12 +42,12 @@ object UiStyles {
         sub = Color(0xFF9A9A9E),
         border = Color(0xFF3A3A3A),
         divider = Color(0xFF333333),
-        hover = Color(0xFF3A3A3C),        // gris de la pestaña/botón activo
-        select = Color(0xFF0A66FF),      // azul de la fila seleccionada
+        hover = Color(0xFF3A3A3C),        // gray of the active tab/button
+        select = Color(0xFF0A66FF),      // blue of the selected row
         accent = Color(0xFF3B82F6),
     )
 
-    /** Negro puro: fondos en negro absoluto, bordes apenas visibles. */
+    /** Pure black: absolute-black backgrounds, barely visible borders. */
     private fun black(w: Win) = w.copy(
         mica = Color.Black,
         content = Color.Black,
@@ -59,7 +59,7 @@ object UiStyles {
     )
 }
 
-/** Esquinas de la app (la redondez sale de la paleta). */
+/** App corners (the roundness comes from the palette). */
 @Composable
 @ReadOnlyComposable
 fun corner(dp: Int): RoundedCornerShape = RoundedCornerShape((dp * LocalWin.current.radiusScale).dp)
@@ -68,7 +68,7 @@ fun corner(dp: Int): RoundedCornerShape = RoundedCornerShape((dp * LocalWin.curr
 @ReadOnlyComposable
 fun cornerTopStart(dp: Int): RoundedCornerShape = RoundedCornerShape(topStart = (dp * LocalWin.current.radiusScale).dp)
 
-// Tipografía del estilo macOS: Inter, muy parecida a SF Pro y de licencia libre (SIL).
+// macOS-style typography: Inter, very similar to SF Pro and freely licensed (SIL).
 private val InterFamily = androidx.compose.ui.text.font.FontFamily(
     androidx.compose.ui.text.font.Font(R.font.inter),
 )

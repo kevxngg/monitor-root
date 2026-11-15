@@ -15,7 +15,7 @@ import androidx.work.WorkerParameters
 import java.text.DateFormat
 import java.util.Date
 
-/** Widget de la pantalla de inicio: CPU, RAM, temperatura de la CPU y batería. */
+/** Home screen widget: CPU, RAM, CPU temperature and battery. */
 class MonitorWidget : AppWidgetProvider() {
     override fun onUpdate(ctx: Context, manager: AppWidgetManager, ids: IntArray) {
         WidgetUpdater.requestRefresh(ctx)
@@ -31,7 +31,7 @@ class MonitorWidget : AppWidgetProvider() {
     }
 }
 
-/** Lee los datos con root fuera del hilo principal y actualiza los widgets. */
+/** Reads the data with root off the main thread and updates the widgets. */
 class WidgetWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
         val ctx = applicationContext
@@ -39,7 +39,7 @@ class WidgetWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
         I18n.init(ctx)
         val d = if (RootShell.open()) {
             QuickStats.read(fps = false, ctx = ctx)
-            Thread.sleep(600) // la CPU necesita dos lecturas para calcular el uso
+            Thread.sleep(600) // the CPU needs two readings to compute usage
             QuickStats.read(fps = false, ctx = ctx)
         } else null
         WidgetUpdater.push(ctx, d?.cpu, d?.ram, d?.cpuTemp, d?.battLevel)
@@ -58,7 +58,7 @@ object WidgetUpdater {
         )
     }
 
-    /** Pinta los valores en todos los widgets (también se llama desde la app abierta). */
+    /** Draws the values on all widgets (also called from the open app). */
     fun push(ctx: Context, cpu: Int?, ram: Int?, cpuTemp: Float?, battery: Int?) {
         val manager = AppWidgetManager.getInstance(ctx)
         val ids = manager.getAppWidgetIds(ComponentName(ctx, MonitorWidget::class.java))

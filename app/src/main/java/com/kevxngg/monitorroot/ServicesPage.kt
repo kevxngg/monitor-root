@@ -27,7 +27,7 @@ class Service(
     val description: String,
     val running: Boolean,
     val group: String,
-    val native: Boolean,       // servicio de init (nativo) o de una app
+    val native: Boolean,       // init (native) service or an app's
     val component: String?,
 )
 
@@ -152,7 +152,7 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
         confirm = (title + warn) to action
     }
 
-    // Con Shizuku los servicios nativos no se pueden iniciar ni detener (necesitan root)
+    // With Shizuku, native services can't be started or stopped (they need root)
     fun label(text: String, native: Boolean) =
         if (native && RootShell.viaShizuku) "$text (${tr("solo con root")})" else text
     fun allowed(native: Boolean) = !(native && RootShell.viaShizuku)

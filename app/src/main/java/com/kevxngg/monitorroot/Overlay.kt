@@ -48,12 +48,12 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import kotlin.math.abs
 
-/** Estado visible desde la interfaz (Configuración y botón de ajustes rápidos). */
+/** State visible from the UI (Settings and the quick settings tile). */
 object OverlayState {
     var running by mutableStateOf(false)
 }
 
-/** Lecturas ligeras para el monitor flotante y el widget. */
+/** Lightweight readings for the floating monitor and the widget. */
 object QuickStats {
     private val WS = Regex("\\s+")
     private val CPU_ZONE = Regex("cpu|soc|tsens|mtktscpu|apc", RegexOption.IGNORE_CASE)
@@ -66,7 +66,7 @@ object QuickStats {
     class Data(
         val cpu: Int?, val cpuTemp: Float?, val gpu: Int?, val ram: Int?,
         val battTemp: Float?, val battLevel: Int?, val fps: Int?,
-        // Datos extra para el panel grande (todos opcionales)
+        // Extra data for the large panel (all optional)
         val cpuMhz: Int? = null, val gpuMhz: Int? = null,
         val ramUsedKb: Long? = null, val ramTotalKb: Long? = null,
         val netUpKbs: Float? = null, val netDownKbs: Float? = null,
@@ -93,12 +93,12 @@ object QuickStats {
         return n.take(8).sum() to (n[3] + n[4])
     }
 
-    // ---- FPS de la app en primer plano ----
+    // ---- FPS of the foreground app ----
     private val FOCUS = Regex("mCurrentFocus=Window\\{\\S+ u\\d+ ([\\w.]+)/")
     private var layer: String? = null
     private var layerCheckedAt = 0L
 
-    /** Busca la capa de SurfaceFlinger donde dibuja la app enfocada (cada 4 s). */
+    /** Finds the SurfaceFlinger layer the focused app draws to (every 4 s). */
     private fun currentLayer(): String? {
         val now = SystemClock.elapsedRealtime()
         if (now - layerCheckedAt < 4000) return layer
@@ -117,7 +117,7 @@ object QuickStats {
         return layer
     }
 
-    /** Cuenta los cuadros que la capa mostró en el último segundo. */
+    /** Counts the frames the layer displayed in the last second. */
     private fun layerFps(): Int? {
         val name = currentLayer() ?: return null
         val lines = RootShell.run("dumpsys SurfaceFlinger --latency ${Actions.q(name)}")
@@ -125,12 +125,12 @@ object QuickStats {
         val times = lines.drop(1).mapNotNull { l -> l.trim().split(WS).getOrNull(1)?.toLongOrNull() }
             .filter { it > 0 && it != Long.MAX_VALUE }
         if (times.size < 2) return null
-        // Las marcas de tiempo usan el mismo reloj monótono que System.nanoTime()
+        // Timestamps use the same monotonic clock as System.nanoTime()
         val since = System.nanoTime() - 1_000_000_000L
         return times.count { it > since }.coerceAtMost(240)
     }
 
-    // ---- TimeStats de SurfaceFlinger: cuadros mostrados por la pantalla ----
+    // ---- SurfaceFlinger TimeStats: frames shown by the display ----
     private var tsReady = false
     private var tsLast = 0L
     private var tsWorks = true
@@ -147,10 +147,10 @@ object QuickStats {
         tsReady = false
     }
 
-    /** Lee el total de cuadros desde la última lectura y lo reinicia. */
+    /** Reads the total frames since the last read and resets it. */
     private fun timeStatsFrames(): Long? {
         val out = RootShell.run("dumpsys SurfaceFlinger --timestats -dump; dumpsys SurfaceFlinger --timestats -clear")
-        // El primer "totalFrames" (antes de las capas) es el de toda la pantalla
+        // The first "totalFrames" (before the layers) is the whole display's
         for (l in out) {
             val t = l.trim()
             if (t.startsWith("layerName")) break
@@ -170,14 +170,14 @@ object QuickStats {
         val dt = (now - tsLast) / 1000f
         tsLast = now
         if (frames == null) {
-            tsWorks = false // este teléfono no tiene TimeStats: se usan los otros métodos
+            tsWorks = false // this phone has no TimeStats: the other methods are used
             return null
         }
         if (dt < 0.3f) return null
         return (frames / dt).toInt().coerceIn(0, 240)
     }
 
-    /** Prueba cada método por separado (para Configuración > Probar FPS). */
+    /** Tests each method separately (for Settings > Test FPS). */
     @Synchronized
     fun diagnoseFps(): String {
         val sb = StringBuilder()
@@ -207,9 +207,9 @@ object QuickStats {
         return sb.toString()
     }
 
-    /** [fps] = true también mide los cuadros por segundo de la pantalla. */
+    /** [fps] = true also measures the display's frames per second. */
     @Synchronized
-    /** [ctx] permite completar batería con la API de Android si /sys está bloqueado (Shizuku). */
+    /** [ctx] lets battery be filled in from the Android API if /sys is blocked (Shizuku). */
     fun read(fps: Boolean, ctx: Context? = null): Data {
         val z = zones()
         val script = buildString {
@@ -220,7 +220,7 @@ object QuickStats {
             append("cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqency 2>/dev/null | head -n 1; ")
             append("for d in /sys/class/devfreq/*; do case \"${'$'}d\" in *mali*|*gpu*|*GPU*|*g3d*) cat \"${'$'}d/cur_freq\" 2>/dev/null; break;; esac; done; echo @@; ")
             append("cat /proc/net/dev; echo @@; ")
-            append("echo @@; ")  // (antes df: el almacenamiento ahora se lee con StatFs)
+            append("echo @@; ")  // (formerly df: storage is now read with StatFs)
             append("cat /sys/class/power_supply/battery/temp /sys/class/power_supply/battery/capacity; echo @@; ")
             if (z.isNotEmpty()) append("cat ${z.joinToString(" ") { "$it/temp" }}; ")
             append("echo @@; ")
@@ -237,7 +237,7 @@ object QuickStats {
             prevTotal = total; prevIdle = idle
         }
         // GPU
-        // Se toma el mayor de las fuentes (en MediaTek, gpu_utilization suele dar 0 y gpu_loading es el real)
+        // Take the highest of the sources (on MediaTek, gpu_utilization often reads 0 and gpu_loading is the real one)
         val gpu = parts.getOrNull(1)?.lines().orEmpty().mapNotNull { l ->
             Regex("\\d+").find(l.substringAfter(':'))?.value?.toIntOrNull()
         }.maxOrNull()?.coerceIn(0, 100)
@@ -247,16 +247,16 @@ object QuickStats {
         }
         val total = mem["MemTotal"] ?: 0L
         val ram = if (total > 0) ((total - (mem["MemAvailable"] ?: 0L)) * 100 / total).toInt() else null
-        // Frecuencia de la CPU (la más alta de los clústeres, en MHz)
+        // CPU frequency (highest of the clusters, in MHz)
         val cpuMhz = parts.getOrNull(3)?.lines().orEmpty().mapNotNull { it.trim().toLongOrNull() }
             .maxOrNull()?.let { (it / 1000).toInt() }
-        // Frecuencia de la GPU (kHz o Hz según el driver)
-        // Frecuencia de la GPU: la primera línea con datos. En MediaTek trae dos números
-        // ("nivel frecuencia"), así que se toma el mayor, igual que en la app principal.
+        // GPU frequency (kHz or Hz depending on the driver)
+        // GPU frequency: the first line with data. On MediaTek it has two numbers
+        // ("level frequency"), so the larger one is taken, same as in the main app.
         val gpuMhz = parts.getOrNull(4)?.lines().orEmpty()
             .firstNotNullOfOrNull { l -> l.trim().split(WS).mapNotNull { it.toLongOrNull() }.maxOrNull()?.takeIf { it > 0 } }
             ?.let { when { it > 10_000_000 -> (it / 1_000_000).toInt(); it > 10_000 -> (it / 1000).toInt(); else -> it.toInt() } }
-        // Red: diferencia de bytes rx/tx entre lecturas → KB/s
+        // Network: rx/tx byte difference between readings → KB/s
         var netUp: Float? = null; var netDown: Float? = null
         run {
             var rx = 0L; var tx = 0L
@@ -275,11 +275,11 @@ object QuickStats {
             }
             prevRx = rx; prevTx = tx; prevNetTime = now
         }
-        // Almacenamiento con la API de Android: exacto y no depende del formato de df
+        // Storage via the Android API: exact and independent of df's output format
         val stat = try { android.os.StatFs(android.os.Environment.getDataDirectory().path) } catch (e: Exception) { null }
         val stTotal = stat?.totalBytes?.div(1024)?.takeIf { it > 0 }
         val stUsed = stat?.let { (it.totalBytes - it.availableBytes) / 1024 }
-        // Batería
+        // Battery
         val batt = parts.getOrNull(7)?.lines().orEmpty()
         var battTemp = batt.getOrNull(0)?.trim()?.toFloatOrNull()?.div(10f)
         var battLevel = batt.getOrNull(1)?.trim()?.toIntOrNull()
@@ -288,15 +288,15 @@ object QuickStats {
             battTemp = battTemp ?: api.tempC
             battLevel = battLevel ?: api.level
         }
-        // Temperatura de la CPU (máxima de sus sensores, descartando valores imposibles)
+        // CPU temperature (max of its sensors, discarding impossible values)
         val cpuTemp = parts.getOrNull(8)?.lines().orEmpty().mapNotNull { it.trim().toFloatOrNull() }
             .map { if (abs(it) >= 1000f) it / 1000f else it }
             .filter { it > 0f && it < 125f }
             .maxOrNull()
-            ?: AndroidStats.cpuTemp()   // sin /sys (Shizuku): servicio de temperaturas del sistema
-        // FPS de la pantalla. Primero las estadísticas de SurfaceFlinger (TimeStats),
-        // que cuentan los cuadros que la pantalla muestra realmente; si no están
-        // disponibles, se usan los otros métodos.
+            ?: AndroidStats.cpuTemp()   // without /sys (Shizuku): system temperature service
+        // Display FPS. First the SurfaceFlinger statistics (TimeStats),
+        // which count the frames the display actually shows; if they are not
+        // available, the other methods are used.
         var fpsValue: Int? = null
         if (fps) {
             val measured = parts.getOrNull(9)?.let { txt ->
@@ -325,14 +325,14 @@ object QuickStats {
     }
 }
 
-/** Burbuja pequeña y translúcida a la que se minimiza el panel; se pega a los bordes. */
+/** Small translucent bubble the panel minimizes to; it snaps to the edges. */
 class BubbleView(ctx: Context) : View(ctx) {
     private val d = ctx.resources.displayMetrics.density
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     override fun onMeasure(w: Int, h: Int) = setMeasuredDimension((44 * d).toInt(), (44 * d).toInt())
     override fun onDraw(c: Canvas) {
         val r = width / 2f
-        // Logo de Monitor, algo translúcido para que no tape lo de abajo
+        // Monitor logo, slightly translucent so it doesn't cover what's below
         drawAppLogo(c, context, r, r, r - 2 * d, alpha = 0xE0)
         p.style = Paint.Style.STROKE
         p.strokeWidth = (if (DiabloMode.active) 2.5f else 1.5f) * d
@@ -341,7 +341,7 @@ class BubbleView(ctx: Context) : View(ctx) {
     }
 }
 
-/** Ventana flotante: panel con 4 estilos, redimensionable y minimizable a una burbuja. */
+/** Floating window: panel with 4 styles, resizable and minimizable to a bubble. */
 class OverlayService : Service() {
     private var wm: WindowManager? = null
     private var panel: PanelView? = null
@@ -375,9 +375,9 @@ class OverlayService : Service() {
                 val d = try { if (RootShell.open()) QuickStats.read(fps = true, ctx = applicationContext) else null } catch (_: Exception) { null }
                 last = d
                 main.post {
-                    bubble?.invalidate()  // el anillo rojo sigue el estado del Modo Diablo
+                    bubble?.invalidate()  // the red ring follows the Diablo Mode state
                     panel?.let { v ->
-                        // Diseño o transparencia cambiados en Configuración: se aplican sin reiniciar el servicio
+                        // Layout or transparency changed in Settings: applied without restarting the service
                         val st = Prefs.panelStyle.coerceIn(0, 3)
                         val a = alpha()
                         if (v.style != st || v.bgAlpha != a) {
@@ -387,7 +387,7 @@ class OverlayService : Service() {
                         v.data = d
                     }
                 }
-                // Minimizado no se muestra nada: leer cada 5 s ahorra batería
+                // Nothing is shown while minimized: reading every 5 s saves battery
                 SystemClock.sleep(if (panel == null) 5000 else 1000)
             }
             try { QuickStats.stopTimeStats() } catch (_: Exception) {}
@@ -407,7 +407,7 @@ class OverlayService : Service() {
         main.postDelayed({ clampToScreen(); clampBubble() }, 150)
     }
 
-    /** Mantiene la burbuja dentro de la pantalla y pegada a su borde (por ejemplo, al girar). */
+    /** Keeps the bubble on screen and snapped to its edge (e.g. on rotation). */
     private fun clampBubble() {
         val v = bubble ?: return; val params = lp ?: return
         val (w, h) = screen()
@@ -455,10 +455,10 @@ class OverlayService : Service() {
                 MotionEvent.ACTION_DOWN -> {
                     startX = params.x; startY = params.y; touchX = e.rawX; touchY = e.rawY
                     dragging = false; startScale = v.scale
-                    // Esquina inferior derecha (~32dp) = redimensionar
+                    // Bottom-right corner (~32dp) = resize
                     val corner = 36 * resources.displayMetrics.density
                     resizing = e.x > view.width - corner && e.y > view.height - corner
-                    // Esquina superior derecha (~36dp) = minimizar
+                    // Top-right corner (~36dp) = minimize
                     if (!resizing && e.x > view.width - corner && e.y < corner) {
                         main.post { minimize() }; return@setOnTouchListener true
                     }
@@ -483,7 +483,7 @@ class OverlayService : Service() {
                     if (resizing) { Prefs.panelScale = v.scale; Prefs.save() }
                     else if (dragging) { clampToScreen(); saveFractions() }
                     else {
-                        // Toque simple en la esquina superior izquierda del contenido = cambiar estilo
+                        // Single tap on the top-left corner of the content = change style
                         if (e.x < 120 * resources.displayMetrics.density && e.y < 40 * resources.displayMetrics.density) nextStyle()
                     }
                     resizing = false
@@ -503,7 +503,7 @@ class OverlayService : Service() {
         panel?.let { it.style = next; it.requestLayout() }
     }
 
-    // ---------- Burbuja ----------
+    // ---------- Bubble ----------
     @SuppressLint("ClickableViewAccessibility")
     private fun showBubble() {
         removeViews()
@@ -527,7 +527,7 @@ class OverlayService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (dragging) {
-                        // Pegar al borde más cercano (izquierda o derecha)
+                        // Snap to the nearest edge (left or right)
                         val maxX = m.widthPixels - view.width
                         params.x = if (params.x + view.width / 2 < m.widthPixels / 2) 0 else maxX
                         params.y = params.y.coerceIn(0, m.heightPixels - view.height)
@@ -547,7 +547,7 @@ class OverlayService : Service() {
     private fun minimize() { Prefs.panelMinimized = true; Prefs.save(); showBubble() }
     private fun expand() { Prefs.panelMinimized = false; Prefs.save(); showPanel() }
 
-    // ---------- Posición ----------
+    // ---------- Position ----------
     private fun screen(): Pair<Int, Int> {
         val m = resources.displayMetrics; return m.widthPixels to m.heightPixels
     }
@@ -599,7 +599,7 @@ class OverlayService : Service() {
 }
 
 object OverlayControl {
-    /** Con root se concede el permiso de "mostrar sobre otras apps" sin ir a Ajustes. */
+    /** With root, the "display over other apps" permission is granted without going to Settings. */
     fun ensurePermission(ctx: Context): Boolean {
         if (Settings.canDrawOverlays(ctx)) return true
         if (RootShell.open()) RootShell.run("appops set ${ctx.packageName} SYSTEM_ALERT_WINDOW allow")
@@ -616,7 +616,7 @@ object OverlayControl {
         }
     }
 
-    /** Debe llamarse fuera del hilo principal (puede usar root). */
+    /** Must be called off the main thread (may use root). */
     fun start(ctx: Context): Boolean {
         if (!ensurePermission(ctx)) return false
         val i = Intent(ctx, OverlayService::class.java)
@@ -630,7 +630,7 @@ object OverlayControl {
     }
 }
 
-/** Actividad invisible: enciende o apaga el monitor (la usa el botón de ajustes rápidos). */
+/** Invisible activity: turns the monitor on or off (used by the quick settings tile). */
 class OverlayToggleActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -644,7 +644,7 @@ class OverlayToggleActivity : Activity() {
     }
 }
 
-/** Botón de ajustes rápidos "Monitor flotante". */
+/** Quick settings tile "Monitor flotante" (floating monitor). */
 class MonitorTileService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
@@ -671,7 +671,7 @@ class MonitorTileService : TileService() {
             refresh()
             return
         }
-        // Se abre la actividad invisible: Android permite iniciar el servicio desde ella
+        // Opens the invisible activity: Android allows starting the service from it
         val intent = Intent(this, OverlayToggleActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (Build.VERSION.SDK_INT >= 34) {
             startActivityAndCollapse(PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE))

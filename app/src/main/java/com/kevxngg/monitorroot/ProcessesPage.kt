@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/** Fila de la pestaña Procesos: una app (con todos sus procesos) o un proceso suelto. */
+/** Row of the Processes tab: an app (with all its processes) or a single process. */
 class TaskRow(
     val key: String,
     val name: String,
@@ -154,7 +154,7 @@ fun ProcessesPage(
     val cpuCol = Col("cpu", "CPU", 64.dp, "%.0f%%".format(s.cpuTotal))
     val memCol = Col("mem", tr("Memoria"), 88.dp, "%.0f%%".format(s.mem.usedPct))
     val diskCol = Col("disk", tr("Disco"), 84.dp, "%.0f%%".format(diskPct))
-    // En el teléfono, CPU y Memoria primero para que se vean sin desplazar
+    // On the phone, CPU and Memory first so they are visible without scrolling
     val cols = if (compact) listOf(cpuCol, memCol, diskCol, stateCol) else listOf(stateCol, cpuCol, memCol, diskCol)
 
     fun cells(r: TaskRow): List<Cell> = cols.map { c ->

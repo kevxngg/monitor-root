@@ -31,9 +31,9 @@ class CpuPowerTest {
     }
 
     @Test fun systemChangesDoNotBreakTheMode() {
-        // Touch boost sube la mínima: sigue siendo Equilibrado
+        // Touch boost raises the minimum: still Balanced
         assertEquals(CpuPower.Mode.BALANCED, mode(cluster("schedutil", min = 1_800_000)))
-        // El control térmico baja la máxima: sigue siendo Mejor rendimiento
+        // Thermal control lowers the maximum: still Best performance
         assertEquals(CpuPower.Mode.PERFORMANCE, mode(cluster("performance", max = 1_000_000)))
     }
 

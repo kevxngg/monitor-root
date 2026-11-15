@@ -8,9 +8,9 @@ import android.content.Intent
 import android.os.SystemClock
 
 /**
- * Alarma de unos 5 minutos que no despierta al teléfono: guarda el historial de
- * batería, actualiza el widget, revisa las alertas y, como máximo cada hora,
- * busca actualizaciones.
+ * Roughly 5-minute alarm that does not wake the phone: saves the battery history,
+ * updates the widget, checks alerts and, at most once an hour,
+ * looks for updates.
  */
 class UpdateAlarm : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
@@ -23,9 +23,9 @@ class UpdateAlarm : BroadcastReceiver() {
                 return
             }
         }
-        // Las actualizaciones se revisan como máximo una vez por hora en segundo plano
+        // Updates are checked in the background at most once per hour
         UpdateWorker.enqueueIfDue(app)
-        // Tareas rápidas en cada alarma: historial de batería y widget
+        // Quick tasks on every alarm: battery history and widget
         BatteryLog.record(app)
         WidgetUpdater.requestRefresh(app)
         Alerts.enqueue(app)
@@ -41,13 +41,13 @@ class UpdateAlarm : BroadcastReceiver() {
                 ctx, 0, Intent(ctx, UpdateAlarm::class.java).setAction("com.kevxngg.monitorroot.CHECK_UPDATE"),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
-            // Sin despertar al teléfono: se ejecuta cuando ya está despierto (ahorra batería)
+            // Without waking the phone: runs when it is already awake (saves battery)
             am.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + INTERVAL, pi)
         }
     }
 }
 
-/** Botón "Actualizar ahora" de la notificación: descarga e instala sin abrir la app. */
+/** The notification's "Actualizar ahora" (Update now) button: downloads and installs without opening the app. */
 class InstallUpdateReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val app = ctx.applicationContext

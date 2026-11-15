@@ -34,15 +34,15 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// ===================== DATOS DEL PROYECTO =====================
+// ===================== PROJECT DATA =====================
 
 private const val REPO = "https://github.com/kevxngg/monitor-root"
 private const val DEV = "kevxngg"
 
-/** Red social: nombre, usuario, enlace (null = se copia el usuario) e icono. */
+/** Social network: name, username, link (null = the username is copied) and icon. */
 private class Social(val name: String, val user: String, val url: String?, val icon: ImageVector)
 
-/** Redes sociales del desarrollador (iconos genéricos, sin logotipos de marcas). */
+/** The developer's social networks (generic icons, no brand logos). */
 private val SOCIALS = listOf(
     Social("GitHub", "@kevxngg", "https://github.com/kevxngg", Icons.Outlined.Code),
     Social("Instagram", "@kevxngg", "https://www.instagram.com/kevxngg", Icons.Outlined.PhotoCamera),
@@ -50,7 +50,7 @@ private val SOCIALS = listOf(
     Social("LinkedIn", "kevxngg", "https://www.linkedin.com/in/kevxngg", Icons.Outlined.Work),
     Social("TikTok", "@kevxngg", "https://www.tiktok.com/@kevxngg", Icons.Outlined.MusicNote),
     Social("Telegram", "@kevxngg", "https://t.me/kevxngg", Icons.Outlined.Send),
-    // Discord no tiene enlace público por nombre de usuario: al tocarlo se copia
+    // Discord has no public link by username: tapping it copies
     Social("Discord", "kevxngg", null, Icons.Outlined.Forum),
 )
 
@@ -75,7 +75,7 @@ private fun rootManager(): String? {
     }
 }
 
-/** Logo de la app (el mismo que el icono del lanzador). */
+/** App logo (the same as the launcher icon). */
 @Composable
 fun AppLogo(size: Int) {
     Box(
@@ -92,7 +92,7 @@ private fun appVersion(ctx: Context): String = try {
     ""
 }
 
-/** Fila de Configuración: "Monitor Root · versión" → abre la página Acerca de. */
+/** Settings row: "Monitor Root · versión" (version) → opens the About page. */
 @Composable
 fun AboutEntry(onOpen: () -> Unit) {
     val win = LocalWin.current
@@ -115,7 +115,7 @@ fun AboutEntry(onOpen: () -> Unit) {
     }
 }
 
-/** Página completa de información de Monitor Root. */
+/** Full information page for Monitor Root. */
 @Composable
 fun AboutPage(build: Int, onBack: () -> Unit) {
     val win = LocalWin.current
@@ -138,7 +138,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
     )
 
     Column(Modifier.fillMaxSize()) {
-        // Barra superior con botón de volver
+        // Top bar with back button
         Row(
             Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -153,7 +153,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // ---- Cabecera ----
+            // ---- Header ----
             Column(
                 Modifier.fillMaxWidth().padding(vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -166,7 +166,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
                 Text(tr("Monitor del sistema para Android con root"), fontSize = 13.sp, color = win.text)
             }
 
-            // ---- Proyecto ----
+            // ---- Project ----
             SectionTitle(tr("Proyecto"))
             AboutCard {
                 AboutRow(Icons.Outlined.Person, tr("Desarrollador"), DEV) { open(ctx, "https://github.com/$DEV") }
@@ -178,7 +178,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
                 AboutRow(Icons.Outlined.BugReport, tr("Informar un problema"), "GitHub Issues") { open(ctx, "$REPO/issues/new") }
             }
 
-            // ---- Redes sociales ----
+            // ---- Social networks ----
             SectionTitle(tr("Redes sociales"))
             AboutCard {
                 SOCIALS.forEachIndexed { i, sn ->
@@ -195,7 +195,7 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
                 }
             }
 
-            // ---- Dispositivo (útil al informar un problema) ----
+            // ---- Device (useful when reporting a problem) ----
             SectionTitle(tr("Información del dispositivo"))
             AboutCard {
                 device.forEachIndexed { i, (icon, title, value) ->

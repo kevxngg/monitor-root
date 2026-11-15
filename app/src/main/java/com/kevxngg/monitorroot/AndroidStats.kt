@@ -8,11 +8,11 @@ import android.os.SystemClock
 import kotlin.math.abs
 
 /**
- * Caminos alternativos para leer datos cuando Android bloquea los archivos de /sys
- * (pasa con Shizuku, que funciona como el usuario "shell"):
- *  - batería: la API de Android, que cualquier app puede usar sin permisos
- *  - temperaturas: el servicio de temperaturas del sistema (dumpsys thermalservice)
- * Con root no se usan: /sys da más sensores y más precisión.
+ * Alternative ways to read data when Android blocks the /sys files
+ * (happens with Shizuku, which runs as the "shell" user):
+ *  - battery: the Android API, which any app can use without permissions
+ *  - temperatures: the system thermal service (dumpsys thermalservice)
+ * With root they are not used: /sys gives more sensors and better precision.
  */
 object AndroidStats {
     class Battery(
@@ -40,7 +40,7 @@ object AndroidStats {
             BatteryManager.BATTERY_HEALTH_COLD -> "Fría"
             else -> null
         }
-        // Corriente en µA; el signo depende del fabricante: se normaliza (+ carga, − descarga)
+        // Current in µA; the sign depends on the manufacturer: normalized (+ charging, − discharging)
         val bm = ctx.getSystemService(BatteryManager::class.java)
         val microA = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
             ?.takeIf { it != Int.MIN_VALUE && it != 0 }
@@ -61,19 +61,19 @@ object AndroidStats {
         )
     }
 
-    /** Sensor del servicio de temperaturas: nombre, °C y tipo (0 = CPU, 1 = GPU, 2 = batería, 3 = carcasa). */
+    /** Thermal service sensor: name, °C and type (0 = CPU, 1 = GPU, 2 = battery, 3 = case). */
     class Sensor(val name: String, val celsius: Float, val type: Int)
 
     private val TEMP_RE = Regex("""Temperature\{mValue=([\d.\-]+), mType=(-?\d+), mName=([^,}]+)""")
     private var cached: List<Sensor> = emptyList()
     private var cachedAt = 0L
 
-    /** Lee el servicio de temperaturas (como mucho cada 2 s, porque dumpsys es algo pesado). */
+    /** Reads the thermal service (at most every 2 s, because dumpsys is somewhat heavy). */
     fun thermalSensors(): List<Sensor> {
         val now = SystemClock.elapsedRealtime()
         if (now - cachedAt < 2000) return cached
         cachedAt = now
-        // Solo la sección de valores actuales (no los de umbral ni los guardados)
+        // Only the current values section (not the threshold or cached ones)
         val out = RootShell.run("dumpsys thermalservice")
         val current = out.dropWhile { !it.contains("Current temperatures from HAL") }
             .drop(1).takeWhile { it.contains("Temperature{") }
@@ -87,6 +87,6 @@ object AndroidStats {
         return cached
     }
 
-    /** Temperatura de la CPU según el servicio de temperaturas (la más alta de tipo CPU). */
+    /** CPU temperature according to the thermal service (the highest of CPU type). */
     fun cpuTemp(): Float? = thermalSensors().filter { it.type == 0 }.maxOfOrNull { it.celsius }
 }

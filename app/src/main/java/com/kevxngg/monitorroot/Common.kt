@@ -22,7 +22,7 @@ import androidx.core.graphics.drawable.toBitmap
 
 const val HISTORY = 60
 
-// ===================== TEMA (estilo Windows 11) =====================
+// ===================== THEME (Windows 11 style) =====================
 
 data class Win(
     val dark: Boolean,
@@ -41,12 +41,12 @@ data class Win(
     val heatHigh: Color,
     val eco: Color,
     val warn: Color,
-    /** Redondez de las esquinas (1 = Windows 11, 0 = macOS). */
+    /** Corner roundness (1 = Windows 11, 0 = macOS). */
     val radiusScale: Float = 1f,
-    /** true cuando el estilo macOS está activo (pestañas arriba, barra de totales abajo). */
+    /** true when the macOS style is active (tabs on top, totals bar at the bottom). */
     val mac: Boolean = false,
 ) {
-    /** Color de celda según el uso (0..1): azul claro → azul → naranja. */
+    /** Cell color by usage (0..1): light blue → blue → orange. */
     fun heat(f: Float): Color {
         val x = f.coerceIn(0f, 1f)
         return if (x <= 0.75f) lerp(heatLow, heatMid, x / 0.75f) else lerp(heatMid, heatHigh, (x - 0.75f) / 0.25f)
@@ -106,43 +106,43 @@ enum class Res(val title: String, val light: Color, val dark: Color) {
     fun color(w: Win) = if (w.dark) dark else light
 }
 
-// ===================== AJUSTES =====================
+// ===================== SETTINGS =====================
 
 object Prefs {
     private var sp: SharedPreferences? = null
 
-    var theme by mutableIntStateOf(0)        // 0 sistema, 1 claro, 2 oscuro, 3 negro puro
+    var theme by mutableIntStateOf(0)        // 0 system, 1 light, 2 dark, 3 pure black
     var uiStyle by mutableIntStateOf(0)      // 0 Windows 11, 1 macOS
     var startPage by mutableIntStateOf(0)
-    var speed by mutableIntStateOf(1)        // 0 alta, 1 normal, 2 baja, 3 pausa
+    var speed by mutableIntStateOf(1)        // 0 high, 1 normal, 2 low, 3 paused
     var groupByType by mutableStateOf(true)
     var showPackageNames by mutableStateOf(false)
     var efficiency by mutableStateOf(setOf<String>())
     var autoUpdate by mutableStateOf(true)
-    var language by mutableStateOf("")       // "" = idioma del sistema
-    var defaultGovernor by mutableStateOf("") // gobernador original de la CPU (modo equilibrado)
+    var language by mutableStateOf("")       // "" = system language
+    var defaultGovernor by mutableStateOf("") // original CPU governor (balanced mode)
     var defaultGpuGovernor by mutableStateOf("")
     var overlayStyle by mutableIntStateOf(0)    // 0 vertical, 1 horizontal
-    var overlaySize by mutableIntStateOf(1)     // 0 pequeño, 1 normal, 2 grande
-    var overlayOpacity by mutableIntStateOf(1)  // 0 baja, 1 media, 2 alta
-    // Panel flotante nuevo: estilo (0 completo, 1 compacto, 2 gamer, 3 retro), escala y minimizado
-    // Conexión elegida: -1 sin elegir, 0 root, 1 Shizuku
+    var overlaySize by mutableIntStateOf(1)     // 0 small, 1 normal, 2 large
+    var overlayOpacity by mutableIntStateOf(1)  // 0 low, 1 medium, 2 high
+    // New floating panel: style (0 full, 1 compact, 2 gamer, 3 retro), scale and minimized
+    // Chosen connection: -1 none chosen, 0 root, 1 Shizuku
     var accessMode by mutableIntStateOf(-1)
     var panelStyle by mutableIntStateOf(0)
-    var panelScale by mutableFloatStateOf(1f)   // 0.7..1.4, se gradúa desde la esquina
+    var panelScale by mutableFloatStateOf(1f)   // 0.7..1.4, scaled from the corner
     var panelMinimized by mutableStateOf(false)
 
-    // Modo juego
+    // Game mode
     var gameMode by mutableStateOf(false)
     var games by mutableStateOf(setOf<String>())
-    var gamePower by mutableIntStateOf(1)       // 0 sin cambios, 1 rendimiento, 2 equilibrado, 3 eficiencia, 4 Diablo
+    var gamePower by mutableIntStateOf(1)       // 0 no changes, 1 performance, 2 balanced, 3 efficiency, 4 Diablo
     var gameOverlay by mutableStateOf(true)
     var gameKill by mutableStateOf(false)
     var gameDnd by mutableStateOf(false)
     var gameRecord by mutableStateOf(true)
     var gameDiablo by mutableStateOf(false)
 
-    // Alertas
+    // Alerts
     var alertTemp by mutableStateOf(false)
     var alertTempLimit by mutableIntStateOf(1)  // 45, 50, 55, 60 °C
     var alertCpu by mutableStateOf(false)
@@ -150,10 +150,10 @@ object Prefs {
     var alertCharge by mutableStateOf(false)
     var alertChargeLimit by mutableIntStateOf(0) // 80, 85, 90, 100 %
 
-    // true si el usuario cambió a mano los límites de frecuencia de la CPU en Monitor
+    // true if the user manually changed the CPU frequency limits in Monitor
     var cpuCustomLimits by mutableStateOf(false)
 
-    // Historial de aplicaciones: se cuenta desde aquí ("Eliminar historial de uso")
+    // App history: counted from here ("Eliminar historial de uso", i.e. delete usage history)
     var historyResetAt by mutableStateOf(0L)
     var skippedBuild by mutableIntStateOf(0)
 
@@ -250,7 +250,7 @@ object Prefs {
     }
 }
 
-// ===================== APPS (nombre e icono en caché) =====================
+// ===================== APPS (cached name and icon) =====================
 
 class AppMeta(
     val pkg: String,
@@ -339,7 +339,7 @@ fun searchOnline(ctx: Context, q: String) {
     }
 }
 
-// ===================== HISTORIAL DE GRÁFICAS =====================
+// ===================== CHART HISTORY =====================
 
 class History(private val m: Map<String, List<Float>> = emptyMap()) {
     operator fun get(k: String): List<Float> = m[k] ?: emptyList()
@@ -366,7 +366,7 @@ class History(private val m: Map<String, List<Float>> = emptyMap()) {
 
 }
 
-// ===================== FORMATO =====================
+// ===================== FORMAT =====================
 
 fun formatKb(kb: Long): String = formatBytes(kb * 1024)
 
@@ -403,9 +403,9 @@ fun formatDuration(sec: Long): String =
     if (sec >= 3600) "%d:%02d:%02d".format(sec / 3600, (sec % 3600) / 60, sec % 60)
     else "%d:%02d".format(sec / 60, sec % 60)
 
-/** Escala "redonda" para gráficas de velocidad. */
+/** "Round" scale for speed charts. */
 fun niceScale(v: Float, min: Float = 100_000f): Float {
-    // Un valor inválido (infinito o NaN) dejaría el bucle sin fin y congelaría la app
+    // An invalid value (infinite or NaN) would make the loop endless and freeze the app
     if (!v.isFinite() || v <= min) return min
     var mag = min
     while (true) {
@@ -430,7 +430,7 @@ fun band(freqMhz: Int): String = when {
     else -> "6 GHz"
 }
 
-/** "Wi‑Fi 6 (802.11ax)", "Wi‑Fi 6E" en 6 GHz, etc. */
+/** "Wi‑Fi 6 (802.11ax)", "Wi‑Fi 6E" on 6 GHz, etc. */
 fun wifiStandardLabel(standard: Int?, freqMhz: Int?): String? = when (standard) {
     1 -> "802.11a/b/g"
     4 -> "Wi‑Fi 4 (802.11n)"

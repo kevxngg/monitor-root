@@ -2,7 +2,7 @@ package com.kevxngg.monitorroot
 
 import java.util.concurrent.TimeUnit
 
-/** Acciones que se ejecutan con root. */
+/** Actions run with root. */
 object Actions {
     fun q(s: String) = "'" + s.replace("'", "'\\''") + "'"
 
@@ -14,7 +14,7 @@ object Actions {
         if (pids.isNotEmpty()) RootShell.run("kill -$signal ${pids.joinToString(" ")}")
     }
 
-    /** Cambia el valor nice de cada proceso al valor absoluto [target]. */
+    /** Sets each process's nice value to the absolute value [target]. */
     fun setNice(procs: List<ProcInfo>, target: Int) {
         val cmd = procs.filter { it.nice != target }
             .joinToString("; ") { "renice -n ${target - it.nice} -p ${it.pid}" }
@@ -26,7 +26,7 @@ object Actions {
         RootShell.run("am set-standby-bucket ${q(pkg)} ${if (on) "restricted" else "active"}")
     }
 
-    /** PIDs del proceso y de todos sus descendientes. */
+    /** PIDs of the process and all its descendants. */
     fun tree(root: Int, all: List<ProcInfo>): List<Int> {
         val children = all.groupBy { it.ppid }
         val out = ArrayList<Int>()
@@ -48,7 +48,7 @@ object Actions {
         RootShell.run("taskset -ap ${java.lang.Long.toHexString(mask)} $pid")
     }
 
-    /** Ejecuta un comando y devuelve su salida (máximo 15 s). */
+    /** Runs a command and returns its output (15 s max). */
     fun runCommand(cmd: String, asRoot: Boolean): String {
         val wrapped = "timeout 15 sh -c ${q(cmd)} 2>&1"
         val out = if (asRoot) {
@@ -63,7 +63,7 @@ object Actions {
                 e.message ?: "Error"
             }
         }
-        return out.take(8000).ifBlank { "(sin salida)" }
+        return out.take(8000).ifBlank { tr("(sin salida)") }
     }
 
     fun properties(pid: Int): List<Pair<String, String>> {

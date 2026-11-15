@@ -5,15 +5,15 @@ import android.opengl.EGLConfig
 import android.opengl.GLES20
 
 /**
- * Nombre real de la GPU (p. ej. "Mali-G57 MC2" o "Adreno (TM) 610") leído del
- * driver gráfico. Funciona en cualquier fabricante, se consulta una sola vez.
+ * Real GPU name (e.g. "Mali-G57 MC2" or "Adreno (TM) 610") read from the
+ * graphics driver. Works on any vendor; queried only once.
  */
 object GlInfo {
     @Volatile private var tried = false
     @Volatile var renderer: String? = null
         private set
 
-    /** Versión de OpenGL ES y del driver, por ejemplo "OpenGL ES 3.2 V@0615.0". */
+    /** OpenGL ES and driver version, for example "OpenGL ES 3.2 V@0615.0". */
     @Volatile var version: String? = null
         private set
 
@@ -47,14 +47,14 @@ object GlInfo {
             EGL14.eglMakeCurrent(dpy, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
             EGL14.eglDestroySurface(dpy, surf)
             EGL14.eglDestroyContext(dpy, ctx)
-            // No se llama a eglTerminate: la pantalla de la app usa la misma conexión EGL.
+            // eglTerminate is not called: the app's screen uses the same EGL connection.
         } catch (_: Throwable) {
         }
         return renderer
     }
 }
 
-/** Versión de Vulkan que declara el teléfono, por ejemplo "1.3" (null si no tiene). */
+/** Vulkan version the phone reports, for example "1.3" (null if none). */
 fun vulkanVersion(pm: android.content.pm.PackageManager): String? {
     for (minor in 4 downTo 0) {
         val code = (1 shl 22) or (minor shl 12)

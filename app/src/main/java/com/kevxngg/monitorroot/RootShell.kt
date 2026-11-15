@@ -7,9 +7,9 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
- * Mantiene abierta una única shell privilegiada:
- *  - ROOT: con "su" (Magisk, KernelSU, APatch)
- *  - HELPER: sin root, con el servicio "monitord" que trae la ROM (ver rom/port/)
+ * Keeps a single privileged shell open:
+ *  - ROOT: via "su" (Magisk, KernelSU, APatch)
+ *  - HELPER: without root, via the "monitord" service shipped with the ROM (see rom/port/)
  */
 object RootShell {
     enum class Mode { NONE, ROOT, SYSTEM, HELPER, SHIZUKU }
@@ -17,10 +17,10 @@ object RootShell {
     @Volatile var mode = Mode.NONE
         private set
 
-    /** true si la conexión es por Shizuku: se puede leer todo, pero no escribir en archivos de root. */
+    /** true if the connection is via Shizuku: everything can be read, but root files cannot be written. */
     val viaShizuku: Boolean get() = mode == Mode.SHIZUKU
 
-    /** Cierra la conexión actual para volver a elegir modo (por ejemplo, al cambiarlo en Configuración). */
+    /** Closes the current connection so the mode is chosen again (e.g. when changed in Settings). */
     fun reset() {
         synchronized(lock) {
             closeLocked()
@@ -33,7 +33,7 @@ object RootShell {
     private var reader: BufferedReader? = null
     private val lock = Any()
 
-    /** Envía un script al servicio monitord y devuelve su salida (null si no está). */
+    /** Sends a script to the monitord service and returns its output (null if it is not available). */
     private fun helperRun(script: String): List<String>? = try {
         android.net.LocalSocket().use { sock ->
             sock.connect(
@@ -52,10 +52,10 @@ object RootShell {
         null
     }
 
-    /** Abre la shell: servicio de la ROM (sin root) o su, en ese orden. */
+    /** Opens the shell: ROM service (no root) or su, in that order. */
     fun open(): Boolean {
         synchronized(lock) {
-            // Ya conectado: salida rápida (se llama a menudo, p. ej. cada segundo desde el flotante)
+            // Already connected: fast exit (called often, e.g. every second from the floating monitor)
             if (mode == Mode.HELPER || mode == Mode.SHIZUKU) return true
             if (process != null) return true
             if (helperRun("id")?.any { it.contains("uid=0") } == true) {
@@ -69,7 +69,7 @@ object RootShell {
                 process = p
                 writer = w
                 reader = BufferedReader(InputStreamReader(p.inputStream))
-                // Descarta stderr para que no se llene su buffer y bloquee la shell
+                // Discards stderr so its buffer does not fill up and block the shell
                 w.write("exec 2>/dev/null\n")
                 w.flush()
                 val ok = runLocked("id").any { it.contains("uid=0") }
@@ -80,7 +80,7 @@ object RootShell {
                 false
             }
             if (rooted) return true
-            // Sin root: usar Shizuku si está disponible y con permiso (acceso de solo lectura + finalizar apps)
+            // No root: use Shizuku if available and permitted (read-only access + killing apps)
             if (choice != 0 && ShizukuShell.available() && ShizukuShell.hasPermission()) {
                 mode = Mode.SHIZUKU
                 return true
@@ -89,11 +89,11 @@ object RootShell {
         }
     }
 
-    /** Ejecuta un comando (o script de varias líneas) y devuelve su salida. */
+    /** Runs a command (or multi-line script) and returns its output. */
     fun run(cmd: String): List<String> {
         synchronized(lock) {
-            // Dos intentos: si la conexión se perdió (Shizuku reiniciado, su cerrado por
-            // tiempo, etc.), se reconecta sola en vez de dejar la app sin datos.
+            // Two attempts: if the connection was lost (Shizuku restarted, su closed by
+            // timeout, etc.), it reconnects on its own instead of leaving the app without data.
             for (attempt in 0..1) {
                 when (mode) {
                     Mode.HELPER -> {
@@ -120,7 +120,7 @@ object RootShell {
 
     private var lastReconnect = 0L
 
-    /** Vuelve a abrir la conexión, como mucho una vez cada 5 s (para no saturar al gestor de root). */
+    /** Reopens the connection, at most once every 5 s (to avoid overloading the root manager). */
     private fun reconnectLocked(): Boolean {
         val now = android.os.SystemClock.elapsedRealtime()
         if (now - lastReconnect < 5000) return false
@@ -133,12 +133,12 @@ object RootShell {
     }
 
     /**
-     * Ejecuta el comando y lee su salida hasta la marca de fin.
-     *  - La entrada del comando es /dev/null: si un comando intenta leer, no se
-     *    "come" las líneas siguientes de la shell.
-     *  - Si un comando tarda más de [TIMEOUT_MS] (por ejemplo, un servicio del
-     *    sistema colgado), se cierra la shell para no bloquear toda la app; la
-     *    siguiente llamada abre una nueva.
+     * Runs the command and reads its output up to the end marker.
+     *  - The command's input is /dev/null: if a command tries to read, it does not
+     *    "eat" the shell's following lines.
+     *  - If a command takes longer than [TIMEOUT_MS] (e.g. a hung system
+     *    service), the shell is closed so the whole app is not blocked; the
+     *    next call opens a new one.
      */
     private fun runLocked(cmd: String): List<String> {
         val w = writer ?: return emptyList()
@@ -162,7 +162,7 @@ object RootShell {
         } finally {
             watchdog.cancel(false)
         }
-        // Sin marca de fin: la shell terminó o se cerró por tiempo
+        // No end marker: the shell exited or was closed by timeout
         closeLocked()
         return lines
     }

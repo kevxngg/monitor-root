@@ -22,7 +22,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-/** Una partida: estadísticas guardadas al cerrar el juego. */
+/** A play session: stats saved when the game is closed. */
 class GameSession(
     val pkg: String,
     val label: String,
@@ -35,7 +35,7 @@ class GameSession(
 ) {
     private val valid get() = fps.filter { it > 0 }
     val avgFps: Int? get() = valid.takeIf { it.isNotEmpty() }?.average()?.toInt()
-    /** FPS bajo: percentil 5, para ignorar tirones aislados al cargar. */
+    /** Low FPS: 5th percentile, to ignore isolated stutters while loading. */
     val lowFps: Int? get() = valid.sorted().takeIf { it.isNotEmpty() }?.let { it[(it.size * 0.05).toInt()] }
     val maxFps: Int? get() = valid.maxOrNull()
     val minutes: Int get() = ((end - start) / 60_000).toInt()
@@ -87,13 +87,13 @@ object GameSessions {
     }
 }
 
-/** Qué juego se está jugando ahora (para mostrarlo en la página Juegos). */
+/** Which game is being played right now (to show it on the Games page). */
 object GameModeState {
     @Volatile var playing: String? = null
 }
 
 object GameMode {
-    /** Apps que Android marca como juegos (para sugerirlas). */
+    /** Apps Android flags as games (to suggest them). */
     @Suppress("DEPRECATION")
     fun isGame(ai: ApplicationInfo): Boolean {
         val byCategory = Build.VERSION.SDK_INT >= 26 && ai.category == ApplicationInfo.CATEGORY_GAME
@@ -106,7 +106,7 @@ object GameMode {
         try {
             if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i) else ctx.startService(i)
         } catch (_: Exception) {
-            // Android puede no dejar iniciarlo desde segundo plano; con root sí
+            // Android may not allow starting it from the background; with root it does
             RootShell.run("am start-foreground-service -n ${ctx.packageName}/.GameModeService")
         }
     }
@@ -125,8 +125,8 @@ object GameMode {
 }
 
 /**
- * Vigila qué app está en pantalla. Al abrir uno de tus juegos aplica el modo de
- * energía, muestra el monitor flotante, etc., y guarda el resumen de la partida.
+ * Watches which app is on screen. When one of your games opens, it applies the power mode,
+ * shows the floating monitor, etc., and saves the session summary.
  */
 class GameModeService : Service() {
     @Volatile private var alive = false
@@ -162,7 +162,7 @@ class GameModeService : Service() {
         )
         alive = true
         Thread {
-            // Permiso para saber qué app está en pantalla (se concede con root)
+            // Permission to know which app is on screen (granted with root)
             if (RootShell.open()) RootShell.run("appops set $packageName GET_USAGE_STATS allow")
             DiabloMode.recoverIfNeeded(applicationContext)
             while (alive) {
@@ -181,7 +181,7 @@ class GameModeService : Service() {
         super.onDestroy()
     }
 
-    /** App en primer plano según los eventos de uso de los últimos segundos. */
+    /** Foreground app based on usage events from the last few seconds. */
     private fun foreground(): String? {
         val usm = getSystemService(UsageStatsManager::class.java) ?: return lastFg
         val now = System.currentTimeMillis()
@@ -196,7 +196,7 @@ class GameModeService : Service() {
         return fg
     }
 
-    /** Pantalla encendida y desbloqueada (si no, no se está jugando). */
+    /** Screen on and unlocked (otherwise the user is not playing). */
     private fun screenActive(): Boolean {
         val pm = getSystemService(android.os.PowerManager::class.java)
         val km = getSystemService(android.app.KeyguardManager::class.java)
@@ -204,8 +204,8 @@ class GameModeService : Service() {
     }
 
     private fun tick() {
-        // Con la pantalla apagada o bloqueada se sale del modo juego: así el gobernador de
-        // rendimiento, No molestar, etc. no siguen activos en el bolsillo.
+        // With the screen off or locked, game mode is exited so the performance governor,
+        // Do Not Disturb, etc. do not stay active in a pocket.
         if (!screenActive()) {
             current?.let { exitGame(it) }
             return
@@ -213,12 +213,12 @@ class GameModeService : Service() {
         val fg = foreground()
         val cur = current
         if (cur != null) {
-            // La partida sigue mientras el juego esté abierto, aunque cambies un momento a otra
-            // app (anuncios, inicio de sesión, otra ventana). Termina al cerrarlo (quitarlo de
-            // recientes), al abrir otro de tus juegos o al bloquear la pantalla.
+            // The session continues while the game is open, even if you briefly switch to another
+            // app (ads, sign-in, another window). It ends when the game is closed (removed from
+            // recents), when another of your games opens, or when the screen locks.
             val running = if (fg == cur) true else isRunning(cur)
             val otherGame = fg != null && fg != cur && fg in Prefs.games
-            // Sin poder comprobar el proceso, se vuelve a la regla anterior (otra app en pantalla)
+            // If the process cannot be checked, falls back to the previous rule (another app on screen)
             val closed = running == false || (running == null && fg != null && fg != cur && fg != packageName)
             if (closed || otherGame) {
                 exitGame(cur)
@@ -228,11 +228,11 @@ class GameModeService : Service() {
             enterGame(fg)
         }
         if (current != null && (Prefs.gameRecord || DiabloMode.active)) record(inGame = fg == current)
-        // Mantener el Modo Diablo: si algo cambió las frecuencias o reactivó el control térmico, se corrige
+        // Keep Diablo Mode: if something changed the frequencies or re-enabled thermal control, it is corrected
         if (DiabloMode.active) DiabloMode.enforce()
     }
 
-    /** true si el proceso del juego sigue vivo; null si no se puede comprobar (sin root ni Shizuku). */
+    /** true if the game process is still alive; null if it cannot be checked (no root or Shizuku). */
     private fun isRunning(pkg: String): Boolean? =
         if (!RootShell.open()) null else RootShell.run("pidof ${Actions.q(pkg)}").any { it.isNotBlank() }
 
@@ -251,9 +251,9 @@ class GameModeService : Service() {
         tempMax = null
         battStart = battery()
         if (!RootShell.open()) return
-        // Perfil Diablo: todo al máximo. Si no se puede (por ejemplo, cargando), se usa Mejor rendimiento
+        // Diablo profile: everything at maximum. If not possible (e.g. while charging), Mejor rendimiento (Best performance) is used
         val diablo = Prefs.gamePower == 4 && DiabloMode.enable(applicationContext)
-        // Modo de energía (se guarda el estado completo de la CPU para devolverlo al salir)
+        // Power mode (the full CPU state is saved to restore it on exit)
         val mode = if (diablo) null else when (Prefs.gamePower) {
             1, 4 -> CpuPower.Mode.PERFORMANCE
             2 -> CpuPower.Mode.BALANCED
@@ -267,9 +267,9 @@ class GameModeService : Service() {
                 CpuPower.apply(mode, before.clusters)
             }
         }
-        // Cerrar apps en segundo plano para liberar memoria
+        // Close background apps to free memory
         if (Prefs.gameKill) RootShell.run("am kill-all")
-        // No molestar (solo si estaba desactivado)
+        // Do Not Disturb (only if it was off)
         if (Prefs.gameDnd) {
             val zen = RootShell.run("settings get global zen_mode").firstOrNull()?.trim()
             if (zen == "0") {
@@ -277,7 +277,7 @@ class GameModeService : Service() {
                 changedDnd = true
             }
         }
-        // Monitor flotante
+        // Floating monitor
         if (Prefs.gameOverlay && !OverlayState.running) {
             startedOverlay = try {
                 OverlayControl.start(applicationContext)
@@ -303,7 +303,7 @@ class GameModeService : Service() {
             OverlayControl.stop(applicationContext)
             startedOverlay = false
         }
-        // Resumen de la partida (solo si duró al menos un minuto)
+        // Session summary (only if it lasted at least one minute)
         val end = System.currentTimeMillis()
         if (Prefs.gameRecord && end - sessionStart >= 60_000) {
             val label = Apps.meta(pkg)?.label ?: pkg
@@ -316,13 +316,13 @@ class GameModeService : Service() {
 
     private fun record(inGame: Boolean) {
         val d = QuickStats.read(fps = true, ctx = applicationContext)
-        // Las estadísticas de la partida solo cuentan con el juego en pantalla
+        // Session stats only count while the game is on screen
         if (Prefs.gameRecord && inGame) {
             d.fps?.let { fps.add(it) }
             val t = listOfNotNull(d.cpuTemp, d.battTemp).maxOrNull()
             if (t != null) tempMax = maxOf(tempMax ?: t, t)
         }
-        // Corte de seguridad del Modo Diablo: demasiado calor o el teléfono empezó a cargar
+        // Diablo Mode safety cutoff: too hot or the phone started charging
         if (DiabloMode.active) {
             val hot = DiabloMode.overheated(d.cpuTemp, d.battTemp)
             if (hot || DiabloMode.isCharging(applicationContext)) {
@@ -348,7 +348,7 @@ class GameModeService : Service() {
         try { NotificationManagerCompat.from(this).notify(3200, n) } catch (_: SecurityException) {}
     }
 
-    // ---- Notificaciones ----
+    // ---- Notifications ----
     private fun channel() {
         if (Build.VERSION.SDK_INT >= 26) {
             val nm = getSystemService(NotificationManager::class.java)

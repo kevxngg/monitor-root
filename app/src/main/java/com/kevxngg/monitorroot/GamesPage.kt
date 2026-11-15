@@ -47,7 +47,7 @@ fun GamesPage(onRun: () -> Unit) {
     var confirmDiablo by remember { mutableStateOf(false) }
     var playing by remember { mutableStateOf(GameModeState.playing) }
 
-    // Las partidas nuevas y el juego en curso se actualizan solos
+    // New sessions and the current game update on their own
     RepeatWhileVisible(3000) {
         playing = GameModeState.playing
         sessions = withContext(Dispatchers.IO) { GameSessions.read(ctx) }
@@ -62,7 +62,7 @@ fun GamesPage(onRun: () -> Unit) {
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            // ---- Estado del modo juego ----
+            // ---- Game mode status ----
             GameStatusCard(playing) { on ->
                 Prefs.gameMode = on
                 Prefs.save()
@@ -70,7 +70,7 @@ fun GamesPage(onRun: () -> Unit) {
                 scope.launch(Dispatchers.IO) { if (on) GameMode.start(app) else GameMode.stop(app) }
             }
 
-            // ---- Perfil de rendimiento (el Modo Diablo es uno más) ----
+            // ---- Performance profile (Diablo Mode is just one of them) ----
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Perfil de rendimiento"))
             Text(tr("Se aplica al abrir uno de tus juegos y se deshace al cerrarlo."), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
@@ -79,7 +79,7 @@ fun GamesPage(onRun: () -> Unit) {
             }
             if (Prefs.gamePower == 4) DiabloWarning(compact = true)
 
-            // ---- Durante la partida ----
+            // ---- During the session ----
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Durante la partida"))
             GameCard {
@@ -92,7 +92,7 @@ fun GamesPage(onRun: () -> Unit) {
                 GameToggle(Icons.Outlined.Assessment, tr("Guardar resumen de partidas"), tr("FPS, temperatura y batería de cada partida."), Prefs.gameRecord) { Prefs.gameRecord = it; Prefs.save() }
             }
 
-            // ---- Tus juegos en cuadrícula ----
+            // ---- Your games in a grid ----
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Tus juegos (%d)", Prefs.games.size))
             val myGames = remember(Prefs.games) { Prefs.games.mapNotNull { Apps.meta(it) }.sortedBy { it.label.lowercase() } }
@@ -173,7 +173,7 @@ private fun SessionRow(s: GameSession, onClick: () -> Unit) {
     }
 }
 
-/** Lista de apps para elegir cuáles son juegos (los detectados aparecen primero). */
+/** List of apps to choose which ones are games (detected ones appear first). */
 @Composable
 private fun GamePickerDialog(onDismiss: () -> Unit) {
     val win = LocalWin.current
@@ -235,7 +235,7 @@ private fun GamePickerDialog(onDismiss: () -> Unit) {
     )
 }
 
-/** Detalle de una partida con la gráfica de FPS. */
+/** Details of a session with the FPS graph. */
 @Composable
 private fun SessionDialog(s: GameSession, onDismiss: () -> Unit) {
     val win = LocalWin.current
@@ -310,7 +310,7 @@ private fun SessionDialog(s: GameSession, onDismiss: () -> Unit) {
 
 private val DiabloRed = androidx.compose.ui.graphics.Color(0xFFE5484D)
 
-/** Aviso en rojo del Modo Diablo (versión corta bajo la tarjeta o completa en el diálogo). */
+/** Red Diablo Mode warning (short version under the card or full one in the dialog). */
 @Composable
 private fun DiabloWarning(compact: Boolean) {
     val win = LocalWin.current
@@ -368,9 +368,9 @@ private fun DiabloDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     )
 }
 
-// ===================== Componentes del rediseño de Juegos =====================
+// ===================== Games redesign components =====================
 
-/** Tarjeta de estado: modo juego encendido o apagado, juego en curso y perfil. */
+/** Status card: game mode on or off, current game and profile. */
 @Composable
 private fun GameStatusCard(playing: String?, onToggle: (Boolean) -> Unit) {
     val win = LocalWin.current
@@ -422,7 +422,7 @@ private fun profileName(i: Int) = when (i) {
     else -> tr("Modo Diablo")
 }
 
-/** Los cinco perfiles como tarjetas; el Modo Diablo ocupa una fila entera y va en rojo. */
+/** The five profiles as cards; Diablo Mode takes a whole row and is shown in red. */
 @Composable
 private fun ProfilePicker(selected: Int, onPick: (Int) -> Unit) {
     val rootOnly = RootShell.viaShizuku
@@ -516,13 +516,13 @@ private fun ToggleDivider() {
     Box(Modifier.padding(start = 50.dp).fillMaxWidth().height(1.dp).background(LocalWin.current.divider))
 }
 
-/** Tus juegos en cuadrícula de 4, con un botón para añadir. Mantén pulsado un juego para quitarlo. */
+/** Your games in a 4-column grid, with an add button. Long-press a game to remove it. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GameGrid(games: List<AppMeta>, onAdd: () -> Unit, onRemove: (String) -> Unit) {
     val win = LocalWin.current
     var removing by remember { mutableStateOf<AppMeta?>(null) }
-    val cells: List<AppMeta?> = games + listOf(null)   // null = botón de añadir
+    val cells: List<AppMeta?> = games + listOf(null)   // null = add button
     GameCard {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             cells.chunked(4).forEach { row ->

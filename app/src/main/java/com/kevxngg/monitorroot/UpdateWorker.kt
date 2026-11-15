@@ -23,8 +23,8 @@ import androidx.work.WorkerParameters
 import java.util.concurrent.TimeUnit
 
 /**
- * Revisa GitHub en segundo plano (cada 15 minutos, el mínimo que permite Android)
- * y muestra una notificación cuando hay una versión nueva, aunque la app esté cerrada.
+ * Checks GitHub in the background (every 15 minutes, the minimum Android allows)
+ * and shows a notification when there is a new version, even if the app is closed.
  */
 class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
 
@@ -37,7 +37,7 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
         private const val NOTIF_ID = 1001
         private const val WORK = "update-check"
 
-        /** Busca una versión nueva y, si la hay y no se avisó antes, muestra la notificación. */
+        /** Looks for a new version and, if there is one and it has not been announced before, shows the notification. */
         @Synchronized
         fun runCheck(ctx: Context): Boolean {
             Prefs.init(ctx)
@@ -61,7 +61,7 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             WorkManager.getInstance(ctx).enqueueUniqueWork("update-check-now", ExistingWorkPolicy.KEEP, req)
         }
 
-        /** Revisión en segundo plano como máximo una vez por hora (ahorra batería y datos). */
+        /** Background check at most once per hour (saves battery and data). */
         fun enqueueIfDue(ctx: Context) {
             val sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
             val now = System.currentTimeMillis()
@@ -75,15 +75,15 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             val req = PeriodicWorkRequestBuilder<UpdateWorker>(1, TimeUnit.HOURS)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()
-            // UPDATE reemplaza la revisión de 15 minutos de versiones anteriores
+            // UPDATE replaces the 15-minute check from earlier versions
             WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.UPDATE, req)
         }
 
         private const val BG_INTERVAL_MS = 60 * 60 * 1000L
 
         /**
-         * Con root: concede el permiso de notificaciones y quita las restricciones de
-         * batería para que las revisiones en segundo plano no se retrasen.
+         * With root: grants the notification permission and removes battery
+         * restrictions so background checks are not delayed.
          */
         fun prepare(ctx: Context) {
             val p = ctx.packageName

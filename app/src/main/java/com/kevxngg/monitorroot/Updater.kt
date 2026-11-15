@@ -41,12 +41,12 @@ data class UpdateInfo(
     val apkUrl: String,
     val sizeBytes: Long,
     val minBuild: Int = 0,
-    /** Versión visible (por ejemplo "2.3"); las versiones antiguas no la tienen. */
+    /** Visible version (e.g. "2.3"); old releases do not have it. */
     val version: String = "",
-    /** Huella SHA-256 de la APK publicada (vacía en versiones antiguas). */
+    /** SHA-256 fingerprint of the published APK (empty on old releases). */
     val sha256: String = "",
 ) {
-    /** Lo que se muestra al usuario: "2.3", o "build 22" en versiones antiguas. */
+    /** What is shown to the user: "2.3", or "build 22" on old releases. */
     val label: String get() = version.ifEmpty { "build $build" }
 }
 
@@ -71,12 +71,12 @@ fun UpdateResult.Failure.message(): String {
     } else detail
 }
 
-/** Busca nuevas versiones en las Releases de GitHub y las instala con root. */
+/** Looks for new versions in GitHub Releases and installs them with root. */
 object Updater {
     private const val API = "https://api.github.com/repos/kevxngg/monitor-root/releases/latest"
     private const val TMP = "/data/local/tmp/monitorroot-update.apk"
 
-    /** "Más tarde": no vuelve a preguntar por esa build durante una hora. */
+    /** "Later": does not ask about that build again for an hour. */
     @Volatile var snoozedBuild = 0
     @Volatile var snoozedUntil = 0L
 
@@ -87,7 +87,7 @@ object Updater {
         snoozedUntil = System.currentTimeMillis() + 60 * 60 * 1000
     }
 
-    /** Versión instalada visible (por ejemplo "2.3"). */
+    /** Installed visible version (e.g. "2.3"). */
     fun currentVersion(ctx: Context): String = try {
         ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: ""
     } catch (e: Exception) {
@@ -100,8 +100,8 @@ object Updater {
         0
     }
 
-    // Archivo que se publica junto a cada APK. Se descarga desde la CDN de GitHub,
-    // que no tiene el límite de 60 consultas por hora de la API.
+    // File published alongside each APK. It is downloaded from GitHub's CDN,
+    // which does not have the API's limit of 60 requests per hour.
     private const val FEED = "https://github.com/kevxngg/monitor-root/releases/latest/download/update.json"
 
     private class HttpFailure(val status: Int) : IOException("HTTP $status")
@@ -151,7 +151,7 @@ object Updater {
         for (i in 0 until assets.length()) {
             val a = assets.getJSONObject(i)
             if (a.optString("name") == "MonitorRoot.apk") {
-                // El título de la versión es "Monitor 2.3": se toma el número del final
+                // The release title is "Monitor 2.3": the trailing number is taken
                 val version = json.optString("name").substringAfterLast(' ').takeIf { v -> v.matches(Regex("\\d+(\\.\\d+)+")) } ?: ""
                 return validated(UpdateInfo(build, json.optString("name"), json.optString("body"), a.getString("browser_download_url"), a.optLong("size"), version = version))
             }
@@ -244,17 +244,17 @@ object Updater {
     }
 
     /**
-     * Instala con root y vuelve a abrir la app. Se lanza en segundo plano porque
-     * al instalar, Android cierra la versión que está abierta.
+     * Installs with root and reopens the app. Runs in the background because
+     * when installing, Android closes the running version.
      */
     fun install(ctx: Context, file: File, sha256: String? = null, size: Long? = null): Boolean {
-        // Se instala con root y sin confirmación: antes se comprueba que la APK sea legítima
+        // Installed with root and without confirmation: the APK is first verified to be legitimate
         if (!verify(ctx, file, sha256, size)) {
             file.delete()
             return false
         }
-        // Con Shizuku (usuario "shell") no se puede leer la carpeta privada de la app:
-        // la APK se pasa antes por su carpeta externa, que "shell" sí puede leer.
+        // With Shizuku ("shell" user) the app's private folder cannot be read:
+        // the APK is first copied through its external folder, which "shell" can read.
         val source = if (RootShell.viaShizuku) {
             val ext = ctx.getExternalFilesDir(null) ?: return false
             val pub = File(ext, "update.apk")
@@ -272,11 +272,11 @@ object Updater {
     }
 
     /**
-     * Comprueba la APK descargada antes de instalarla:
-     *  - tamaño y huella SHA-256 iguales a los publicados (descarga completa e intacta)
-     *  - es Monitor (mismo nombre de paquete)
-     *  - está firmada con la misma clave que la versión instalada
-     *  - es una versión más nueva
+     * Verifies the downloaded APK before installing it:
+     *  - size and SHA-256 fingerprint match the published ones (complete, intact download)
+     *  - it is Monitor (same package name)
+     *  - it is signed with the same key as the installed version
+     *  - it is a newer version
      */
     fun verify(ctx: Context, file: File, sha256: String?, size: Long?): Boolean = try {
         val pm = ctx.packageManager
@@ -290,7 +290,7 @@ object Updater {
             !sha256.isNullOrBlank() && !sha256Of(file).equals(sha256, ignoreCase = true) -> false
             archive == null || archive.packageName != ctx.packageName -> false
             PackageInfoCompat.getLongVersionCode(archive) <= PackageInfoCompat.getLongVersionCode(installed) -> false
-            // Comparte al menos un certificado (admite la rotación de clave de Android 9+)
+            // Shares at least one certificate (supports Android 9+ key rotation)
             else -> signerDigests(archive).intersect(signerDigests(installed)).isNotEmpty()
         }
     } catch (e: Exception) {
@@ -408,7 +408,7 @@ fun UpdateDialog(info: UpdateInfo, required: Boolean = false, onDismiss: () -> U
     )
 }
 
-/** Muestra el registro de cambios: "## Título" en negrita y "- punto" como viñetas. */
+/** Shows the changelog: "## Título" (heading) in bold and "- punto" (item) as bullets. */
 @Composable
 fun ReleaseNotes(notes: String) {
     val win = LocalWin.current

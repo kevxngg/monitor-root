@@ -26,7 +26,7 @@ data class ProcInfo(
     val label: String?,
     val icon: ImageBitmap?,
     val launchable: Boolean,
-    /** 64 o 32 bits según el zygote que lanzó la app (null en procesos nativos). */
+    /** 64 or 32 bits depending on the zygote that launched the app (null for native processes). */
     val bits: Int? = null,
 )
 
@@ -43,7 +43,7 @@ data class DiskInfo(
     val respMs: Float,
     val totalBytes: Long,
     val freeBytes: Long,
-    /** false si solo se conoce la capacidad (por ejemplo con Shizuku, sin /proc/diskstats). */
+    /** false if only the capacity is known (e.g. with Shizuku, without /proc/diskstats). */
     val ioAvailable: Boolean = true,
 )
 
@@ -76,7 +76,7 @@ data class WifiData(
     val freqMhz: Int?,
     val ssid: String?,
     val mac: String?,
-    /** Estándar Wi‑Fi de la conexión (ScanResult.WIFI_STANDARD_*), null si no se sabe. */
+    /** Wi-Fi standard of the connection (ScanResult.WIFI_STANDARD_*), null if unknown. */
     val standard: Int? = null,
 )
 
@@ -128,7 +128,7 @@ private val DISK_RE = Regex("^(sd[a-z]|mmcblk\\d+|nvme\\d+n\\d+|vd[a-z])$")
 private val MOBILE_RE = Regex("^(rmnet_data\\d+|rmnet\\d+|ccmni\\d+|seth_lte\\d+|wwan\\d+)$")
 private val USER_RE = Regex("^u(\\d+)_")
 private val SSID_RE = Regex("SSID: \"([^\"]*)\"")
-// Sensores del procesador (CPU/GPU/SoC): son los que se grafican
+// Processor sensors (CPU/GPU/SoC): these are the ones that get graphed
 private val CPU_TEMP = Regex("cpu|gpu|soc|tsens|apc|mtktscpu|cluster", RegexOption.IGNORE_CASE)
 private val OPP_FREQ = Regex("freq\\s*[:=]\\s*(\\d+)", RegexOption.IGNORE_CASE)
 private val SOC_TEMP = Regex("soc|mtktscpu|mtktsap|cpu|tsens|apc", RegexOption.IGNORE_CASE)
@@ -139,7 +139,7 @@ private fun nums(s: String?): List<Long> =
 
 private fun List<String>.long(i: Int) = getOrNull(i)?.toLongOrNull() ?: 0L
 
-/** Normaliza una frecuencia que puede venir en Hz, kHz o MHz. */
+/** Normalizes a frequency that may come in Hz, kHz or MHz. */
 private fun toMhz(v: Long): Int = when {
     v > 10_000_000 -> v / 1_000_000
     v > 10_000 -> v / 1000
@@ -169,7 +169,7 @@ private val SYS_FILES = listOf(
     "/sys/class/misc/mali0/device/gpuinfo",
 )
 
-// Una sola llamada a la shell root por actualización.
+// A single root shell call per update.
 private val SCRIPT = """
     echo @@STAT; grep '^cpu' /proc/stat
     echo @@UP; cat /proc/uptime
@@ -184,7 +184,7 @@ private val SCRIPT = """
     echo @@IP; ip -o addr show wlan0
 """.trimIndent()
 
-// Datos que cambian poco: se leen cada 5 actualizaciones.
+// Data that changes rarely: read every 5 updates.
 private val SLOW_SCRIPT = """
     echo @@SSID; cmd wifi status
     echo @@MAC; cat /sys/class/net/wlan0/address
@@ -244,7 +244,7 @@ class SystemReader(context: Context) {
         val dt = if (prevTime > 0) (now - prevTime) / 1000f else 0f
         prevTime = now
 
-        // ---- CPU (total y por núcleo) ----
+        // ---- CPU (total and per core) ----
         var cpuTotal = 0f
         var dTotalAll = 0L
         val hadPrev = prevCpu.containsKey("cpu")
@@ -275,7 +275,7 @@ class SystemReader(context: Context) {
 
         val uptime = sec["UP"]?.firstOrNull()?.substringBefore(' ')?.toDoubleOrNull()?.toLong() ?: 0L
 
-        // ---- E/S de disco por proceso ----
+        // ---- Per-process disk I/O ----
         val ioNow = HashMap<Int, Long>()
         sec["IO"]?.forEach { l ->
             val b = l.indexOf("/io:")
@@ -285,7 +285,7 @@ class SystemReader(context: Context) {
             ioNow[pid] = (ioNow[pid] ?: 0L) + v
         }
 
-        // ---- Procesos ----
+        // ---- Processes ----
         val names = HashMap<Int, Pair<String, String>>()
         val rss = HashMap<Int, Long>()
         sec["PS"]?.drop(1)?.forEach { l ->
@@ -349,14 +349,14 @@ class SystemReader(context: Context) {
         prevProc = newProc
         prevIo = ioNow
 
-        // ---- Archivos de /sys (ruta -> valor) ----
+        // ---- /sys files (path -> value) ----
         val sys = LinkedHashMap<String, String>()
         sec["SYS"]?.forEach { l ->
             val i = l.indexOf(':')
             if (i > 0) sys.putIfAbsent(l.substring(0, i), l.substring(i + 1).trim())
         }
 
-        // ---- Memoria ----
+        // ---- Memory ----
         val memLines = sec["MEM"].orEmpty()
         fun memKb(key: String) =
             memLines.firstOrNull { it.startsWith("$key:") }?.split(WS)?.getOrNull(1)?.toLongOrNull() ?: 0L
@@ -376,7 +376,7 @@ class SystemReader(context: Context) {
             zramUsedBytes = zram.getOrNull(2) ?: 0L,
         )
 
-        // ---- Núcleos ----
+        // ---- Cores ----
         val curF = HashMap<Int, Int>()
         val maxF = HashMap<Int, Int>()
         sys.forEach { (k, v) ->
@@ -388,9 +388,9 @@ class SystemReader(context: Context) {
         val cores = (curF.keys + maxF.keys + coreUsage.keys).sorted().distinct()
             .map { CoreInfo(it, curF[it] ?: 0, maxF[it] ?: 0, coreUsage[it] ?: 0f) }
 
-        // ---- Temperaturas ----
-        // Se descartan sensores apagados y los que dan valores imposibles o fijos
-        // (p. ej. "ti-cp-standalone", que siempre marca 100 °C).
+        // ---- Temperatures ----
+        // Sensors that are off, or that report impossible or fixed values, are discarded
+        // (e.g. "ti-cp-standalone", which always reads 100 °C).
         val thermals = sys.keys
             .filter { it.contains("thermal_zone") && it.endsWith("/temp") }
             .mapNotNull { k ->
@@ -417,12 +417,12 @@ class SystemReader(context: Context) {
         val mainTemp = thermals.filter { CPU_TEMP.containsMatchIn(it.name) }.maxByOrNull { it.celsius }
             ?: thermals.firstOrNull()
 
-        // ---- Batería ----
+        // ---- Battery ----
         val battSys = BattInfo(
             level = sys[BAT + "capacity"]?.toIntOrNull(),
             tempC = sys[BAT + "temp"]?.toFloatOrNull()?.div(10f),
-            // Cada fabricante usa un signo distinto: se normaliza según el estado
-            // (+ cargando, − descargando).
+            // Each manufacturer uses a different sign: normalized according to the state
+            // (+ charging, − discharging).
             currentMa = sys[BAT + "current_now"]?.toLongOrNull()
                 ?.let { if (abs(it) > 10_000) (it / 1000).toInt() else it.toInt() }
                 ?.let {
@@ -451,7 +451,7 @@ class SystemReader(context: Context) {
             voltageMv = sys[BAT + "voltage_now"]?.toLongOrNull()
                 ?.let { if (it > 100_000) (it / 1000).toInt() else it.toInt() },
         )
-        // Lo que /sys no da (pasa con Shizuku) se completa con la API de batería de Android
+        // What /sys does not provide (happens with Shizuku) is filled in with Android's battery API
         val batt = if (battSys.level != null && battSys.tempC != null && battSys.voltageMv != null) battSys else {
             val api = AndroidStats.battery(appCtx)
             BattInfo(
@@ -492,8 +492,8 @@ class SystemReader(context: Context) {
             }
             "/sys/kernel/ged/hal/gpu_utilization" in sys -> {
                 gpuSrc = "Mali (MediaTek)"
-                // gpu_utilization da 0 siempre en muchos kernels nuevos; gpu_loading es el fiable.
-                // Se usa el mayor de los dos.
+                // gpu_utilization always reads 0 on many newer kernels; gpu_loading is the reliable one.
+                // The larger of the two is used.
                 gpuLoad = listOfNotNull(
                     nums(sys["/sys/kernel/ged/hal/gpu_utilization"]).firstOrNull(),
                     nums(sys["/sys/module/ged/parameters/gpu_loading"]).firstOrNull(),
@@ -508,7 +508,7 @@ class SystemReader(context: Context) {
                 }
             }
         }
-        // devfreq de la GPU (Mali en MediaTek/Exynos y otros)
+        // GPU devfreq (Mali on MediaTek/Exynos and others)
         val gpuDevfreq = sys.keys
             .filter { it.startsWith("/sys/class/devfreq/") && GPU_NAME.containsMatchIn(it) }
             .map { it.substringBeforeLast('/') }
@@ -517,10 +517,10 @@ class SystemReader(context: Context) {
         val maxMhz = nums(gpuMaxRaw).maxOrNull()?.let(::toMhz)
             ?: gpuDevfreq?.let { nums(sys["$it/max_freq"]).maxOrNull()?.let(::toMhz) }
             ?: gpuOppMaxMhz
-        // Nombre: el del driver gráfico, si no el de sysfs
+        // Name: the graphics driver's, otherwise the sysfs one
         val maliInfo = sys["/sys/class/misc/mali0/device/gpuinfo"]?.substringBefore(" r")?.trim()
         val model = GlInfo.renderer ?: gpuModel?.takeIf { it.isNotBlank() } ?: maliInfo
-        // Temperatura: sensor de GPU; si el chip no tiene, la del SoC
+        // Temperature: GPU sensor; if the chip has none, the SoC's
         val gpuTemp = thermals.filter { it.name.contains("gpu", ignoreCase = true) }.maxOfOrNull { it.celsius }
         val socTemp = if (gpuTemp == null) thermals.filter { SOC_TEMP.containsMatchIn(it.name) }.maxOfOrNull { it.celsius } else null
         val gpu = GpuInfo(
@@ -534,7 +534,7 @@ class SystemReader(context: Context) {
             tempIsSoc = gpuTemp == null && socTemp != null,
         )
 
-        // ---- Disco ----
+        // ---- Disk ----
         var disk: DiskInfo? = null
         val best = sec["DISK"].orEmpty()
             .map { it.trim().split(WS) }
@@ -574,12 +574,12 @@ class SystemReader(context: Context) {
             disk = DiskInfo(name, type, act, rBps, wBps, resp.coerceAtLeast(0f), st?.totalBytes ?: 0L, st?.availableBytes ?: 0L)
         }
         if (disk == null) {
-            // Sin acceso a /proc/diskstats (Shizuku): se muestra la capacidad, sin actividad
+            // No access to /proc/diskstats (Shizuku): capacity is shown, without activity
             val st = try { StatFs(Environment.getDataDirectory().path) } catch (e: Exception) { null }
             if (st != null) disk = DiskInfo("data", "—", 0f, 0L, 0L, 0f, st.totalBytes, st.availableBytes, ioAvailable = false)
         }
 
-        // ---- Red ----
+        // ---- Network ----
         val ifaces = HashMap<String, Pair<Long, Long>>()
         sec["NET"]?.forEach { l ->
             val i = l.indexOf(':')

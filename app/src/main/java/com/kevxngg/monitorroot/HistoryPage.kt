@@ -55,10 +55,10 @@ private fun netByUid(ctx: Context, type: Int, start: Long, end: Long): Map<Int, 
 }
 
 private fun loadHistory(ctx: Context, days: Long): List<HistRow> {
-    // Con root nos damos el permiso de estadísticas de uso
+    // With root we grant ourselves the usage-stats permission
     RootShell.run("appops set ${ctx.packageName} GET_USAGE_STATS allow")
     val end = System.currentTimeMillis()
-    // Desde el período elegido, o desde que se eliminó el historial si fue después
+    // From the chosen period, or from when the history was cleared if that was later
     val start = maxOf(end - days * 24 * 3600 * 1000, Prefs.historyResetAt)
     val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
     val usage = try {
@@ -101,7 +101,7 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
         data = withContext(Dispatchers.IO) { loadHistory(ctx.applicationContext, PERIODS[period].second) }
     }
 
-    // Tiempo de CPU de los procesos que siguen vivos, por app
+    // CPU time of the processes still alive, per app
     val cpuSec = remember(s) {
         s.processes.filter { it.pkg != null }.groupBy { it.pkg!! }.mapValues { (_, l) -> l.sumOf { it.cpuTicks } / 100 }
     }

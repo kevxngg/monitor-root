@@ -23,11 +23,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Piezas compartidas por los ajustes de la CPU (CpuPower.kt) y de la GPU
- * (GpuControl.kt). Los cambios duran hasta reiniciar el teléfono.
+ * Pieces shared by the CPU settings (CpuPower.kt) and the GPU
+ * settings (GpuControl.kt). Changes last until the phone reboots.
  */
 object Tuning {
-    /** Escribe un valor en un archivo del sistema (sysfs/procfs) con root. */
+    /** Writes a value to a system file (sysfs/procfs) with root. */
     fun write(file: String, value: String) {
         RootShell.run("echo ${Actions.q(value)} > ${Actions.q(file)}")
     }

@@ -6,7 +6,7 @@ import org.junit.Test
 class ScaleTest {
     @Test(timeout = 1000)
     fun invalidValuesDoNotFreeze() {
-        // Antes estos valores dejaban un bucle sin fin que congelaba la app
+        // These values used to cause an endless loop that froze the app
         assertEquals(100_000f, niceScale(Float.NaN))
         assertEquals(100_000f, niceScale(Float.POSITIVE_INFINITY))
         assertEquals(100_000f, niceScale(-5f))

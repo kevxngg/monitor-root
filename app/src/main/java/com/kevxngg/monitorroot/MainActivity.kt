@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
         UpdateWorker.schedule(applicationContext)
         setContent {
             val style = Prefs.uiStyle.coerceIn(0, UiStyles.NAMES.size - 1)
-            // En macOS el tema por defecto es claro; en Windows sigue al sistema
+            // On macOS the default theme is light; on Windows it follows the system
             val dark = when (Prefs.theme) {
                 1 -> false
                 2, 3 -> true
@@ -116,7 +116,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Pantalla para elegir cómo se conecta Monitor: con root (todo) o con Shizuku (sin root). */
+/** Screen to choose how Monitor connects: with root (everything) or with Shizuku (no root). */
 @Composable
 private fun AccessChooser(error: String?, busy: Boolean, onRoot: () -> Unit, onShizuku: () -> Unit) {
     val win = LocalWin.current
@@ -189,12 +189,12 @@ private fun AccessOption(icon: ImageVector, title: String, text: String, note: S
 @Composable
 fun App() {
     val scope = rememberCoroutineScope()
-    // null = conectando; true = conectado; false = hay que elegir (o falló)
+    // null = connecting; true = connected; false = needs a choice (or failed)
     var connected by remember { mutableStateOf<Boolean?>(if (Prefs.accessMode == -1) false else null) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
 
-    // Al abrir: si ya se eligió un modo, intentar conectar con él
+    // On open: if a mode was already chosen, try to connect with it
     LaunchedEffect(Unit) {
         if (Prefs.accessMode != -1) {
             val ok = withContext(Dispatchers.IO) { RootShell.open() }
@@ -218,7 +218,7 @@ fun App() {
                         error = tr("Monitor tiene el permiso denegado en Shizuku. Ábrelo y permite Monitor en la lista de apps.")
                         busy = false; return@launch
                     }
-                    // Esperar a que el usuario acepte el permiso en Shizuku (hasta 30 s)
+                    // Wait for the user to grant the permission in Shizuku (up to 30 s)
                     var waited = 0
                     while (!ShizukuShell.hasPermission() && waited < 30_000) { delay(300); waited += 300 }
                 }
@@ -254,7 +254,7 @@ fun Shell() {
     var snap by remember { mutableStateOf<Snapshot?>(null) }
     var hist by remember { mutableStateOf(History()) }
     var samples by remember { mutableIntStateOf(0) }
-    // Las notificaciones del modo juego abren directamente la página Juegos
+    // Game mode notifications open the Games page directly
     val openGames = (context as? android.app.Activity)?.intent?.getStringExtra("page") == "games"
     var page by remember { mutableStateOf(if (openGames) Page.GAMES else Page.entries.getOrElse(Prefs.startPage) { Page.PROCESSES }) }
     var navOpen by remember { mutableStateOf(false) }
@@ -268,9 +268,9 @@ fun Shell() {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             UpdateWorker.prepare(context.applicationContext)
-            // Si el modo juego estaba activo, se asegura de que siga funcionando
+            // If game mode was active, make sure it keeps working
             if (Prefs.gameMode) GameMode.start(context.applicationContext)
-            // Si la app se cerró de golpe con el Modo Diablo activo, se restaura el control térmico
+            // If the app was killed abruptly with Diablo Mode active, thermal control is restored
             DiabloMode.recoverIfNeeded(context.applicationContext)
         }
         (context as LifecycleOwner).repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -287,7 +287,7 @@ fun Shell() {
                     }
                     is UpdateResult.Failure -> Unit // Preserve the last verified policy while offline.
                 }
-                // Con los avisos desactivados solo se comprueba de vez en cuando
+                // With alerts disabled it only checks once in a while
                 delay(if (Prefs.autoUpdate) 60 * 1000L else 15 * 60 * 1000L)
             }
         }
@@ -300,7 +300,7 @@ fun Shell() {
         return
     }
 
-    // Lectura periódica (solo con la app en pantalla)
+    // Periodic reading (only while the app is on screen)
     LaunchedEffect(Unit) {
         (context as LifecycleOwner).repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
@@ -311,7 +311,7 @@ fun Shell() {
                 }
                 val s = withContext(Dispatchers.IO) {
                     val r = reader.sample()
-                    // Mantiene el modo de eficiencia en procesos nuevos de esas apps
+                    // Keeps efficiency mode on new processes of those apps
                     if (Prefs.efficiency.isNotEmpty()) {
                         val lagging = r.processes.filter { it.pkg != null && it.pkg in Prefs.efficiency && it.nice < 19 }
                         if (lagging.isNotEmpty() && !RootShell.viaShizuku) Actions.setNice(lagging, 19)
@@ -320,7 +320,7 @@ fun Shell() {
                 }
                 snap = s
                 hist = hist.add(s)
-                // Historial de batería y widget (como mucho una vez por minuto / cada 30 s)
+                // Battery history and widget (at most once a minute / every 30 s)
                 samples++
                 if (samples % 30 == 1) {
                     withContext(Dispatchers.IO) {

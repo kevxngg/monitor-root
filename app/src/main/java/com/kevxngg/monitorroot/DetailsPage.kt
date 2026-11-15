@@ -33,7 +33,7 @@ fun DetailsPage(
     var asc by remember { mutableStateOf(false) }
     var selPid by remember { mutableStateOf<Int?>(null) }
     var menuPid by remember { mutableStateOf<Int?>(null) }
-    var confirmEnd by remember { mutableStateOf<Pair<ProcInfo, Boolean>?>(null) } // (proceso, ¿árbol?)
+    var confirmEnd by remember { mutableStateOf<Pair<ProcInfo, Boolean>?>(null) } // (process, tree?)
     var props by remember { mutableStateOf<ProcInfo?>(null) }
     var prio by remember { mutableStateOf<ProcInfo?>(null) }
     var affinity by remember { mutableStateOf<ProcInfo?>(null) }
@@ -58,7 +58,7 @@ fun DetailsPage(
     }
     val selected = rows.firstOrNull { it.pid == selPid }
 
-    // Llegada desde tr("Ir a detalles")
+    // Arrival from tr("Ir a detalles") (go to details)
     LaunchedEffect(focusPid, rows.isNotEmpty()) {
         val pid = focusPid ?: return@LaunchedEffect
         val idx = rows.indexOfFirst { it.pid == pid }
@@ -71,8 +71,8 @@ fun DetailsPage(
 
     fun menuFor(p: ProcInfo): List<MenuEntry> {
         val suspended = p.state == 'T' || p.state == 't'
-        // Con Shizuku no se puede enviar señales ni cambiar prioridades de otras apps;
-        // las apps sí se pueden cerrar con "am force-stop".
+        // With Shizuku you cannot send signals or change priorities of other apps;
+        // apps can still be closed with "am force-stop".
         val shizuku = RootShell.viaShizuku
         fun rootLabel(text: String) = if (shizuku) "$text (${tr("solo con root")})" else text
         return listOf(

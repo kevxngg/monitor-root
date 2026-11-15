@@ -38,15 +38,15 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// ===================== MODIFICADORES =====================
+// ===================== MODIFIERS =====================
 
 fun Modifier.bottomLine(color: Color) = drawBehind {
     drawLine(color, Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1f)
 }
 
-// ===================== GRÁFICA =====================
+// ===================== CHART =====================
 
-/** Gráfica con cuadrícula y relleno; el valor más nuevo queda a la derecha. */
+/** Chart with grid and fill; the newest value is on the right. */
 @Composable
 fun TaskGraph(
     values: List<Float>,
@@ -103,7 +103,7 @@ fun TaskGraph(
     }
 }
 
-// ===================== BARRA DE COMANDOS =====================
+// ===================== COMMAND BAR =====================
 
 @Composable
 fun PageHeader(title: String, actions: @Composable RowScope.() -> Unit) {
@@ -192,7 +192,7 @@ fun CmdMore(entries: List<MenuEntry>) {
     }
 }
 
-// ===================== TABLA =====================
+// ===================== TABLE =====================
 
 class Col(val id: String, val title: String, val width: Dp, val top: String? = null, val end: Boolean = true)
 
@@ -203,7 +203,7 @@ class Cell(
     val iconTint: Color? = null,
 )
 
-/** Ancho de la columna Nombre: llena la pantalla si sobra espacio. */
+/** Width of the Name column: fills the screen if there is spare space. */
 fun nameWidth(total: Dp, cols: List<Col>, min: Dp = 170.dp): Dp {
     val rest = cols.fold(0.dp) { acc, c -> acc + c.width }
     val w = total - rest
@@ -270,7 +270,7 @@ fun TableRow(
     onLongClick: () -> Unit,
     menu: @Composable () -> Unit = {},
     height: Dp = 34.dp,
-    row: Int = 0,                    // posición de la fila, para la cebra gris/blanco del estilo Mac
+    row: Int = 0,                    // row position, for the gray/white zebra striping of the Mac style
     name: @Composable RowScope.() -> Unit,
 ) {
     val win = LocalWin.current
@@ -365,7 +365,7 @@ fun EmptyText(text: String) {
     }
 }
 
-// ===================== DIÁLOGOS =====================
+// ===================== DIALOGS =====================
 
 @Composable
 fun ConfirmDialog(title: String, text: String, confirm: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
@@ -480,8 +480,8 @@ fun AffinityDialog(pid: Int, cores: Int, onDismiss: () -> Unit) {
 }
 
 /**
- * Repite [block] cada [intervalMs] solo mientras la app está en pantalla.
- * Al minimizarla se detiene y al volver sigue sola: no gasta batería por detrás.
+ * Repeats [block] every [intervalMs] only while the app is on screen.
+ * It stops when the app is minimized and resumes on its own on return: no background battery use.
  */
 @Composable
 fun RepeatWhileVisible(intervalMs: Long, key: Any? = Unit, block: suspend () -> Unit) {
@@ -498,8 +498,8 @@ fun RepeatWhileVisible(intervalMs: Long, key: Any? = Unit, block: suspend () -> 
 }
 
 /**
- * Aviso para las funciones que cambian el sistema: con Shizuku Monitor puede leer
- * todo, pero no escribir en archivos de root (gobernadores, frecuencias, prioridades).
+ * Notice for functions that change the system: with Shizuku, Monitor can read
+ * everything but cannot write to root-owned files (governors, frequencies, priorities).
  */
 @Composable
 fun RootOnlyCard(title: String) {

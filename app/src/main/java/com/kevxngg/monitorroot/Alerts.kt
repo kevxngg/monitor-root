@@ -19,10 +19,10 @@ import androidx.work.WorkerParameters
 import org.json.JSONObject
 
 /**
- * Alertas en segundo plano (se revisan con la alarma de cada ~5 minutos):
- *  - temperatura alta
- *  - una app usando mucha CPU en segundo plano
- *  - batería cargada hasta el límite elegido
+ * Background alerts (checked by the alarm every ~5 minutes):
+ *  - high temperature
+ *  - an app using a lot of CPU in the background
+ *  - battery charged to the chosen limit
  */
 object Alerts {
     private const val CHANNEL = "alerts"
@@ -84,7 +84,7 @@ object Alerts {
         }
     }
 
-    /** Compara el tiempo de CPU de cada app con la revisión anterior. */
+    /** Compares each app's CPU time with the previous check. */
     private fun checkCpu(ctx: Context) {
         val focus = RootShell.run("dumpsys window | grep -m 1 mCurrentFocus").firstOrNull()
         val fgPkg = focus?.let { Regex("u\\d+ ([\\w.]+)/").find(it)?.groupValues?.get(1) }
@@ -123,7 +123,7 @@ object Alerts {
             val meta = Apps.meta(pkg) ?: return@forEach
             if (meta.system) return@forEach
             val used = (t - prev.getLong(pkg)).coerceAtLeast(0)
-            // Porcentaje del total de la CPU (100 ticks por segundo y núcleo)
+            // Percentage of total CPU (100 ticks per second per core)
             val pct = used * 100f / (seconds * 100f * cores)
             if (pct >= limit && cooledDown(ctx, "cpu:$pkg")) {
                 val kill = PendingIntent.getBroadcast(
@@ -172,7 +172,7 @@ class AlertWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
     }
 }
 
-/** Botón "Finalizar tarea" de la alerta de CPU. */
+/** "Finalizar tarea" (End task) button of the CPU alert. */
 class KillAppReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val pkg = intent.getStringExtra("pkg") ?: return

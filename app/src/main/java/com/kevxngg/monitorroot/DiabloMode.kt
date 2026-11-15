@@ -6,19 +6,19 @@ import android.content.IntentFilter
 import android.os.BatteryManager
 
 /**
- * Modo Diablo (solo con root, durante el modo juego):
- *  - CPU: todos los clústeres fijos en su frecuencia máxima.
- *  - GPU: fija en su frecuencia máxima.
- *  - Detiene los servicios térmicos del fabricante (thermal-engine, mi_thermald…),
- *    que son los que bajan la frecuencia con el calor.
+ * Diablo Mode (root only, during game mode):
+ *  - CPU: all clusters pinned at their maximum frequency.
+ *  - GPU: pinned at its maximum frequency.
+ *  - Stops the vendor thermal services (thermal-engine, mi_thermald…),
+ *    which are the ones that lower the frequency when hot.
  *
- * Seguridad (no se puede desactivar):
- *  - No toca la protección térmica crítica del kernel (thermal_zone), que apaga el
- *    teléfono si llega a una temperatura peligrosa.
- *  - Corte automático si la batería llega a [BATT_LIMIT] o la CPU a [CPU_LIMIT].
- *  - No se activa mientras el teléfono carga.
- *  - Si la app se cierra de golpe, los servicios se reactivan al volver a abrirla
- *    (y siempre al reiniciar el teléfono, porque nada de esto es permanente).
+ * Safety (cannot be disabled):
+ *  - Does not touch the kernel's critical thermal protection (thermal_zone), which shuts down the
+ *    phone if it reaches a dangerous temperature.
+ *  - Automatic cutoff if the battery reaches [BATT_LIMIT] or the CPU reaches [CPU_LIMIT].
+ *  - Not activated while the phone is charging.
+ *  - If the app is killed abruptly, the services are re-enabled when it is reopened
+ *    (and always on phone reboot, since none of this is permanent).
  */
 object DiabloMode {
     const val BATT_LIMIT = 46f
@@ -30,19 +30,19 @@ object DiabloMode {
     @Volatile var active = false
         private set
 
-    // Servicio de Xiaomi/HyperOS que ajusta la frecuencia de los juegos por su cuenta
+    // Xiaomi/HyperOS service that adjusts game frequency on its own
     private const val JOYOSE = "com.xiaomi.joyose"
     private var lastEnforce = 0L
 
-    // Límites pasivos del kernel que se quitaron (para restaurarlos al salir)
-    private var zonesOff: List<String> = emptyList()          // zonas térmicas puestas en "disabled"
-    private var mtkBefore: List<Pair<String, String>> = emptyList()  // archivo de MediaTek → valor original
+    // Passive kernel limits that were removed (to restore them on exit)
+    private var zonesOff: List<String> = emptyList()          // thermal zones set to "disabled"
+    private var mtkBefore: List<Pair<String, String>> = emptyList()  // MediaTek file → original value
 
     private var cpuBefore: CpuPower.Snapshot? = null
     private var gpuBefore: GpuControl.State? = null
     private var stopped: List<String> = emptyList()
 
-    /** Servicios térmicos del fabricante en ejecución (nunca el HAL térmico de Android). */
+    /** Vendor thermal services currently running (never Android's thermal HAL). */
     private fun thermalServices(): List<String> =
         RootShell.run("getprop").mapNotNull { SVC.find(it)?.groupValues?.get(1) }
             .filter { n ->
@@ -56,19 +56,19 @@ object DiabloMode {
         return st == BatteryManager.BATTERY_STATUS_CHARGING || st == BatteryManager.BATTERY_STATUS_FULL
     }
 
-    /** true si hay que cortar por temperatura. */
+    /** true if it must cut off due to temperature. */
     fun overheated(cpuTemp: Float?, battTemp: Float?): Boolean =
         (battTemp ?: 0f) >= BATT_LIMIT || (cpuTemp ?: 0f) >= CPU_LIMIT
 
-    /** Activa el modo. Devuelve false si no se puede (sin root, Shizuku o cargando). */
+    /** Activates the mode. Returns false if it can't (no root, Shizuku, or charging). */
     @Synchronized
     fun enable(ctx: Context): Boolean {
         if (active) return true
         if (!RootShell.open() || RootShell.viaShizuku || isCharging(ctx)) return false
-        // 1) Guardar el estado actual para devolverlo exactamente igual
+        // 1) Save the current state to restore it exactly
         cpuBefore = CpuPower.snapshot()
         gpuBefore = GpuControl.read()
-        // 2) Detener los servicios térmicos del fabricante (se recuerda cuáles para reiniciarlos)
+        // 2) Stop the vendor thermal services (remember which ones, to restart them)
         stopped = thermalServices()
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putBoolean("active", true).putString("services", stopped.joinToString(",")).apply()
@@ -80,7 +80,7 @@ object DiabloMode {
             .putString("zones", zones.joinToString(","))
             .putString("mtk", mtk.joinToString(";") { "${it.first}=${it.second}" })
             .apply()
-        // 3) CPU y GPU al máximo
+        // 3) CPU and GPU at maximum
         CpuPower.lockMax(cpuBefore?.clusters.orEmpty())
         gpuBefore?.let { g ->
             if (g.fixed) {
@@ -95,10 +95,10 @@ object DiabloMode {
     }
 
     /**
-     * Quita los límites térmicos PASIVOS del kernel (los que bajan la frecuencia con poco calor).
-     * Solo se desactivan las zonas que NO tienen un punto "critical" ni "hot": las que protegen
-     * el hardware de verdad (apagado de emergencia) siguen activas.
-     * En MediaTek también se apagan FPSGO, EARA térmico y la política térmica de PPM.
+     * Removes the kernel's PASSIVE thermal limits (the ones that lower frequency at low heat).
+     * Only zones that have NO "critical" or "hot" trip point are disabled: the ones that really protect
+     * the hardware (emergency shutdown) stay active.
+     * On MediaTek, FPSGO, thermal EARA and the PPM thermal policy are also turned off.
      */
     private fun liftPassiveLimits(): Pair<List<String>, List<Pair<String, String>>> {
         val zones = RootShell.run(
@@ -108,7 +108,7 @@ object DiabloMode {
             val p = l.split('|')
             if (p.size < 3) return@mapNotNull null
             val types = p[2].trim().split(Regex("\\s+")).filter { it.isNotBlank() }.map { it.lowercase() }
-            // Solo zonas activas, con algún punto de corte, y sin protección crítica
+            // Only enabled zones, with some trip point, and without critical protection
             if (p[1].trim() == "enabled" && types.isNotEmpty() && types.none { it == "critical" || it == "hot" }) p[0] else null
         }
         zones.forEach { RootShell.run("echo disabled > ${Actions.q("$it/mode")}") }
@@ -122,7 +122,7 @@ object DiabloMode {
         }
         setIfExists("/sys/kernel/fpsgo/common/fpsgo_enable", "0")
         setIfExists("/sys/kernel/eara_thermal/enable", "0")
-        // PPM: desactivar solo la política térmica (las demás se dejan)
+        // PPM: disable only the thermal policy (the others are left alone)
         val ppm = RootShell.run("cat /proc/ppm/policy_status 2>/dev/null")
         ppm.firstOrNull { it.contains("THERMAL", ignoreCase = true) && it.contains("enabled", ignoreCase = true) }
             ?.let { Regex("""\[(\d+)]""").find(it)?.groupValues?.get(1) }
@@ -138,14 +138,14 @@ object DiabloMode {
         mtk.forEach { (file, value) -> RootShell.run("echo ${Actions.q(value)} > ${Actions.q(file)}") }
     }
 
-    /** Pausa Joyose (Xiaomi/HyperOS) si está instalado y en marcha. Vuelve a iniciarse solo después. */
+    /** Pauses Joyose (Xiaomi/HyperOS) if installed and running. It restarts on its own afterwards. */
     private fun pauseJoyose() {
         if (RootShell.run("pidof $JOYOSE").any { it.isNotBlank() }) RootShell.run("am force-stop $JOYOSE")
     }
 
     /**
-     * Mantiene el modo mientras dura (se llama cada pocos segundos): si otra app o el
-     * sistema cambió las frecuencias, reactivó un servicio térmico o Joyose, se corrige.
+     * Maintains the mode while it lasts (called every few seconds): if another app or the
+     * system changed the frequencies or re-enabled a thermal service or Joyose, it is corrected.
      */
     @Synchronized
     fun enforce() {
@@ -169,7 +169,7 @@ object DiabloMode {
         }
     }
 
-    /** Devuelve todo a como estaba antes de activarlo. */
+    /** Returns everything to how it was before activation. */
     @Synchronized
     fun disable(ctx: Context) {
         if (!active) return
@@ -191,8 +191,8 @@ object DiabloMode {
     }
 
     /**
-     * Si la app se cerró de golpe con el modo activo, reactiva los servicios térmicos
-     * y devuelve la CPU y la GPU a su estado normal.
+     * If the app was killed abruptly with the mode active, re-enables the thermal services
+     * and returns the CPU and GPU to their normal state.
      */
     fun recoverIfNeeded(ctx: Context) {
         if (active) return

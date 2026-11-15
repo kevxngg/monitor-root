@@ -13,15 +13,15 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Dibuja el logo de Monitor (el mismo de la app): círculo azul con el icono blanco.
- * [alpha] permite que la burbuja minimizada se vea translúcida.
+ * Draws the Monitor logo (same as the app's): blue circle with the white icon.
+ * [alpha] lets the minimized bubble look translucent.
  */
 fun drawAppLogo(c: Canvas, ctx: Context, cx: Float, cy: Float, r: Float, alpha: Int = 0xFF) {
     val p = Paint(Paint.ANTI_ALIAS_FLAG)
     p.style = Paint.Style.FILL
     p.color = (alpha shl 24) or 0x117DBB
     c.drawCircle(cx, cy, r, p)
-    // ic_fg es el primer plano del icono adaptativo: el símbolo ocupa ~55 % del lienzo
+    // ic_fg is the adaptive icon's foreground: the symbol takes up ~55 % of the canvas
     val icon = androidx.core.content.ContextCompat.getDrawable(ctx, R.drawable.ic_fg) ?: return
     icon.setBounds((cx - r).toInt(), (cy - r).toInt(), (cx + r).toInt(), (cy + r).toInt())
     icon.alpha = alpha
@@ -29,9 +29,9 @@ fun drawAppLogo(c: Canvas, ctx: Context, cx: Float, cy: Float, r: Float, alpha: 
 }
 
 /**
- * Dibuja el monitor flotante en sus cuatro estilos (completo, compacto, gamer, retro)
- * con Canvas nativo, para que funcione como ventana flotante sin Compose.
- * Reutiliza los datos de QuickStats.Data y mantiene un pequeño historial para las gráficas.
+ * Draws the floating monitor in its four styles (full, compact, gamer, retro)
+ * with a native Canvas, so it works as a floating window without Compose.
+ * Reuses the QuickStats.Data data and keeps a small history for the graphs.
  */
 class PanelView(ctx: Context) : View(ctx) {
     private val density = ctx.resources.displayMetrics.density
@@ -43,7 +43,7 @@ class PanelView(ctx: Context) : View(ctx) {
     var data: QuickStats.Data? = null
         set(value) { field = value; pushHistory(value); invalidate() }
 
-    // Historial para las mini-gráficas
+    // History for the mini graphs
     private val cpuHist = ArrayDeque<Float>()
     private val ramHist = ArrayDeque<Float>()
     private val netHist = ArrayDeque<Float>()
@@ -61,7 +61,7 @@ class PanelView(ctx: Context) : View(ctx) {
         push(netHist, d.netDownKbs?.let { min(it, 2000f) })
     }
 
-    // Paleta
+    // Palette
     private val cBlue = 0xFF3FA9FF.toInt()
     private val cPurple = 0xFF9B5CFF.toInt()
     private val cGreen = 0xFF36D399.toInt()
@@ -83,10 +83,10 @@ class PanelView(ctx: Context) : View(ctx) {
     override fun onMeasure(widthSpec: Int, heightSpec: Int) {
         val w: Float; val h: Float
         when (style) {
-            1 -> { w = dp(330f); h = dp(92f) }      // compacto (horizontal)
+            1 -> { w = dp(330f); h = dp(92f) }      // compact (horizontal)
             2 -> { w = dp(360f); h = dp(150f) }     // gamer
             3 -> { w = dp(360f); h = dp(140f) }     // retro
-            else -> { w = dp(340f); h = dp(300f) }  // completo
+            else -> { w = dp(340f); h = dp(300f) }  // full
         }
         setMeasuredDimension(w.toInt(), h.toInt())
     }
@@ -100,7 +100,7 @@ class PanelView(ctx: Context) : View(ctx) {
         }
     }
 
-    // ---------- utilidades de dibujo ----------
+    // ---------- drawing utilities ----------
     private fun roundBg(c: Canvas, color: Int, radius: Float, strokeColor: Int? = null) {
         p.style = Paint.Style.FILL
         p.color = (bgAlpha shl 24) or (color and 0xFFFFFF)
@@ -123,7 +123,7 @@ class PanelView(ctx: Context) : View(ctx) {
         c.drawText(s, x, y, textP)
     }
 
-    /** Anillo tipo medidor (arco de 270°) con valor en el centro. */
+    /** Gauge-style ring (270° arc) with the value in the center. */
     private fun gauge(c: Canvas, cx: Float, cy: Float, radius: Float, frac: Float, color: Int, center: String, unit: String?, label: String) {
         val rect = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
         p.style = Paint.Style.STROKE
@@ -133,14 +133,14 @@ class PanelView(ctx: Context) : View(ctx) {
         c.drawArc(rect, 135f, 270f, false, p)
         p.color = color
         c.drawArc(rect, 135f, 270f * frac.coerceIn(0f, 1f), false, p)
-        // etiqueta arriba
+        // label on top
         text(c, label, cx, cy - radius - dp(8f), 11f, cSub, center = true)
-        // valor central
+        // center value
         text(c, center, cx, cy + dp(5f), 17f, cText, bold = true, center = true)
         if (unit != null) text(c, unit, cx, cy + dp(20f), 9f, cSub, center = true)
     }
 
-    /** Mini gráfica de área. */
+    /** Mini area graph. */
     private fun spark(c: Canvas, left: Float, top: Float, right: Float, bottom: Float, hist: ArrayDeque<Float>, color: Int, maxV: Float = 100f) {
         if (hist.size < 2) return
         val w = right - left; val h = bottom - top
@@ -158,18 +158,18 @@ class PanelView(ctx: Context) : View(ctx) {
         p.style = Paint.Style.STROKE; p.strokeWidth = dp(1.4f); p.color = color; c.drawPath(path, p)
     }
 
-    /** Porcentaje de almacenamiento usado, o null si no se conoce el total (evita dividir entre 0). */
+    /** Percentage of storage used, or null if the total is unknown (avoids dividing by 0). */
     private fun stPct(d: QuickStats.Data?): Long? =
         d?.stTotalKb?.takeIf { it > 0 }?.let { (d.stUsedKb ?: 0) * 100 / it }
 
     private fun gb(kb: Long?) = kb?.let { "%.1f".format(it / 1048576.0) } ?: "—"
 
-    // ---------- Estilo 0: panel completo (Windows 11) ----------
+    // ---------- Style 0: full panel (Windows 11) ----------
     private fun drawFull(c: Canvas) {
         roundBg(c, 0x0E1420, dp(18f), 0x553FA9FF)
         val d = data
         val pad = dp(16f)
-        // cabecera
+        // header
         drawAppLogo(c, context, pad + dp(10f), pad + dp(9f), dp(10f))
         text(c, "Monitor", pad + dp(26f), pad + dp(14f), 15f, cText, bold = true)
         if (diablo) {
@@ -179,7 +179,7 @@ class PanelView(ctx: Context) : View(ctx) {
             c.drawCircle(width - pad - dp(96f), pad + dp(9f), dp(3.5f), p)
             text(c, "Live", width - pad - dp(86f), pad + dp(13f), 11f, cGreen)
         }
-        // cuatro medidores
+        // four gauges
         val gy = pad + dp(58f); val gr = dp(26f)
         val cols = 4; val gw = (width - pad * 2) / cols
         val vals = listOf(
@@ -193,13 +193,13 @@ class PanelView(ctx: Context) : View(ctx) {
             gauge(c, cx, gy, gr, q.frac, q.color, q.center, if (i == 3) "°C" else null, q.label)
             text(c, q.sub, cx, gy + gr + dp(18f), 9f, cSub, center = true)
         }
-        // dos gráficas: CPU y RAM
+        // two graphs: CPU and RAM
         val cardTop = gy + gr + dp(30f)
         val cardH = dp(66f); val gap = dp(8f)
         val cardW = (width - pad * 2 - gap) / 2
         drawMiniCard(c, pad, cardTop, pad + cardW, cardTop + cardH, "CPU", pct(d?.cpu), cpuHist, cBlue)
         drawMiniCard(c, pad + cardW + gap, cardTop, width - pad, cardTop + cardH, "RAM", pct(d?.ram), ramHist, cGreen)
-        // fila inferior: almacenamiento, red, fps
+        // bottom row: storage, network, fps
         val rTop = cardTop + cardH + gap
         val rH = dp(60f); val rw = (width - pad * 2 - gap * 2) / 3
         drawInfoCard(c, pad, rTop, pad + rw, rTop + rH, "Almacen.", stPct(d)?.let { "$it%" } ?: "—",
@@ -226,7 +226,7 @@ class PanelView(ctx: Context) : View(ctx) {
         card(c, l, t, r, b)
         text(c, title, l + dp(8f), t + dp(14f), 9f, cSub)
         text(c, value, r - dp(8f), t + dp(14f), 11f, cText, bold = true, right = true)
-        // barra
+        // bar
         val by = t + dp(26f); val bw = r - l - dp(16f)
         p.style = Paint.Style.FILL; p.color = cTrack
         c.drawRoundRect(RectF(l + dp(8f), by, r - dp(8f), by + dp(5f)), dp(2.5f), dp(2.5f), p)
@@ -252,7 +252,7 @@ class PanelView(ctx: Context) : View(ctx) {
 
     private fun net(v: Float?) = when { v == null -> "—"; v >= 1024 -> "%.1f MB/s".format(v / 1024); else -> "%.0f KB/s".format(v) }
 
-    // ---------- Estilo 1: compacto (una línea horizontal) ----------
+    // ---------- Style 1: compact (single horizontal line) ----------
     private fun drawCompact(c: Canvas) {
         roundBg(c, 0x0E1420, dp(14f), if (diablo) cDiablo else 0x553FA9FF)
         val d = data
@@ -268,7 +268,7 @@ class PanelView(ctx: Context) : View(ctx) {
             val cx = colW * i + colW / 2
             text(c, label, cx, dp(22f), 10f, cSub, center = true)
             text(c, value, cx, dp(44f), 16f, cText, bold = true, center = true)
-            // barrita de actividad bajo cada valor (menos FPS, que lleva mini-gráfica)
+            // small activity bar under each value (except FPS, which has a mini graph)
             if (i < 4) {
                 val frac = when (label) { "TEMP" -> (d?.cpuTemp ?: 0f) / 100f; else -> (value.filter { it.isDigit() }.toIntOrNull() ?: 0) / 100f }
                 p.style = Paint.Style.FILL; p.color = cTrack
@@ -281,9 +281,9 @@ class PanelView(ctx: Context) : View(ctx) {
         }
     }
 
-    // ---------- Estilo 2: gamer ----------
+    // ---------- Style 2: gamer ----------
     private fun drawGamer(c: Canvas) {
-        // marco con esquinas recortadas y degradado neón
+        // frame with clipped corners and neon gradient
         val r = RectF(dp(2f), dp(2f), width - dp(2f), height - dp(2f))
         p.style = Paint.Style.FILL; p.color = (bgAlpha shl 24) or 0x0A0A14
         val cut = dp(16f)
@@ -297,14 +297,14 @@ class PanelView(ctx: Context) : View(ctx) {
         p.shader = LinearGradient(0f, 0f, width.toFloat(), height.toFloat(), intArrayOf(cBlue, cPurple, cGreen), null, Shader.TileMode.CLAMP)
         c.drawPath(path, p); p.shader = null
         val d = data
-        // Logo de la app con un anillo neón alrededor
+        // App logo with a neon ring around it
         val lx = dp(50f); val ly = dp(56f); val lr = dp(24f)
         p.style = Paint.Style.STROKE; p.strokeWidth = dp(2f)
         p.shader = LinearGradient(lx - lr, ly - lr, lx + lr, ly + lr, intArrayOf(cBlue, cPurple), null, Shader.TileMode.CLAMP)
         c.drawCircle(lx, ly, lr + dp(4f), p); p.shader = null
         drawAppLogo(c, context, lx, ly, lr)
         text(c, if (diablo) "🔥 DIABLO" else "MONITOR", lx, ly + lr + dp(18f), 10f, if (diablo) cDiablo else cPurple, bold = true, center = true)
-        // cuatro medidores
+        // four gauges
         val gy = dp(62f); val gr = dp(24f)
         val startX = dp(96f); val span = width - startX - dp(16f); val gw = span / 4
         listOf(
@@ -315,14 +315,14 @@ class PanelView(ctx: Context) : View(ctx) {
             val frac = when (label) { "TEMP" -> (d?.cpuTemp ?: 0f) / 100f; else -> (value.filter { it.isDigit() }.toIntOrNull() ?: 0) / 100f }
             gauge(c, cx, gy, gr, frac, color, value, null, label)
         }
-        // franja inferior: FPS, red, almacenamiento
+        // bottom strip: FPS, network, storage
         val by = height - dp(22f)
         text(c, "FPS ${d?.fps ?: "—"}", dp(18f), by, 11f, cPurple, bold = true)
         text(c, "↓${net(d?.netDownKbs)}  ↑${net(d?.netUpKbs)}", dp(130f), by, 10f, cBlue)
         text(c, stPct(d)?.let { "$it%" } ?: "—", width - dp(18f), by, 11f, cGreen, bold = true, right = true)
     }
 
-    // ---------- Estilo 3: retro monocromo ----------
+    // ---------- Style 3: retro monochrome ----------
     private fun drawRetro(c: Canvas) {
         p.style = Paint.Style.FILL; p.color = (bgAlpha shl 24) or 0x0A120A
         c.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), dp(6f), dp(6f), p)
@@ -337,14 +337,14 @@ class PanelView(ctx: Context) : View(ctx) {
             p.style = Paint.Style.FILL; p.color = green; c.drawCircle(width - pad - dp(40f), pad + dp(8f), dp(3f), p)
             text(c, "Live", width - pad - dp(32f), pad + dp(12f), 10f, green, face = mono)
         }
-        // columna izquierda: valores
+        // left column: values
         val lines = listOf("CPU" to pct(d?.cpu), "GPU" to pct(d?.gpu), "RAM" to pct(d?.ram), "TEMP" to (d?.cpuTemp?.let { "%.0f°C".format(it) } ?: "—"))
         var y = pad + dp(34f)
         lines.forEach { (k, v) ->
             text(c, k.padEnd(5) + ": " + v, pad, y, 11f, green, face = mono)
             y += dp(20f)
         }
-        // barras de actividad a la derecha (como la gráfica de barras del boceto)
+        // activity bars on the right (like the bar chart in the sketch)
         val bl = width * 0.42f; val br = width - pad; val bt = pad + dp(26f); val bb = height - dp(34f)
         val bars = cpuHist.toList().takeLast(26)
         if (bars.isNotEmpty()) {
@@ -355,7 +355,7 @@ class PanelView(ctx: Context) : View(ctx) {
                 c.drawRect(bl + i * bw + dp(1f), bb - bh, bl + (i + 1) * bw - dp(1f), bb, p)
             }
         }
-        // pie
+        // footer
         text(c, "FPS: ${d?.fps ?: "—"}  |  NET ↑${net(d?.netUpKbs)} ↓${net(d?.netDownKbs)}  |  ST ${stPct(d)?.let { "$it%" } ?: "—"}",
             pad, height - dp(12f), 9.5f, green, face = mono)
     }

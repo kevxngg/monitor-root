@@ -1,24 +1,24 @@
 package com.kevxngg.monitorroot
 
 /**
- * Datos del hardware que no cambian mientras el teléfono está encendido.
- * Se leen una sola vez con root y quedan en memoria.
+ * Hardware data that does not change while the phone is on.
+ * Read only once with root and kept in memory.
  */
 object DeviceInfo {
     class Info(
-        /** Por ejemplo "6× Cortex-A55 + 2× Cortex-A76". */
+        /** For example "6× Cortex-A55 + 2× Cortex-A76". */
         val coreTypes: String?,
-        /** Por ejemplo "L1d" to "32 KB", "L2" to "128 KB · 256 KB". */
+        /** For example "L1d" to "32 KB", "L2" to "128 KB · 256 KB". */
         val caches: List<Pair<String, String>>,
-        /** Fabricante y modelo del almacenamiento interno. */
+        /** Manufacturer and model of the internal storage. */
         val storageModel: String?,
-        /** Segundos que tardó Android en arrancar (hasta mostrar la pantalla). */
+        /** Seconds Android took to boot (until the screen is shown). */
         val bootSeconds: Float?,
     )
 
     @Volatile private var cached: Info? = null
 
-    // Núcleos ARM: (fabricante, número de pieza) → nombre comercial
+    // ARM cores: (vendor, part number) → commercial name
     private val PARTS = mapOf(
         "0x41:0xd03" to "Cortex-A53", "0x41:0xd04" to "Cortex-A35", "0x41:0xd05" to "Cortex-A55",
         "0x41:0xd07" to "Cortex-A57", "0x41:0xd08" to "Cortex-A72", "0x41:0xd09" to "Cortex-A73",
@@ -27,7 +27,7 @@ object DeviceInfo {
         "0x41:0xd47" to "Cortex-A710", "0x41:0xd48" to "Cortex-X2", "0x41:0xd4d" to "Cortex-A715",
         "0x41:0xd4e" to "Cortex-X3", "0x41:0xd80" to "Cortex-A520", "0x41:0xd81" to "Cortex-A720",
         "0x41:0xd82" to "Cortex-X4", "0x41:0xd85" to "Cortex-X925", "0x41:0xd87" to "Cortex-A725",
-        // Kryo de Qualcomm (basados en Cortex)
+        // Qualcomm Kryo (Cortex-based)
         "0x51:0x800" to "Kryo Gold", "0x51:0x801" to "Kryo Silver", "0x51:0x802" to "Kryo Gold",
         "0x51:0x803" to "Kryo Silver", "0x51:0x804" to "Kryo Gold", "0x51:0x805" to "Kryo Silver",
     )
@@ -59,7 +59,7 @@ object DeviceInfo {
                 ?.let { Regex("boot_progress_enable_screen:\\s*(\\d+)").find(it)?.groupValues?.get(1)?.toLongOrNull() }
                 ?.let { it / 1000f },
         )
-        // Solo se guarda si se pudo leer algo (si root aún no estaba listo, se reintenta)
+        // Only stored if something could be read (if root wasn't ready yet, it retries)
         if (info.coreTypes != null || info.storageModel != null) cached = info
         return info
     }
@@ -79,7 +79,7 @@ object DeviceInfo {
             }
         }
         if (names.isEmpty()) return null
-        // Se agrupan en orden de aparición: "6× Cortex-A55 + 2× Cortex-A76"
+        // Grouped in order of appearance: "6× Cortex-A55 + 2× Cortex-A76"
         return names.groupingBy { it }.eachCount().entries.joinToString(" + ") { (name, n) -> "$n× $name" }
     }
 

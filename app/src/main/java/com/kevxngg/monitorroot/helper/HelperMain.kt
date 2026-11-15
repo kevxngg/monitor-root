@@ -5,12 +5,12 @@ import android.net.LocalSocket
 import java.io.File
 
 /**
- * Servicio privilegiado de Monitor para custom ROMs y ports (sin root).
+ * Monitor's privileged service for custom ROMs and ports (no root).
  *
- * Lo inicia init al arrancar (ver rom/port/) con app_process, dentro de su propio
- * dominio de SELinux. Escucha en el socket abstracto "monitord" y ejecuta los
- * comandos que le manda Monitor. Antes de ejecutar nada comprueba, con las
- * credenciales que da el kernel, que quien se conecta es Monitor.
+ * Started by init at boot (see rom/port/) with app_process, inside its own
+ * SELinux domain. Listens on the abstract socket "monitord" and runs the
+ * commands Monitor sends it. Before running anything it checks, using the
+ * credentials provided by the kernel, that the caller is Monitor.
  */
 object HelperMain {
     const val SOCKET = "monitord"
@@ -30,7 +30,7 @@ object HelperMain {
         }
     }
 
-    /** appId de Monitor según /data/system/packages.list (se relee por si se reinstala). */
+    /** Monitor's appId according to /data/system/packages.list (re-read in case it is reinstalled). */
     private fun monitorAppId(): Int? = try {
         File("/data/system/packages.list").useLines { lines ->
             lines.firstOrNull { it.startsWith("$PKG ") }?.split(' ')?.getOrNull(1)?.toIntOrNull()
@@ -43,7 +43,7 @@ object HelperMain {
         socket.use { s ->
             val uid = s.peerCredentials.uid
             val appId = monitorAppId()
-            // uid = usuario * 100000 + appId (vale también para perfiles de trabajo)
+            // uid = user * 100000 + appId (also valid for work profiles)
             val allowed = uid == 0 || (appId != null && uid % 100000 == appId)
             if (!allowed) return
             val script = s.inputStream.readBytes().toString(Charsets.UTF_8)

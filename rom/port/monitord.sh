@@ -1,7 +1,7 @@
 #!/system/bin/sh
-# Servicio privilegiado de Monitor para custom ROMs y ports (sin root).
-# Lo inicia init (monitord.rc). Usa la versión de Monitor instalada; si no la
-# encuentra, la que viene en la ROM.
+# Monitor's privileged service for custom ROMs and ports (no root).
+# Started by init (monitord.rc). Uses the installed Monitor version; if it is
+# not found, the one bundled in the ROM.
 APK=$(pm path com.kevxngg.monitorroot 2>/dev/null | head -n 1 | cut -d: -f2)
 if [ -z "$APK" ]; then
   APK=$(ls /product/app/Monitor/*.apk /product/priv-app/Monitor/*.apk 2>/dev/null | head -n 1)

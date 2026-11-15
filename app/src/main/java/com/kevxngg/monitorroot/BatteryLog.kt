@@ -28,8 +28,8 @@ import androidx.compose.ui.unit.sp
 import java.io.File
 
 /**
- * Historial de batería: guarda nivel, temperatura y si está cargando cada pocos
- * minutos (también con la app cerrada, desde la alarma de segundo plano).
+ * Battery history: stores level, temperature and charging state every few
+ * minutes (also while the app is closed, from the background alarm).
  */
 object BatteryLog {
     class Entry(val time: Long, val level: Int, val tempC: Float, val charging: Boolean)
@@ -74,7 +74,7 @@ object BatteryLog {
         emptyList()
     }
 
-    /** Porcentaje por hora en el tramo actual (descarga o carga), usando hasta 2 horas. */
+    /** Percent per hour over the current stretch (discharging or charging), using up to 2 hours. */
     private fun rate(entries: List<Entry>, charging: Boolean): Float? {
         val now = entries.lastOrNull() ?: return null
         if (now.charging != charging) return null
@@ -89,7 +89,7 @@ object BatteryLog {
     fun dischargeRate(entries: List<Entry>) = rate(entries, charging = false)
     fun chargeRate(entries: List<Entry>) = rate(entries, charging = true)
 
-    /** Minutos estimados hasta agotarse (descargando) o hasta llenarse (cargando). */
+    /** Estimated minutes until empty (discharging) or full (charging). */
     fun estimateMinutes(ctx: Context, entries: List<Entry>): Pair<Boolean, Int>? {
         val now = entries.lastOrNull() ?: return null
         if (now.charging) {
@@ -108,7 +108,7 @@ object BatteryLog {
 fun formatHoursMinutes(minutes: Int): String =
     if (minutes >= 60) tr("%d h %d min", minutes / 60, minutes % 60) else tr("%d min", minutes)
 
-/** Tarjeta con la gráfica de las últimas 24 horas y las estimaciones. */
+/** Card with the last-24-hours chart and the estimates. */
 @Composable
 fun BatteryHistoryCard(refreshKey: Long, color: Color) {
     val win = LocalWin.current
@@ -144,7 +144,7 @@ fun BatteryHistoryCard(refreshKey: Long, color: Color) {
                 val g = color.copy(alpha = if (win.dark) 0.22f else 0.14f)
                 for (i in 1 until 4) drawLine(g, Offset(0f, h * i / 4f), Offset(w, h * i / 4f), 1f)
                 for (i in 1 until 24) drawLine(g, Offset(w * i / 24f, 0f), Offset(w * i / 24f, h), 1f)
-                // Relleno bajo la curva, en el color normal
+                // Fill under the curve, in the normal color
                 val area = Path()
                 day.forEachIndexed { i, e ->
                     if (i == 0) {
@@ -156,7 +156,7 @@ fun BatteryHistoryCard(refreshKey: Long, color: Color) {
                 area.lineTo(x(day.last().time), h)
                 area.close()
                 drawPath(area, color.copy(alpha = fill))
-                // La línea: verde en los tramos en que el teléfono estaba cargando
+                // The line: green where the phone was charging
                 val stroke = 2.dp.toPx()
                 day.zipWithNext().forEach { (a, b) ->
                     drawLine(

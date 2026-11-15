@@ -12,16 +12,16 @@ android {
         applicationId = "com.kevxngg.monitorroot"
         minSdk = 26
         targetSdk = 34
-        // Número interno de compilación (siempre sube): lo usan Android y el actualizador
+        // Internal build number (always increases): used by Android and the updater
         val ciBuild = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionCode = ciBuild
-        // Versión visible (2.2, 2.3…): se toma del archivo VERSION de la raíz del repositorio
+        // Visible version (2.2, 2.3…): taken from the VERSION file at the repository root
         versionName = rootProject.file("VERSION").readText().trim()
     }
 
-    // Firma: las claves están en los Secrets de GitHub, nunca en el repositorio.
-    // GitHub Actions firma después con rotación de clave (ver build.yml).
-    // Sin ellas (por ejemplo, al compilar en otra PC) la APK de release sale sin firmar.
+    // Signing: the keys live in GitHub Secrets, never in the repository.
+    // GitHub Actions signs afterwards with key rotation (see build.yml).
+    // Without them (for example, when building on another PC) the release APK is unsigned.
     val oldKeystore = System.getenv("SIGNING_OLD_KEYSTORE_FILE")
     signingConfigs {
         if (oldKeystore != null) {
@@ -66,7 +66,7 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    // Shizuku: acceso a comandos de nivel ADB sin root
+    // Shizuku: ADB-level command access without root
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
 }

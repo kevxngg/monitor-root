@@ -27,9 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Interfaz al estilo del Monitor de Actividad de macOS: barra de título con los
- * tres círculos y las pestañas, el contenido de la página, y una barra de totales
- * abajo. Usa las mismas páginas que el estilo Windows.
+ * macOS Activity Monitor-style interface: title bar with the three circles
+ * and the tabs, the page content, and a totals bar at the bottom.
+ * Uses the same pages as the Windows style.
  */
 @Composable
 fun MacShell(
@@ -68,7 +68,7 @@ fun MacShell(
     }
 }
 
-/** Barra superior: tres círculos de colores, pestañas y buscador. */
+/** Top bar: three colored circles, tabs and search box. */
 @Composable
 private fun MacTitleBar(query: String, onQuery: (String) -> Unit, page: Page, onPage: (Page) -> Unit) {
     val win = LocalWin.current
@@ -84,7 +84,7 @@ private fun MacTitleBar(query: String, onQuery: (String) -> Unit, page: Page, on
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Monitor de Actividad", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
+                Text(tr("Monitor de Actividad"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
                 Text(tr(page.title), fontSize = 11.sp, color = win.sub)
             }
             MacSearch(query, onQuery, Modifier.width(if (compact) 150.dp else 240.dp))
@@ -93,7 +93,7 @@ private fun MacTitleBar(query: String, onQuery: (String) -> Unit, page: Page, on
     }
 }
 
-/** Pestañas de las páginas, con scroll horizontal si no caben. */
+/** Page tabs, horizontally scrollable if they don't fit. */
 @Composable
 private fun MacTabs(page: Page, onPage: (Page) -> Unit) {
     val win = LocalWin.current
@@ -153,7 +153,7 @@ private fun MacSearch(query: String, onQuery: (String) -> Unit, modifier: Modifi
     }
 }
 
-/** Barra de totales inferior, como la franja gris del Monitor de Actividad. */
+/** Bottom totals bar, like the gray strip of Activity Monitor. */
 @Composable
 private fun MacStatusBar(s: Snapshot, page: Page) {
     val win = LocalWin.current
@@ -163,7 +163,7 @@ private fun MacStatusBar(s: Snapshot, page: Page) {
         tr("Procesos") to "${s.processes.size}",
         tr("Subprocesos") to "${s.threads}",
     )
-    // Con scroll horizontal para que no se corte ningún total en pantallas estrechas
+    // Horizontally scrollable so no total gets cut off on narrow screens
     Row(
         Modifier
             .fillMaxWidth()
@@ -182,7 +182,7 @@ private fun MacStatusBar(s: Snapshot, page: Page) {
     }
 }
 
-/** Diálogos (nueva tarea y actualización) para el estilo macOS. */
+/** Dialogs (new task and refresh) for the macOS style. */
 @Composable
 fun MacDialogs(runOpen: Boolean, onRunClose: () -> Unit, latest: UpdateInfo?, required: UpdateInfo?, onUpdateClose: () -> Unit) {
     if (runOpen) RunTaskDialog(onRunClose)

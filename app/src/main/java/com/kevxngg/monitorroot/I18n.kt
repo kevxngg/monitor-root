@@ -7,11 +7,11 @@ import androidx.compose.runtime.setValue
 import java.util.Locale
 
 /**
- * Traducciones: el texto en español es la clave. Las traducciones están en
- * assets/i18n.tsv (una fila por texto, una columna por idioma).
+ * Translations: the Spanish text is the key. Translations live in
+ * assets/i18n.tsv (one row per text, one column per language).
  */
 object I18n {
-    /** Código, nombre nativo y si se escribe de derecha a izquierda. */
+    /** Code, native name and whether it is written right to left. */
     val LANGS = listOf(
         Triple("es", "Español", false),
         Triple("en", "English", false),
@@ -51,7 +51,7 @@ object I18n {
         apply(Prefs.language)
     }
 
-    /** [pref] vacío = idioma del sistema (o inglés si no está disponible). */
+    /** Empty [pref] = system language (or English if unavailable). */
     fun apply(pref: String) {
         lang = pref.ifEmpty {
             val sys = Locale.getDefault().language
@@ -68,10 +68,10 @@ object I18n {
     }
 }
 
-/** Traduce un texto en español al idioma elegido. */
+/** Translates a Spanish text into the chosen language. */
 fun tr(es: String): String = I18n.get(es)
 
-/** Traduce y rellena los %s / %d del texto. */
+/** Translates and fills in the %s / %d of the text. */
 fun tr(es: String, vararg args: Any?): String = try {
     String.format(I18n.locale(), I18n.get(es), *args)
 } catch (_: Exception) {

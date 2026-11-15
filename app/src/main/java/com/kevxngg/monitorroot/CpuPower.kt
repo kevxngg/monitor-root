@@ -21,15 +21,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Energía de la CPU: una sola fuente de verdad para el modo de energía y los
- * ajustes avanzados. Todo se lee de cada clúster (cpufreq/policyN).
+ * CPU power: a single source of truth for the power mode and the
+ * advanced settings. Everything is read from each cluster (cpufreq/policyN).
  *
- * Cómo se comporta cada gobernador:
- *  - performance: la CPU queda fija en la frecuencia máxima.
- *  - powersave:   la CPU queda fija en la frecuencia mínima.
- *  - userspace:   la CPU queda fija en la frecuencia que elijas (scaling_setspeed).
- *  - el resto (schedutil, walt, interactive…): la frecuencia sube y baja sola
- *    según la carga, entre la mínima y la máxima que elijas.
+ * How each governor behaves:
+ *  - performance: the CPU is pinned at the maximum frequency.
+ *  - powersave:   the CPU is pinned at the minimum frequency.
+ *  - userspace:   the CPU is pinned at the frequency you choose (scaling_setspeed).
+ *  - the rest (schedutil, walt, interactive…): the frequency rises and falls on its own
+ *    with load, between the minimum and maximum you choose.
  */
 object CpuPower {
     enum class Kind { FIXED_MAX, FIXED_MIN, MANUAL, DYNAMIC }
@@ -46,7 +46,7 @@ object CpuPower {
         val hwMaxKhz: Long?,
         val setspeedKhz: Long?,
         val freqsKhz: List<Long>,
-        /** Frecuencia a la que va el clúster en este momento. */
+        /** Frequency the cluster is running at right now. */
         val curKhz: Long? = null,
     ) {
         val kind: Kind get() = kindOf(governor)
@@ -54,7 +54,7 @@ object CpuPower {
         val atHwMin: Boolean get() = hwMinKhz == null || minKhz == hwMinKhz
     }
 
-    /** Lo que había antes de un cambio temporal (por ejemplo, el modo juego). */
+    /** What was set before a temporary change (e.g. game mode). */
     class Snapshot(val clusters: List<Cluster>, val customLimits: Boolean = Prefs.cpuCustomLimits)
 
     private val SAVER_GOVS = listOf("powersave", "conservative")
@@ -67,7 +67,7 @@ object CpuPower {
         else -> Kind.DYNAMIC
     }
 
-    /** Gobernador "de fábrica" del clúster: el que se usa en el modo equilibrado. */
+    /** The cluster's "factory" governor: the one used in balanced mode. */
     fun balancedGov(c: Cluster, saved: String = Prefs.defaultGovernor): String? =
         saved.takeIf { it.isNotEmpty() && it in c.governors }
             ?: c.governors.firstOrNull { it in DYNAMIC_PREFERRED }
@@ -76,11 +76,11 @@ object CpuPower {
     fun saverGov(c: Cluster): String? = SAVER_GOVS.firstOrNull { it in c.governors }
 
     /**
-     * Modo actual. Se reconoce por los gobernadores de todos los clústeres y por
-     * si el usuario cambió límites a mano ([customLimits]). No se miran los valores
-     * de frecuencia del momento: el sistema los mueve solo (touch boost, control
-     * térmico) y el modo sigue siendo el mismo.
-     * null = personalizado.
+     * Current mode. It is recognized from the governors of all clusters and from
+     * whether the user changed limits by hand ([customLimits]). The current frequency values
+     * are not checked: the system moves them on its own (touch boost, thermal
+     * control) and the mode stays the same.
+     * null = custom.
      */
     fun modeOf(
         clusters: List<Cluster>,
@@ -95,8 +95,8 @@ object CpuPower {
     }
 
     /**
-     * Máxima que el sistema impone ahora por su cuenta (por ejemplo por calor),
-     * o null si no está limitando. Solo se informa si el usuario no puso un límite.
+     * Maximum the system is currently imposing on its own (e.g. due to heat),
+     * or null if it is not limiting. Only reported if the user did not set a limit.
      */
     fun systemCapKhz(c: Cluster, customLimits: Boolean = Prefs.cpuCustomLimits): Long? {
         if (customLimits || c.kind == Kind.FIXED_MIN) return null
@@ -111,7 +111,7 @@ object CpuPower {
         Mode.BALANCED -> clusters.all { balancedGov(it) != null }
     }
 
-    // ---------------- Lectura ----------------
+    // ---------------- Reading ----------------
 
     private fun parseBlocks(lines: List<String>): List<Pair<String, Map<String, String>>> {
         val out = ArrayList<Pair<String, MutableMap<String, String>>>()
@@ -128,7 +128,7 @@ object CpuPower {
     private fun longs(s: String?) = s?.split(Regex("\\s+"))?.mapNotNull { it.toLongOrNull() }.orEmpty()
     private fun words(s: String?) = s?.split(Regex("\\s+"))?.filter { it.isNotBlank() }.orEmpty()
 
-    // "§" se cambia por "$" para que el script sea legible dentro de Kotlin
+    // "§" is replaced with "$" so the script stays readable inside Kotlin
     private val READ = """
         for p in /sys/devices/system/cpu/cpufreq/policy*; do
           echo "@@§p"
@@ -170,7 +170,7 @@ object CpuPower {
         return clusters
     }
 
-    /** La primera vez se guarda el gobernador dinámico de fábrica (modo equilibrado). */
+    /** The first time, the factory dynamic governor is saved (balanced mode). */
     private fun rememberFactoryGovernor(clusters: List<Cluster>) {
         if (Prefs.defaultGovernor.isNotEmpty()) return
         val factory = clusters.firstNotNullOfOrNull { c ->
@@ -180,7 +180,7 @@ object CpuPower {
         Prefs.save()
     }
 
-    // ---------------- Escritura ----------------
+    // ---------------- Writing ----------------
 
     private fun write(file: String, value: Any) = Tuning.write(file, value.toString())
 
@@ -188,17 +188,17 @@ object CpuPower {
     private fun hwMin(c: Cluster) = c.hwMinKhz ?: c.freqsKhz.minOrNull()
 
     /**
-     * Cambia el gobernador y deja la frecuencia coherente con él:
-     *  - performance: el tope máximo vuelve a la máxima real del chip.
-     *  - powersave: la mínima y también la máxima quedan en la mínima real.
-     *    Sin el tope, servicios del fabricante (como el "touch boost" de
-     *    MediaTek) suben la mínima al tocar la pantalla y powersave la sigue.
-     *    El kernel nunca deja que la mínima supere a la máxima.
-     *  - userspace: arranca en la frecuencia máxima actual.
+     * Changes the governor and keeps the frequency consistent with it:
+     *  - performance: the max cap goes back to the chip's real maximum.
+     *  - powersave: the min and also the max are set to the real minimum.
+     *    Without the cap, vendor services (like MediaTek's "touch boost")
+     *    raise the min on screen touch and powersave follows it.
+     *    The kernel never lets the min exceed the max.
+     *  - userspace: starts at the current maximum frequency.
      */
     fun setGovernor(c: Cluster, gov: String) {
         val newKind = kindOf(gov)
-        // Al salir de powersave se quita el tope que puso Monitor
+        // When leaving powersave, the cap set by Monitor is removed
         if (c.kind == Kind.FIXED_MIN && newKind != Kind.FIXED_MIN) {
             hwMax(c)?.let { write("${c.path}/scaling_max_freq", it) }
         }
@@ -215,7 +215,7 @@ object CpuPower {
         }
     }
 
-    /** Límite máximo; si queda por debajo del mínimo, el mínimo baja con él. */
+    /** Maximum limit; if it ends up below the minimum, the minimum drops with it. */
     private fun markCustom() {
         if (!Prefs.cpuCustomLimits) {
             Prefs.cpuCustomLimits = true
@@ -229,20 +229,20 @@ object CpuPower {
         write("${c.path}/scaling_max_freq", khz)
     }
 
-    /** Límite mínimo; si queda por encima del máximo, el máximo sube con él. */
+    /** Minimum limit; if it ends up above the maximum, the maximum rises with it. */
     fun setMin(c: Cluster, khz: Long) {
         markCustom()
         if (c.maxKhz != null && khz > c.maxKhz) write("${c.path}/scaling_max_freq", khz)
         write("${c.path}/scaling_min_freq", khz)
     }
 
-    /** Frecuencia exacta (solo con el gobernador userspace). */
+    /** Exact frequency (only with the userspace governor). */
     fun setSpeed(c: Cluster, khz: Long) {
         markCustom()
         write("${c.path}/scaling_setspeed", khz)
     }
 
-    /** Deja el clúster como viene de fábrica: gobernador dinámico y límites completos. */
+    /** Returns the cluster to factory state: dynamic governor and full limits. */
     private fun resetCluster(c: Cluster) {
         balancedGov(c)?.let { write("${c.path}/scaling_governor", it) }
         hwMin(c)?.let { write("${c.path}/scaling_min_freq", it) }
@@ -268,8 +268,8 @@ object CpuPower {
     }
 
     /**
-     * Modo Diablo: cada clúster fijo en su frecuencia máxima real (mínima = máxima)
-     * con el gobernador performance. Se deshace con [restore] y el estado guardado antes.
+     * Diablo Mode: each cluster pinned at its real maximum frequency (min = max)
+     * with the performance governor. Undone with [restore] and the previously saved state.
      */
     fun lockMax(clusters: List<Cluster>) {
         clusters.forEach { c ->
@@ -282,13 +282,13 @@ object CpuPower {
 
     fun snapshot(): Snapshot = Snapshot(read())
 
-    /** Vuelve exactamente a como estaba cada clúster. */
+    /** Returns each cluster exactly to how it was. */
     fun restore(s: Snapshot) {
         Prefs.cpuCustomLimits = s.customLimits
         Prefs.save()
         s.clusters.forEach { c ->
             c.governor?.let { write("${c.path}/scaling_governor", it) }
-            // Se ensancha primero el rango para que el kernel acepte los dos límites
+            // Widen the range first so the kernel accepts both limits
             hwMax(c)?.let { write("${c.path}/scaling_max_freq", it) }
             c.minKhz?.let { write("${c.path}/scaling_min_freq", it) }
             c.maxKhz?.let { write("${c.path}/scaling_max_freq", it) }
@@ -298,7 +298,7 @@ object CpuPower {
 }
 
 // =====================================================================
-// Interfaz: modo de energía + ajustes avanzados, con el mismo estado
+// UI: power mode + advanced settings, sharing the same state
 // =====================================================================
 
 @Composable
@@ -311,7 +311,7 @@ fun CpuPowerSection() {
     var clusters by remember { mutableStateOf<List<CpuPower.Cluster>?>(null) }
     var busy by remember { mutableStateOf(false) }
 
-    // Se vuelve a leer cada pocos segundos: algunos fabricantes cambian los valores solos
+    // Re-read every few seconds: some vendors change the values on their own
     RepeatWhileVisible(5000) {
         if (!busy) clusters = withContext(Dispatchers.IO) { CpuPower.read() }
     }

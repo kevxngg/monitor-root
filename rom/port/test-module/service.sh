@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# Arranca el servicio de Monitor en el dominio monitord, como lo haría la ROM.
+# Starts the Monitor service in the monitord domain, as the ROM would.
 MODDIR=${0%/*}
 until [ "$(getprop sys.boot_completed)" = "1" ]; do sleep 2; done
 sleep 3

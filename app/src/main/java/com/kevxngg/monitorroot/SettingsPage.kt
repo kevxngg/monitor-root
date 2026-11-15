@@ -27,7 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// ===================== CONFIGURACIÓN =====================
+// ===================== SETTINGS =====================
 
 @Composable
 fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
@@ -91,7 +91,7 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                         Prefs.accessMode = it
                         Prefs.save()
                         RootShell.reset()
-                        // Reinicia la app para conectarse con el modo elegido
+                        // Restart the app to connect using the chosen mode
                         (ctx as? android.app.Activity)?.recreate()
                     }
                 }
@@ -309,7 +309,7 @@ fun WinSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
     )
 }
 
-// ===================== EJECUTAR NUEVA TAREA =====================
+// ===================== RUN NEW TASK =====================
 
 @Composable
 fun RunTaskDialog(onDismiss: () -> Unit) {

@@ -118,7 +118,7 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         PageHeader(tr("Aplicaciones de arranque")) {
             CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
-            // Android no deja al usuario "shell" (Shizuku) cambiar componentes de otras apps
+            // Android does not let the "shell" user (Shizuku) change other apps' components
             val canChange = !RootShell.viaShizuku
             CmdButton(Icons.Outlined.CheckCircle, tr("Habilitar"), enabled = canChange && selected != null && selected.enabledCount < selected.comps.size) {
                 selected?.let { setEnabled(it, true) }

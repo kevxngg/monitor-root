@@ -163,7 +163,7 @@ private fun SideItem(r: Res, selected: Boolean, d: SideData, modifier: Modifier,
     }
 }
 
-// ===================== PIEZAS =====================
+// ===================== PIECES =====================
 
 @Composable
 private fun DetailHeader(title: String, subtitle: String) {
@@ -206,7 +206,7 @@ private fun BigGraph(
     }
 }
 
-/** Estadísticas grandes (izquierda) y datos clave-valor (derecha), como en el PC. */
+/** Large stats (left) and key-value data (right), as on the PC. */
 @Composable
 private fun StatsBlock(stats: List<Pair<String, String>>, kv: List<Pair<String, String>>) {
     val wide = !LocalCompact.current
@@ -230,7 +230,7 @@ private fun BigStats(items: List<Pair<String, String>>) {
                 row.forEach { (label, value) ->
                     Column(Modifier.weight(1f)) {
                         Text(label, fontSize = 12.sp, color = win.sub, maxLines = 1)
-                        // Los valores largos (por ejemplo "Descargando") se achican para caber enteros
+                        // Long values (for example "Descargando", i.e. discharging) are shrunk to fit whole
                         val size = when {
                             value.length <= 8 -> 19.sp
                             value.length <= 11 -> 16.sp
@@ -337,7 +337,7 @@ private fun CpuDetail(s: Snapshot, h: History, logical: Boolean) {
     }
 }
 
-// ===================== MEMORIA =====================
+// ===================== MEMORY =====================
 
 @Composable
 private fun MemDetail(s: Snapshot, h: History) {
@@ -385,7 +385,7 @@ private fun MemDetail(s: Snapshot, h: History) {
     )
 }
 
-// ===================== DISCO =====================
+// ===================== DISK =====================
 
 @Composable
 private fun DiskDetail(s: Snapshot, h: History) {
@@ -467,7 +467,7 @@ private fun WifiDetail(s: Snapshot, h: History) {
     )
 }
 
-// ===================== DATOS MÓVILES =====================
+// ===================== MOBILE DATA =====================
 
 @Composable
 private fun MobileDetail(s: Snapshot, h: History) {
@@ -525,14 +525,14 @@ private fun GpuDetail(s: Snapshot, h: History) {
     GpuTuningCard()
 }
 
-// ===================== BATERÍA Y TEMPERATURA =====================
+// ===================== BATTERY AND TEMPERATURE =====================
 
 @Composable
 private fun TempDetail(s: Snapshot, h: History) {
     val win = LocalWin.current
     val color = Res.TEMP.color(win)
     val b = s.batt
-    // Potencia real en vatios: + entra carga, − sale
+    // Actual power in watts: + charging in, − draining out
     val watts = if (b.voltageMv != null && b.currentMa != null) b.voltageMv * b.currentMa / 1_000_000f else null
     DetailHeader(tr("Batería"), b.health?.let { tr("Salud de la batería") + ": " + tr(it) } ?: "")
     BatteryHistoryCard(s.uptimeSec, color)
@@ -547,7 +547,7 @@ private fun TempDetail(s: Snapshot, h: History) {
         ),
         emptyList(),
     )
-    // Temperaturas del teléfono
+    // Phone temperatures
     Text(tr("Temperaturas"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = win.text)
     BigGraph(tr("Temperatura del procesador"), "100 °C", h["temp"], 100f, color, height = 140)
     KeyValues(
@@ -594,7 +594,7 @@ private fun summary(r: Res, s: Snapshot): String {
     return lines.joinToString("\n")
 }
 
-/** Datos fijos del hardware (núcleos, caché, almacenamiento), leídos una vez. */
+/** Fixed hardware data (cores, cache, storage), read once. */
 @Composable
 private fun rememberDeviceInfo(s: Snapshot): DeviceInfo.Info? {
     var info by remember { mutableStateOf<DeviceInfo.Info?>(null) }
@@ -602,7 +602,7 @@ private fun rememberDeviceInfo(s: Snapshot): DeviceInfo.Info? {
     return info
 }
 
-/** Tamaño comercial de la RAM (8, 12 GB…) a partir de la memoria que ve Android. */
+/** Marketed RAM size (8, 12 GB…) derived from the memory Android sees. */
 fun nominalRamGb(totalKb: Long): Int? {
     if (totalKb <= 0) return null
     val gb = totalKb / 1048576.0

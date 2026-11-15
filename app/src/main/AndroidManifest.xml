@@ -5,17 +5,17 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Monitor flotante -->
+    <!-- Floating monitor -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Historial de aplicaciones (se concede solo con root) -->
+    <!-- App history (granted only with root) -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
-    <!-- Para mostrar el nombre y el icono de cada app en la lista de procesos -->
+    <!-- To show each app's name and icon in the process list -->
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
@@ -46,7 +46,7 @@
             android:name=".InstallUpdateReceiver"
             android:exported="false" />
 
-        <!-- Monitor flotante -->
+        <!-- Floating monitor -->
         <service
             android:name=".OverlayService"
             android:exported="false"
@@ -63,7 +63,7 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
-        <!-- Modo juego -->
+        <!-- Game mode -->
         <service
             android:name=".GameModeService"
             android:exported="false"
@@ -76,7 +76,7 @@
             android:name=".KillAppReceiver"
             android:exported="false" />
 
-        <!-- Botón de ajustes rápidos -->
+        <!-- Quick settings tile -->
         <service
             android:name=".MonitorTileService"
             android:exported="true"
