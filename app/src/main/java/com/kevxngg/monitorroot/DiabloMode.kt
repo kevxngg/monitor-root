@@ -84,10 +84,27 @@ object DiabloMode {
             .putString("mtk", mtk.joinToString(";") { "${it.first}=${it.second}" })
             .apply()
         // 3) CPU and GPU at maximum
-        CpuPower.lockMax(cpuBefore?.clusters.orEmpty())
+        liftVendorCpuCap(before.clusters)
+        CpuPower.lockMax(before.clusters)
         gpuBefore?.let { pinGpu(it) }
         active = true
         return true
+    }
+
+    /**
+     * Xiaomi/HyperOS: its thermal service leaves a CPU frequency cap registered in the kernel
+     * (thermal_message/cpu_limits) that stays there even after the service is stopped, so the
+     * clusters could not go above it. The cap is raised to each cluster's real maximum.
+     * When the mode ends the service is started again and sets its own limits.
+     */
+    private fun liftVendorCpuCap(clusters: List<CpuPower.Cluster>) {
+        val file = "/sys/class/thermal/thermal_message/cpu_limits"
+        if (RootShell.run("[ -e $file ] && echo yes").none { it.contains("yes") }) return
+        clusters.forEach { c ->
+            val cpu = c.path.substringAfterLast("policy").toIntOrNull() ?: return@forEach
+            val top = c.hwMaxKhz ?: c.freqsKhz.maxOrNull() ?: return@forEach
+            RootShell.run("echo ${Actions.q("cpu$cpu $top")} > $file")
+        }
     }
 
     /** GPU at its maximum: pinned on the chips that allow it, otherwise performance governor without a cap. */
@@ -163,9 +180,13 @@ object DiabloMode {
         val clusters = CpuPower.read()
         val drifted = clusters.any { c ->
             val top = c.hwMaxKhz ?: c.freqsKhz.maxOrNull() ?: return@any false
-            (c.minKhz ?: 0L) < top || ("performance" in c.governors && c.governor != "performance")
+            (c.minKhz ?: 0L) < top || (c.maxKhz ?: top) < top ||
+                ("performance" in c.governors && c.governor != "performance")
         }
-        if (drifted) CpuPower.lockMax(clusters)
+        if (drifted) {
+            liftVendorCpuCap(clusters)
+            CpuPower.lockMax(clusters)
+        }
         // The GPU too: the vendor's power service can undo the pinned frequency
         GpuControl.read()?.let { pinGpu(it) }
         thermalServices().filter { it in stopped }.forEach { RootShell.run("stop ${Actions.q(it)}") }
