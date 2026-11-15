@@ -288,10 +288,15 @@ object CpuPower {
         Prefs.save()
         s.clusters.forEach { c ->
             c.governor?.let { write("${c.path}/scaling_governor", it) }
+            // The limits read in the snapshot are the EFFECTIVE ones (they include what the system was
+            // imposing at that moment, e.g. a thermal cap). Writing them back would turn a temporary
+            // cap into a permanent limit, so they are only restored if the user had set them by hand.
+            val min = if (s.customLimits) c.minKhz else (hwMin(c) ?: c.minKhz)
+            val max = if (s.customLimits) c.maxKhz else (hwMax(c) ?: c.maxKhz)
             // Widen the range first so the kernel accepts both limits
             hwMax(c)?.let { write("${c.path}/scaling_max_freq", it) }
-            c.minKhz?.let { write("${c.path}/scaling_min_freq", it) }
-            c.maxKhz?.let { write("${c.path}/scaling_max_freq", it) }
+            min?.let { write("${c.path}/scaling_min_freq", it) }
+            max?.let { write("${c.path}/scaling_max_freq", it) }
             if (c.kind == Kind.MANUAL) c.setspeedKhz?.let { write("${c.path}/scaling_setspeed", it) }
         }
     }

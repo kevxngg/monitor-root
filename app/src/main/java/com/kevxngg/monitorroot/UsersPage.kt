@@ -82,7 +82,7 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
                     ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
                 }
             }
-            CmdButton(Icons.Outlined.Logout, tr("Detener usuario"), enabled = selUser != null && selUser > 0) {
+            CmdButton(Icons.Outlined.PersonOff, tr("Detener usuario"), enabled = selUser != null && selUser > 0) {
                 val u = selUser ?: return@CmdButton
                 val action: () -> Unit = { scope.launch(Dispatchers.IO) { RootShell.run("am stop-user -f $u") } }
                 confirm = tr("¿Detener el usuario %d? Se cerrarán todas sus apps.", u) to action

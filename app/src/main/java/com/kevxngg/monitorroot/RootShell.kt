@@ -42,6 +42,8 @@ object RootShell {
                     android.net.LocalSocketAddress.Namespace.ABSTRACT,
                 )
             )
+            // Only the real service is trusted (it runs as root); any app could take the socket name
+            if (sock.peerCredentials.uid != 0) throw SecurityException("monitord is not root")
             sock.soTimeout = 30_000
             sock.outputStream.write(script.toByteArray(Charsets.UTF_8))
             sock.outputStream.flush()

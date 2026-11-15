@@ -18,18 +18,21 @@ class UpdateAlarm : BroadcastReceiver() {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 schedule(app)
+                // After updating, the "Downloading…" notification of the previous version is removed
+                if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) UpdateWorker.cancelNotification(app)
                 Prefs.init(app)
                 if (Prefs.gameMode) Thread { GameMode.start(app) }.start()
                 return
             }
         }
+        // The next alarm first: if something below fails, the chain is not broken
+        schedule(app)
         // Updates are checked in the background at most once per hour
         UpdateWorker.enqueueIfDue(app)
         // Quick tasks on every alarm: battery history and widget
         BatteryLog.record(app)
         WidgetUpdater.requestRefresh(app)
         Alerts.enqueue(app)
-        schedule(app)
     }
 
     companion object {

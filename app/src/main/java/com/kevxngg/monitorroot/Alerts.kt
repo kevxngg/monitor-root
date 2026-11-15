@@ -70,8 +70,9 @@ object Alerts {
     private fun checkCharge(ctx: Context) {
         val i = ctx.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: return
         val level = i.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) * 100 / i.getIntExtra(BatteryManager.EXTRA_SCALE, 100).coerceAtLeast(1)
-        val status = i.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-        val charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+        // Plugged in, not "charging": with a charge limit the status flips back and forth while
+        // connected and the notification would repeat
+        val charging = i.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
         val limit = Prefs.CHARGE_LIMITS.getOrElse(Prefs.alertChargeLimit) { 80 }
         val s = sp(ctx)
         if (!charging) {

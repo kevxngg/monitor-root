@@ -686,7 +686,8 @@ class SystemReader(context: Context) {
             )
         }
         val w = ifaces["wlan0"]
-        val wifiNet = rate("wlan0", w?.first ?: 0L, w?.second ?: 0L)
+        // If wlan0 disappears for a moment, no zero is stored: on return it would look like a huge spike
+        val wifiNet = if (w == null) NetStat() else rate("wlan0", w.first, w.second)
         val mobileNames = ifaces.keys.filter { MOBILE_RE.matches(it) }.sorted()
         val mobile = if (mobileNames.isEmpty()) null else rate(
             "mobile",

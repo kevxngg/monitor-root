@@ -34,6 +34,7 @@ fun DetailsPage(
     var selPid by remember { mutableStateOf<Int?>(null) }
     var menuPid by remember { mutableStateOf<Int?>(null) }
     var confirmEnd by remember { mutableStateOf<Pair<ProcInfo, Boolean>?>(null) } // (process, tree?)
+    var confirmSuspend by remember { mutableStateOf<ProcInfo?>(null) }
     var props by remember { mutableStateOf<ProcInfo?>(null) }
     var prio by remember { mutableStateOf<ProcInfo?>(null) }
     var affinity by remember { mutableStateOf<ProcInfo?>(null) }
@@ -85,7 +86,8 @@ fun DetailsPage(
                 rootLabel(if (suspended) tr("Reanudar proceso") else tr("Suspender proceso")),
                 if (suspended) Icons.Outlined.PlayArrow else Icons.Outlined.Pause, enabled = !shizuku,
             ) {
-                scope.launch(Dispatchers.IO) { Actions.kill(listOf(p.pid), if (suspended) "CONT" else "STOP") }
+                if (!suspended && p.pkg == null) confirmSuspend = p
+                else scope.launch(Dispatchers.IO) { Actions.kill(listOf(p.pid), if (suspended) "CONT" else "STOP") }
             },
             MenuEntry(rootLabel(tr("Establecer prioridad")), Icons.Outlined.LowPriority, enabled = !shizuku) { prio = p },
             MenuEntry(rootLabel(tr("Establecer afinidad")), Icons.Outlined.Memory, enabled = !shizuku) { affinity = p },
@@ -156,6 +158,15 @@ fun DetailsPage(
         }
     }
 
+    confirmSuspend?.let { p ->
+        ConfirmDialog(
+            tr("¿Suspender %s?", p.name),
+            tr("Es un proceso del sistema: suspenderlo puede congelar el teléfono hasta que lo reinicies."),
+            tr("Suspender proceso"),
+            onConfirm = { scope.launch(Dispatchers.IO) { Actions.kill(listOf(p.pid), "STOP") } },
+            onDismiss = { confirmSuspend = null },
+        )
+    }
     confirmEnd?.let { (p, tree) ->
         ConfirmDialog(
             title = if (tree) tr("¿Finalizar el árbol de procesos de %s?", p.name) else tr("¿Finalizar %s?", p.name),

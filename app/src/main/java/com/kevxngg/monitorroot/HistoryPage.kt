@@ -90,6 +90,18 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
     var period by remember { mutableIntStateOf(0) }
     var data by remember { mutableStateOf<List<HistRow>?>(null) }
     var reload by remember { mutableIntStateOf(0) }
+    var confirmReset by remember { mutableStateOf(false) }
+    if (confirmReset) {
+        ConfirmDialog(
+            tr("Eliminar historial de uso"), tr("¿Eliminar el historial de uso? No se puede deshacer."), tr("Eliminar"),
+            onConfirm = {
+                Prefs.historyResetAt = System.currentTimeMillis()
+                Prefs.save()
+                reload++
+            },
+            onDismiss = { confirmReset = false },
+        )
+    }
     var sortId by remember { mutableStateOf("fg") }
     var asc by remember { mutableStateOf(false) }
     var selPkg by remember { mutableStateOf<String?>(null) }
@@ -147,11 +159,7 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
             modifier = Modifier
                 .padding(start = 10.dp, bottom = 4.dp)
                 .clip(corner(4))
-                .clickable {
-                    Prefs.historyResetAt = System.currentTimeMillis()
-                    Prefs.save()
-                    reload++
-                }
+                .clickable { confirmReset = true }
                 .padding(horizontal = 6.dp, vertical = 4.dp),
         )
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {

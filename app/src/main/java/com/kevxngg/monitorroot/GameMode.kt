@@ -140,6 +140,8 @@ class GameModeService : Service() {
     private var changedDnd = false
     private var lastFg: String? = null
     private var appliedPower = -1   // profile applied to the current game (-1 = none)
+    private var awaySince = 0L      // since when the game is open but not on screen (0 = it is on screen)
+    private var blindTicks = 0      // consecutive readings without any temperature during Diablo Mode
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -166,19 +168,26 @@ class GameModeService : Service() {
             // Permission to know which app is on screen (granted with root)
             if (RootShell.open()) RootShell.run("appops set $packageName GET_USAGE_STATS allow")
             DiabloMode.recoverIfNeeded(applicationContext)
+            recoverCpuIfNeeded()
             while (alive) {
                 try {
                     tick()
                 } catch (_: Exception) {
                 }
-                SystemClock.sleep(if (screenActive()) 2000 else 5000)
+                // Short naps so that turning game mode off is noticed quickly
+                val until = SystemClock.elapsedRealtime() + if (screenActive()) 2000 else 5000
+                while (alive && SystemClock.elapsedRealtime() < until) SystemClock.sleep(250)
+            }
+            // The service was stopped: undo everything here, on the thread that applied it
+            try {
+                current?.let { exitGame(it, notify = false) }
+            } catch (_: Exception) {
             }
         }.start()
     }
 
     override fun onDestroy() {
-        alive = false
-        current?.let { pkg -> Thread { exitGame(pkg) }.start() }
+        alive = false   // the worker thread leaves the game and restores everything
         super.onDestroy()
     }
 
@@ -221,7 +230,12 @@ class GameModeService : Service() {
             val otherGame = fg != null && fg != cur && fg in Prefs.games
             // If the process cannot be checked, falls back to the previous rule (another app on screen)
             val closed = running == false || (running == null && fg != null && fg != cur && fg != packageName)
-            if (closed || otherGame) {
+            // Game left in the background: after a while the session ends (sooner with Diablo Mode,
+            // so the phone is not left at full power without thermal control in a pocket or another app)
+            val now = SystemClock.elapsedRealtime()
+            if (fg == cur) awaySince = 0L else if (awaySince == 0L) awaySince = now
+            val away = awaySince != 0L && now - awaySince > (if (DiabloMode.active) 60_000L else 180_000L)
+            if (closed || otherGame || away) {
                 exitGame(cur)
                 if (otherGame) enterGame(fg!!)
             }
@@ -255,6 +269,8 @@ class GameModeService : Service() {
     private fun enterGame(pkg: String) {
         current = pkg
         GameModeState.playing = pkg
+        awaySince = 0L
+        blindTicks = 0
         sessionStart = System.currentTimeMillis()
         fps.clear()
         tempMax = null
@@ -300,20 +316,36 @@ class GameModeService : Service() {
             val before = CpuPower.snapshot()
             if (CpuPower.isAvailable(mode, before.clusters)) {
                 savedCpu = before
+                // Remembered on disk: if Android kills the app mid-game, the CPU is reset on the next start
+                gamePrefs().edit().putBoolean("cpuApplied", true).apply()
                 CpuPower.apply(mode, before.clusters)
             }
         }
     }
 
+    private fun gamePrefs() = getSharedPreferences("game", Context.MODE_PRIVATE)
+
+    /** If the app was killed while a game had a power mode applied, the CPU goes back to balanced. */
+    private fun recoverCpuIfNeeded() {
+        val sp = gamePrefs()
+        if (!sp.getBoolean("cpuApplied", false) || !RootShell.open()) return
+        val clusters = CpuPower.read()
+        if (CpuPower.isAvailable(CpuPower.Mode.BALANCED, clusters)) CpuPower.apply(CpuPower.Mode.BALANCED, clusters)
+        sp.edit().putBoolean("cpuApplied", false).apply()
+    }
+
     /** Undoes what [applyProfile] changed (Diablo Mode and the CPU power mode). */
     private fun revertProfile() {
         DiabloMode.disable(applicationContext)
-        if (RootShell.open()) savedCpu?.let { CpuPower.restore(it) }
+        if (RootShell.open()) {
+            savedCpu?.let { CpuPower.restore(it) }
+            gamePrefs().edit().putBoolean("cpuApplied", false).apply()
+        }
         savedCpu = null
         appliedPower = -1
     }
 
-    private fun exitGame(pkg: String) {
+    private fun exitGame(pkg: String, notify: Boolean = true) {
         current = null
         GameModeState.playing = null
         revertProfile()
@@ -331,7 +363,7 @@ class GameModeService : Service() {
             GameSessions.add(applicationContext, s)
             notifySummary(s)
         }
-        updateNotification(null)
+        if (notify) updateNotification(null)
     }
 
     private fun record(inGame: Boolean) {
@@ -345,9 +377,12 @@ class GameModeService : Service() {
         // Diablo Mode safety cutoff: too hot or the phone started charging
         if (DiabloMode.active) {
             val hot = DiabloMode.overheated(d.cpuTemp, d.battTemp)
-            if (hot || DiabloMode.isCharging(applicationContext)) {
+            // Without any temperature reading the cutoff cannot protect the phone: the mode is turned off
+            blindTicks = if (d.cpuTemp == null && d.battTemp == null) blindTicks + 1 else 0
+            if (hot || blindTicks >= 3 || DiabloMode.isCharging(applicationContext)) {
                 DiabloMode.disable(applicationContext)
                 notifyDiabloOff(if (hot) d else null)
+                current?.let { updateNotification(it) }   // the notification no longer says "Diablo Mode"
             }
         }
     }
@@ -418,7 +453,7 @@ class GameModeService : Service() {
             .setAutoCancel(true)
             .build()
         try {
-            NotificationManagerCompat.from(this).notify(SUMMARY_ID + (s.start % 1000).toInt(), n)
+            NotificationManagerCompat.from(this).notify(SUMMARY_ID + (s.start / 1000 % 90).toInt(), n)
         } catch (_: SecurityException) {
         }
     }

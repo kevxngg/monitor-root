@@ -66,7 +66,10 @@ object DiabloMode {
         if (active) return true
         if (!RootShell.open() || RootShell.viaShizuku || isCharging(ctx)) return false
         // 1) Save the current state to restore it exactly
-        cpuBefore = CpuPower.snapshot()
+        val before = CpuPower.snapshot()
+        // Without the CPU state there would be nothing to restore later: it is not activated
+        if (before.clusters.isEmpty()) return false
+        cpuBefore = before
         gpuBefore = GpuControl.read()
         // 2) Stop the vendor thermal services (remember which ones, to restart them)
         stopped = thermalServices()

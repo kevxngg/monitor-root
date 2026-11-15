@@ -26,7 +26,13 @@ object HelperMain {
             } catch (e: Exception) {
                 continue
             }
-            Thread { handle(client) }.start()
+            // A client that disconnects halfway must not bring the whole service down
+            Thread {
+                try {
+                    handle(client)
+                } catch (_: Throwable) {
+                }
+            }.start()
         }
     }
 
@@ -48,9 +54,13 @@ object HelperMain {
             if (!allowed) return
             val script = s.inputStream.readBytes().toString(Charsets.UTF_8)
             val p = ProcessBuilder("/system/bin/sh", "-c", "exec 2>/dev/null; $script").start()
-            p.inputStream.copyTo(s.outputStream)
-            s.outputStream.flush()
-            p.waitFor()
+            try {
+                p.inputStream.copyTo(s.outputStream)
+                s.outputStream.flush()
+                p.waitFor()
+            } finally {
+                p.destroy()
+            }
         }
     }
 }

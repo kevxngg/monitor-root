@@ -77,13 +77,16 @@ object QuickStats {
     private var prevTx = -1L
     private var prevNetTime = 0L
 
+    private val NET_IFACE = Regex("^(wlan\\d+|eth\\d+|rmnet_data\\d+|rmnet\\d+|ccmni\\d+|seth_lte\\d+|wwan\\d+)$")
+
     private fun zones(): List<String> {
         cpuZones?.let { return it }
         val found = RootShell.run("grep -H . /sys/class/thermal/thermal_zone*/type").mapNotNull { l ->
             val i = l.indexOf(':')
             if (i > 0 && CPU_ZONE.containsMatchIn(l.substring(i + 1))) l.substring(0, i).removeSuffix("/type") else null
         }
-        cpuZones = found
+        // An empty answer (shell reconnecting) is not cached: it is tried again on the next reading
+        if (found.isNotEmpty()) cpuZones = found
         return found
     }
 
@@ -261,7 +264,8 @@ object QuickStats {
         run {
             var rx = 0L; var tx = 0L
             parts.getOrNull(5)?.lines().orEmpty().forEach { l ->
-                if (l.contains(':') && !l.contains("lo:")) {
+                // Only the real interfaces: VPN, tethering and virtual ones carry the same traffic twice
+                if (l.contains(':') && NET_IFACE.matches(l.substringBefore(':').trim())) {
                     val f = l.substringAfter(':').trim().split(WS)
                     rx += f.getOrNull(0)?.toLongOrNull() ?: 0L
                     tx += f.getOrNull(8)?.toLongOrNull() ?: 0L
@@ -418,7 +422,7 @@ class OverlayService : Service() {
     }
 
     private fun prefs() = getSharedPreferences("prefs", Context.MODE_PRIVATE)
-    private fun alpha() = when (prefs().getInt("ovOpacity", 1)) { 0 -> 0x99; 2 -> 0xF2; else -> 0xD8 }
+    private fun alpha() = when (prefs().getInt("ovOpacity", 1)) { 0 -> 0xF2; 2 -> 0x99; else -> 0xD8 }
 
     private fun removeViews() {
         panel?.let { try { wm?.removeView(it) } catch (_: Exception) {} }; panel = null
@@ -468,7 +472,10 @@ class OverlayService : Service() {
                     val dx = e.rawX - touchX; val dy = e.rawY - touchY
                     if (resizing) {
                         val factor = 1f + (dx + dy) / (400f * resources.displayMetrics.density)
-                        v.scale = (startScale * factor).coerceIn(0.7f, 1.5f)
+                        // Never wider than the screen: the corner buttons would be out of reach
+                        val base = if (v.scale > 0f) v.width / v.scale else 0f
+                        val fit = if (base > 0f) (screen().first / base).coerceIn(0.7f, 1.5f) else 1.5f
+                        v.scale = (startScale * factor).coerceIn(0.7f, fit)
                         v.requestLayout()
                     } else {
                         if (!dragging && (abs(dx) > slop || abs(dy) > slop)) dragging = true

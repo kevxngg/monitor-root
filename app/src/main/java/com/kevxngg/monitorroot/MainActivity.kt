@@ -397,8 +397,10 @@ fun Shell() {
         }
     }
 
-    if (runOpen) RunTaskDialog { runOpen = false }
-    update?.let { UpdateDialog(it) { update = null } }
+    if (!win.mac) {
+        if (runOpen) RunTaskDialog { runOpen = false }
+        update?.let { UpdateDialog(it) { update = null } }
+    }
 }
 
 @Composable
@@ -429,7 +431,7 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
             Spacer(Modifier.width(8.dp))
             Box(Modifier.weight(1f)) {
                 if (query.isEmpty()) {
-                    Text(tr("Busque un nombre, paquete o PID…"), fontSize = 13.sp, color = win.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(tr("Busca un nombre, paquete o PID…"), fontSize = 13.sp, color = win.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 BasicTextField(
                     value = query,

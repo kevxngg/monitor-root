@@ -38,6 +38,13 @@ class PanelView(ctx: Context) : View(ctx) {
     private fun dp(v: Float) = v * density * scale
 
     var scale = 1f
+    private val appVersion: String by lazy {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+    }
     var style = 0
     var bgAlpha = 0xD8
     var data: QuickStats.Data? = null
@@ -330,7 +337,7 @@ class PanelView(ctx: Context) : View(ctx) {
         c.drawRoundRect(RectF(dp(1f), dp(1f), width - dp(1f), height - dp(1f)), dp(6f), dp(6f), p)
         val green = 0xFF4ADE80.toInt(); val d = data
         val pad = dp(14f)
-        text(c, "Monitor Root v3.0", pad, pad + dp(12f), 11f, green, bold = true, face = mono)
+        text(c, "Monitor Root v$appVersion", pad, pad + dp(12f), 11f, green, bold = true, face = mono)
         if (diablo) {
             text(c, "DIABLO", width - pad - dp(46f), pad + dp(12f), 10f, cDiablo, bold = true, face = mono)
         } else {

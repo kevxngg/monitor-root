@@ -134,7 +134,7 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
             "stop" -> tr("¿Detener %s?", sv.name)
             else -> tr("¿Reiniciar %s?", sv.name)
         }
-        val warn = if (sv.native) tr("\n\nEs un servicio del sistema: detenerlo puede dejar el teléfono inestable o hacer que se reinicie.") else ""
+        val warn = if (sv.native && verb != "start") tr("\n\nEs un servicio del sistema: detenerlo puede dejar el teléfono inestable o hacer que se reinicie.") else ""
         val action: () -> Unit = {
             scope.launch(Dispatchers.IO) {
                 val n = Actions.q(sv.name)

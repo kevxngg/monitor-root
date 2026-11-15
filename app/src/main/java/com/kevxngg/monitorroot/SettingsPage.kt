@@ -118,7 +118,7 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     Prefs.startPage = it; Prefs.save()
                 }
             }
-            SettingCard(Icons.Outlined.Speed, tr("Velocidad de actualización en tiempo real"), tr("Cada cuánto se actualizan los datos")) {
+            SettingCard(Icons.Outlined.Timer, tr("Velocidad de actualización en tiempo real"), tr("Cada cuánto se actualizan los datos")) {
                 WinDropdown(listOf(tr("Alta (0,5 s)"), tr("Normal (1 s)"), tr("Baja (4 s)"), tr("En pausa")), Prefs.speed) {
                     Prefs.speed = it; Prefs.save()
                 }
@@ -202,7 +202,17 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Modo de eficiencia"))
             SettingCard(Icons.Outlined.Eco, tr("Apps en modo de eficiencia"), tr("%d apps con prioridad baja", Prefs.efficiency.size)) {
-                TextButton(enabled = Prefs.efficiency.isNotEmpty(), onClick = { Prefs.efficiency = emptySet(); Prefs.save() }) {
+                TextButton(enabled = Prefs.efficiency.isNotEmpty(), onClick = {
+                    // Really undo it: normal priority and active bucket again, not just forget the list
+                    val pkgs = Prefs.efficiency
+                    Prefs.efficiency = emptySet(); Prefs.save()
+                    Thread {
+                        pkgs.forEach { pkg ->
+                            Actions.setEfficiency(pkg, emptyList(), false)
+                            RootShell.run("for p in \$(pidof ${Actions.q(pkg)}); do renice -n 0 -p \$p; done")
+                        }
+                    }.start()
+                }) {
                     Text(tr("Quitar todas"))
                 }
             }
@@ -230,7 +240,7 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                             is UpdateResult.Failure -> checkMsg = result.message()
                         }
                     }
-                }) { Text(tr("Buscar")) }
+                }) { Text(tr("Comprobar")) }
             }
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Acerca de"))

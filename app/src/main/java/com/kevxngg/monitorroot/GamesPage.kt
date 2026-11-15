@@ -440,7 +440,7 @@ private fun ProfilePicker(selected: Int, onPick: (Int) -> Unit) {
     val rootOnly = RootShell.viaShizuku
     data class P(val id: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val title: String, val desc: String)
     val items = listOf(
-        P(0, Icons.Outlined.DoNotDisturbAlt, tr("Sin cambios"), tr("El teléfono decide")),
+        P(0, Icons.Outlined.Smartphone, tr("Sin cambios"), tr("El teléfono decide")),
         P(3, Icons.Outlined.EnergySavingsLeaf, tr("Eficiencia"), tr("Menos calor y batería")),
         P(2, Icons.Outlined.Balance, tr("Equilibrado"), tr("Como viene de fábrica")),
         P(1, Icons.Outlined.Bolt, tr("Rendimiento"), tr("CPU al máximo")),

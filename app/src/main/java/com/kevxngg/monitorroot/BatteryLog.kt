@@ -55,8 +55,9 @@ object BatteryLog {
             )
             val all = read(ctx)
             val last = all.lastOrNull()
-            if (last != null && entry.time - last.time < MIN_GAP_MS) return
-            val kept = (all + entry).filter { entry.time - it.time <= KEEP_MS }
+            // Entries dated in the future (the clock was changed) are dropped so logging does not stall
+            if (last != null && entry.time - last.time in 0 until MIN_GAP_MS) return
+            val kept = (all + entry).filter { it.time <= entry.time && entry.time - it.time <= KEEP_MS }
             File(ctx.filesDir, FILE).writeText(
                 kept.joinToString("\n") { "${it.time},${it.level},${it.tempC},${if (it.charging) 1 else 0}" }
             )
