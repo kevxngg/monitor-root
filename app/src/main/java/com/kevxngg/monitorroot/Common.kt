@@ -141,6 +141,7 @@ object Prefs {
     var gameDnd by mutableStateOf(false)
     var gameRecord by mutableStateOf(true)
     var gameDiablo by mutableStateOf(false)
+    var diabloAccepted by mutableStateOf(false) // the Diablo Mode warning was already accepted once
 
     // Alerts
     var alertTemp by mutableStateOf(false)
@@ -187,6 +188,8 @@ object Prefs {
         gameRecord = p.getBoolean("gmRecord", true)
         gameDiablo = false
         if (p.getBoolean("gmDiablo", false)) gamePower = 4
+        // Whoever already had Diablo Mode selected accepted the warning in a previous version
+        diabloAccepted = p.getBoolean("gmDiabloOk", false) || gamePower == 4
         alertTemp = p.getBoolean("alTemp", false)
         alertTempLimit = p.getInt("alTempLimit", 1)
         alertCpu = p.getBoolean("alCpu", false)
@@ -226,6 +229,7 @@ object Prefs {
             ?.putBoolean("gmDnd", gameDnd)
             ?.putBoolean("gmRecord", gameRecord)
             ?.putBoolean("gmDiablo", false)
+            ?.putBoolean("gmDiabloOk", diabloAccepted)
             ?.putBoolean("alTemp", alertTemp)
             ?.putInt("alTempLimit", alertTempLimit)
             ?.putBoolean("alCpu", alertCpu)

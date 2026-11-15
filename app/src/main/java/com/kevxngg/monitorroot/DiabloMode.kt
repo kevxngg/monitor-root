@@ -174,7 +174,8 @@ object DiabloMode {
     fun disable(ctx: Context) {
         if (!active) return
         active = false
-        if (RootShell.open()) {
+        val root = RootShell.open()
+        if (root) {
             restorePassiveLimits(zonesOff, mtkBefore)
             stopped.forEach { RootShell.run("start ${Actions.q(it)}") }
             cpuBefore?.let { CpuPower.restore(it) }
@@ -186,6 +187,8 @@ object DiabloMode {
             }
         }
         stopped = emptyList(); cpuBefore = null; gpuBefore = null; zonesOff = emptyList(); mtkBefore = emptyList()
+        // Without root nothing could be restored: the saved state is kept so recoverIfNeeded() does it later
+        if (!root) return
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putBoolean("active", false).remove("services").remove("zones").remove("mtk").apply()
     }
@@ -194,6 +197,7 @@ object DiabloMode {
      * If the app was killed abruptly with the mode active, re-enables the thermal services
      * and returns the CPU and GPU to their normal state.
      */
+    @Synchronized
     fun recoverIfNeeded(ctx: Context) {
         if (active) return
         val sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

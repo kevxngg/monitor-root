@@ -46,10 +46,12 @@ fun GamesPage(onRun: () -> Unit) {
     var confirmClear by remember { mutableStateOf(false) }
     var confirmDiablo by remember { mutableStateOf(false) }
     var playing by remember { mutableStateOf(GameModeState.playing) }
+    var charging by remember { mutableStateOf(DiabloMode.isCharging(ctx)) }
 
     // New sessions and the current game update on their own
     RepeatWhileVisible(3000) {
         playing = GameModeState.playing
+        charging = DiabloMode.isCharging(ctx)
         sessions = withContext(Dispatchers.IO) { GameSessions.read(ctx) }
     }
 
@@ -75,9 +77,19 @@ fun GamesPage(onRun: () -> Unit) {
             SectionLabel(tr("Perfil de rendimiento"))
             Text(tr("Se aplica al abrir uno de tus juegos y se deshace al cerrarlo."), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
             ProfilePicker(Prefs.gamePower) { chosen ->
-                if (chosen == 4) confirmDiablo = true else { Prefs.gamePower = chosen; Prefs.save() }
+                when {
+                    chosen == Prefs.gamePower -> Unit                             // already selected: nothing to do
+                    chosen == 4 && !Prefs.diabloAccepted -> confirmDiablo = true  // the warning is only shown the first time
+                    else -> { Prefs.gamePower = chosen; Prefs.save() }
+                }
             }
-            if (Prefs.gamePower == 4) DiabloWarning(compact = true)
+            if (Prefs.gamePower == 4) {
+                DiabloWarning(compact = true)
+                if (charging) Text(
+                    tr("El teléfono está cargando: el Modo Diablo no se activa mientras carga y se usa Rendimiento."),
+                    fontSize = 12.sp, color = win.warn, modifier = Modifier.padding(start = 4.dp),
+                )
+            }
 
             // ---- During the session ----
             Spacer(Modifier.height(8.dp))
@@ -120,7 +132,7 @@ fun GamesPage(onRun: () -> Unit) {
     }
 
     if (confirmDiablo) DiabloDialog(
-        onConfirm = { Prefs.gamePower = 4; Prefs.save(); confirmDiablo = false },
+        onConfirm = { Prefs.diabloAccepted = true; Prefs.gamePower = 4; Prefs.save(); confirmDiablo = false },
         onDismiss = { confirmDiablo = false },
     )
     if (picking) GamePickerDialog { picking = false }

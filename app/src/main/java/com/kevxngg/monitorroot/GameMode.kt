@@ -139,6 +139,7 @@ class GameModeService : Service() {
     private var startedOverlay = false
     private var changedDnd = false
     private var lastFg: String? = null
+    private var appliedPower = -1   // profile applied to the current game (-1 = none)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -227,6 +228,14 @@ class GameModeService : Service() {
         } else if (fg != null && fg in Prefs.games) {
             enterGame(fg)
         }
+        // The profile was changed on the Games page while playing: it is applied right away
+        current?.let { pkg ->
+            if (appliedPower != Prefs.gamePower && RootShell.open()) {
+                revertProfile()
+                applyProfile()
+                updateNotification(pkg)
+            }
+        }
         if (current != null && (Prefs.gameRecord || DiabloMode.active)) record(inGame = fg == current)
         // Keep Diablo Mode: if something changed the frequencies or re-enabled thermal control, it is corrected
         if (DiabloMode.active) DiabloMode.enforce()
@@ -251,22 +260,7 @@ class GameModeService : Service() {
         tempMax = null
         battStart = battery()
         if (!RootShell.open()) return
-        // Diablo profile: everything at maximum. If not possible (e.g. while charging), Mejor rendimiento (Best performance) is used
-        val diablo = Prefs.gamePower == 4 && DiabloMode.enable(applicationContext)
-        // Power mode (the full CPU state is saved to restore it on exit)
-        val mode = if (diablo) null else when (Prefs.gamePower) {
-            1, 4 -> CpuPower.Mode.PERFORMANCE
-            2 -> CpuPower.Mode.BALANCED
-            3 -> CpuPower.Mode.SAVER
-            else -> null
-        }
-        if (mode != null) {
-            val before = CpuPower.snapshot()
-            if (CpuPower.isAvailable(mode, before.clusters)) {
-                savedCpu = before
-                CpuPower.apply(mode, before.clusters)
-            }
-        }
+        applyProfile()
         // Close background apps to free memory
         if (Prefs.gameKill) RootShell.run("am kill-all")
         // Do Not Disturb (only if it was off)
@@ -289,15 +283,41 @@ class GameModeService : Service() {
         updateNotification(pkg)
     }
 
+    /** Applies the chosen performance profile to the game that is open. */
+    private fun applyProfile() {
+        val power = Prefs.gamePower
+        appliedPower = power
+        // Diablo profile: everything at maximum. If not possible (e.g. while charging), Mejor rendimiento (Best performance) is used
+        val diablo = power == 4 && DiabloMode.enable(applicationContext)
+        // Power mode (the full CPU state is saved to restore it on exit)
+        val mode = if (diablo) null else when (power) {
+            1, 4 -> CpuPower.Mode.PERFORMANCE
+            2 -> CpuPower.Mode.BALANCED
+            3 -> CpuPower.Mode.SAVER
+            else -> null
+        }
+        if (mode != null) {
+            val before = CpuPower.snapshot()
+            if (CpuPower.isAvailable(mode, before.clusters)) {
+                savedCpu = before
+                CpuPower.apply(mode, before.clusters)
+            }
+        }
+    }
+
+    /** Undoes what [applyProfile] changed (Diablo Mode and the CPU power mode). */
+    private fun revertProfile() {
+        DiabloMode.disable(applicationContext)
+        if (RootShell.open()) savedCpu?.let { CpuPower.restore(it) }
+        savedCpu = null
+        appliedPower = -1
+    }
+
     private fun exitGame(pkg: String) {
         current = null
         GameModeState.playing = null
-        DiabloMode.disable(applicationContext)
-        if (RootShell.open()) {
-            savedCpu?.let { CpuPower.restore(it) }
-            if (changedDnd) RootShell.run("cmd notification set_dnd off")
-        }
-        savedCpu = null
+        revertProfile()
+        if (changedDnd && RootShell.open()) RootShell.run("cmd notification set_dnd off")
         changedDnd = false
         if (startedOverlay) {
             OverlayControl.stop(applicationContext)
