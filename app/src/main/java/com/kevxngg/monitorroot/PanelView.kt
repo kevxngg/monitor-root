@@ -83,6 +83,19 @@ class PanelView(ctx: Context) : View(ctx) {
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private val textP = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = cText }
     private val mono = Typeface.MONOSPACE
+    private val inter: Typeface = try {
+        androidx.core.content.res.ResourcesCompat.getFont(ctx, R.font.inter) ?: Typeface.DEFAULT
+    } catch (_: Exception) {
+        Typeface.DEFAULT
+    }
+    private val interBold: Typeface = Typeface.create(inter, Typeface.BOLD)
+    private val monoBold: Typeface = Typeface.create(mono, Typeface.BOLD)
+
+    /** Battery level and temperature, e.g. "83% · 34°C". */
+    private fun batt(d: QuickStats.Data?): String? {
+        val parts = listOfNotNull(d?.battLevel?.let { "$it%" }, d?.battTemp?.let { "%.0f°C".format(it) })
+        return if (parts.isEmpty()) null else parts.joinToString(" · ")
+    }
 
     private fun pct(v: Int?) = v?.let { "$it%" } ?: "—"
     private fun load(v: Int?) = when { v == null -> cSub; v < 60 -> cGreen; v < 85 -> cOrange; else -> 0xFFFF5A5A.toInt() }
@@ -125,7 +138,11 @@ class PanelView(ctx: Context) : View(ctx) {
     private fun text(c: Canvas, s: String, x: Float, y: Float, size: Float, color: Int, bold: Boolean = false, right: Boolean = false, center: Boolean = false, face: Typeface? = null) {
         textP.textSize = dp(size)
         textP.color = color
-        textP.typeface = if (bold) Typeface.create(face ?: Typeface.DEFAULT, Typeface.BOLD) else (face ?: Typeface.DEFAULT)
+        textP.typeface = when {
+            face === mono -> if (bold) monoBold else mono
+            face != null -> if (bold) Typeface.create(face, Typeface.BOLD) else face
+            else -> if (bold) interBold else inter
+        }
         textP.textAlign = when { right -> Paint.Align.RIGHT; center -> Paint.Align.CENTER; else -> Paint.Align.LEFT }
         c.drawText(s, x, y, textP)
     }
@@ -179,6 +196,7 @@ class PanelView(ctx: Context) : View(ctx) {
         // header
         drawAppLogo(c, context, pad + dp(10f), pad + dp(9f), dp(10f))
         text(c, "Monitor", pad + dp(26f), pad + dp(14f), 15f, cText, bold = true)
+        batt(d)?.let { text(c, it, pad + dp(98f), pad + dp(13.5f), 10.5f, cSub) }
         if (diablo) {
             text(c, "🔥 Diablo", width - pad - dp(100f), pad + dp(13f), 11f, cDiablo, bold = true)
         } else {
@@ -286,6 +304,8 @@ class PanelView(ctx: Context) : View(ctx) {
                 spark(c, cx - dp(26f), dp(50f), cx + dp(26f), dp(64f), fpsHist, cGreenFps, maxV = 120f)
             }
         }
+        val foot = listOfNotNull("↓ ${net(d?.netDownKbs)}", "↑ ${net(d?.netUpKbs)}", batt(d)?.let { "BAT $it" }).joinToString("    ")
+        text(c, foot, width / 2f, dp(81f), 9.5f, cSub, center = true)
     }
 
     // ---------- Style 2: gamer ----------
@@ -326,7 +346,7 @@ class PanelView(ctx: Context) : View(ctx) {
         val by = height - dp(22f)
         text(c, "FPS ${d?.fps ?: "—"}", dp(18f), by, 11f, cPurple, bold = true)
         text(c, "↓${net(d?.netDownKbs)}  ↑${net(d?.netUpKbs)}", dp(130f), by, 10f, cBlue)
-        text(c, stPct(d)?.let { "$it%" } ?: "—", width - dp(18f), by, 11f, cGreen, bold = true, right = true)
+        text(c, d?.battLevel?.let { "BAT $it%" } ?: "—", width - dp(18f), by, 11f, cGreen, bold = true, right = true)
     }
 
     // ---------- Style 3: retro monochrome ----------
@@ -363,7 +383,7 @@ class PanelView(ctx: Context) : View(ctx) {
             }
         }
         // footer
-        text(c, "FPS: ${d?.fps ?: "—"}  |  NET ↑${net(d?.netUpKbs)} ↓${net(d?.netDownKbs)}  |  ST ${stPct(d)?.let { "$it%" } ?: "—"}",
+        text(c, "FPS: ${d?.fps ?: "—"}  |  NET ↑${net(d?.netUpKbs)} ↓${net(d?.netDownKbs)}  |  BAT ${d?.battLevel?.let { "$it%" } ?: "—"}",
             pad, height - dp(12f), 9.5f, green, face = mono)
     }
 }
