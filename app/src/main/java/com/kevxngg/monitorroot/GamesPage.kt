@@ -110,7 +110,18 @@ fun GamesPage(onRun: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Tus juegos (%d)", Prefs.games.size))
             val myGames = remember(Prefs.games) { Prefs.games.mapNotNull { Apps.meta(it) }.sortedBy { it.label.lowercase() } }
-            GameGrid(myGames, onAdd = { picking = true }) { pkg ->
+            GameGrid(myGames, onAdd = { picking = true }, onLaunch = { pkg ->
+                // Game mode on (if it was off) and the game opens: the profile is applied as soon as it is on screen
+                if (!Prefs.gameMode) {
+                    Prefs.gameMode = true
+                    Prefs.save()
+                }
+                val app = ctx.applicationContext
+                scope.launch(Dispatchers.IO) { GameMode.start(app) }
+                ctx.packageManager.getLaunchIntentForPackage(pkg)
+                    ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    ?.let { i -> try { ctx.startActivity(i) } catch (_: Exception) {} }
+            }) { pkg ->
                 Prefs.games = Prefs.games - pkg
                 Prefs.save()
             }
@@ -565,7 +576,7 @@ private fun ToggleDivider() {
 /** Your games in a 4-column grid, with an add button. Long-press a game to remove it. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun GameGrid(games: List<AppMeta>, onAdd: () -> Unit, onRemove: (String) -> Unit) {
+private fun GameGrid(games: List<AppMeta>, onAdd: () -> Unit, onLaunch: (String) -> Unit, onRemove: (String) -> Unit) {
     val win = LocalWin.current
     var removing by remember { mutableStateOf<AppMeta?>(null) }
     val cells: List<AppMeta?> = games + listOf(null)   // null = add button
@@ -579,7 +590,7 @@ private fun GameGrid(games: List<AppMeta>, onAdd: () -> Unit, onRemove: (String)
                                 .weight(1f)
                                 .clip(corner(8))
                                 .combinedClickable(
-                                    onClick = { if (a == null) onAdd() },
+                                    onClick = { if (a == null) onAdd() else onLaunch(a.pkg) },
                                     onLongClick = { if (a != null) removing = a },
                                 )
                                 .padding(vertical = 8.dp),
@@ -606,7 +617,7 @@ private fun GameGrid(games: List<AppMeta>, onAdd: () -> Unit, onRemove: (String)
                 }
             }
             if (games.isEmpty()) Text(tr("Todavía no elegiste juegos."), fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(4.dp))
-            else Text(tr("Mantén pulsado un juego para quitarlo."), fontSize = 11.sp, color = win.sub, modifier = Modifier.padding(horizontal = 4.dp))
+            else Text(tr("Toca un juego para abrirlo con el modo juego. Mantén pulsado para quitarlo."), fontSize = 11.sp, color = win.sub, modifier = Modifier.padding(horizontal = 4.dp))
         }
     }
     removing?.let { a ->

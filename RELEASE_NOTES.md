@@ -5,4 +5,5 @@
 - Floating monitor: FPS were no longer shown on Android 14 and later, or after a single failed read. They are now measured again and recover on their own.
 - Floating monitor: the GPU usage on MediaTek is now averaged over several quick readings; before it often showed 0% while playing.
 - "Close background apps" in game mode now really keeps them closed: your installed apps are closed and kept from starting again until you leave the game (before, many reopened on their own within seconds and used the CPU while you played). System apps, the keyboard, the launcher, the phone and SMS apps, VPNs and apps playing music are never touched. Their notifications may arrive late while you play.
+- Tap one of your games on the Games page to open it with game mode on (it is turned on if it was off).
 - Everything goes back to normal when you leave the game.
