@@ -314,14 +314,20 @@ object Apps {
         return meta
     }
 
-    /** Packages that run with [uid] (usually one; several when they share a uid). Cached. */
+    /**
+     * Packages that run with [uid] (usually one; several when they share a uid).
+     * Only found answers are cached: an app installed later gets its uid looked up again.
+     */
     @Synchronized
-    fun packagesForUid(uid: Int): List<String> = uidPackages.getOrPut(uid) {
-        try {
+    fun packagesForUid(uid: Int): List<String> {
+        uidPackages[uid]?.let { return it }
+        val found = try {
             pm?.getPackagesForUid(uid)?.toList().orEmpty()
         } catch (_: Exception) {
             emptyList()
         }
+        if (found.isNotEmpty()) uidPackages[uid] = found
+        return found
     }
 
     fun launchablePackages(): List<String> {
