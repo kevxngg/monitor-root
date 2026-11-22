@@ -34,6 +34,8 @@ object GameApps {
     @Volatile private var held: Set<String> = emptySet()
     /** Phone apps with an icon (camera, calendar, gallery...): only closed, their settings are not changed. */
     @Volatile private var closed: Set<String> = emptySet()
+    /** How many times each phone app came back after being closed. */
+    private val comebacks = HashMap<String, Int>()
     /** Phone apps that must never be closed even if they have an icon (alarms, game tools, store downloads). */
     private val SYSTEM_KEEP = listOf("clock", "alarm", "securitycenter", "incallui", "vending", "settings", "systemui")
     private var lastCheck = 0L
@@ -121,7 +123,14 @@ object GameApps {
         if (now - lastCheck < 30_000) return
         lastCheck = now
         val running = RootShell.run("ps -A -o NAME").map { it.trim().substringBefore(':') }.toSet()
-        val again = pkgs.filter { it in running }
+        // A phone app that keeps coming back is being restarted by the system on purpose (for example
+        // the camera kept ready to open fast): closing it over and over would only waste CPU
+        closed.filter { it in running }.forEach { p ->
+            val n = (comebacks[p] ?: 0) + 1
+            comebacks[p] = n
+            if (n >= 2) closed = closed - p
+        }
+        val again = (held + closed).filter { it in running }
         if (again.isNotEmpty()) RootShell.run(again.joinToString("\n") { "am kill ${Actions.q(it)}" })
     }
 
@@ -131,6 +140,7 @@ object GameApps {
         val saved = prefs(ctx).getString(KEY, null)
         held = emptySet()
         closed = emptySet()
+        comebacks.clear()
         if (saved.isNullOrEmpty() || !RootShell.open()) return
         val script = saved.split(';').mapNotNull { e ->
             val f = e.split('|')
