@@ -36,8 +36,9 @@ object GameApps {
     @Volatile private var closed: Set<String> = emptySet()
     /** How many times each phone app came back after being closed. */
     private val comebacks = HashMap<String, Int>()
-    /** Phone apps that must never be closed even if they have an icon (alarms, game tools, store downloads). */
-    private val SYSTEM_KEEP = listOf("clock", "alarm", "securitycenter", "incallui", "vending", "settings", "systemui")
+    /** Phone apps that must never be closed even if they have an icon (the system security and game tools, calls). */
+    // (Closing the clock does not cancel alarms: they stay registered with the system.)
+    private val SYSTEM_KEEP = listOf("securitycenter", "incallui", "systemui")
     private var lastCheck = 0L
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("game", Context.MODE_PRIVATE)
