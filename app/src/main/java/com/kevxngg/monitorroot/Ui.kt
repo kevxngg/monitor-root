@@ -285,6 +285,7 @@ fun TableRow(
         Row(
             Modifier
                 .fillMaxWidth()
+                .height(IntrinsicSize.Min)
                 .heightIn(min = height)
                 .background(rowBg)
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick),

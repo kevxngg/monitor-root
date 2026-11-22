@@ -276,8 +276,19 @@ fun Shell() {
     var hist by remember { mutableStateOf(History()) }
     var samples by remember { mutableIntStateOf(0) }
     // Game mode notifications open the Games page directly
-    val openGames = (context as? android.app.Activity)?.intent?.getStringExtra("page") == "games"
-    var page by remember { mutableStateOf(if (openGames) Page.GAMES else Page.entries.getOrElse(Prefs.startPage) { Page.PROCESSES }) }
+    // ...and Settings comes back after its own restart (changing the text size)
+    val askedPage = (context as? android.app.Activity)?.intent?.let { i ->
+        i.getStringExtra("page").also { if (it == "settings") i.removeExtra("page") }
+    }
+    var page by remember {
+        mutableStateOf(
+            when (askedPage) {
+                "games" -> Page.GAMES
+                "settings" -> Page.SETTINGS
+                else -> Page.entries.getOrElse(Prefs.startPage) { Page.PROCESSES }
+            }
+        )
+    }
     var navOpen by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var runOpen by remember { mutableStateOf(false) }

@@ -22,7 +22,13 @@ object ProcessMapping {
      */
     fun pick(processName: String, candidates: List<String>): String? {
         val base = processName.substringBefore(':')
-        return candidates.firstOrNull { it == base } ?: candidates.firstOrNull()
+        candidates.firstOrNull { it == base }?.let { return it }
+        // "com.google.android.gms.persistent" belongs to com.google.android.gms: the longest package
+        // the name starts with ("pkg." or "pkg:")
+        candidates.filter { processName.startsWith("$it.") || processName.startsWith("$it:") }
+            .maxByOrNull { it.length }?.let { return it }
+        // No match: always the same one (Android returns a shared uid's packages in no fixed order)
+        return candidates.minOrNull()
     }
 
     /** A package lookup that failed is tried again after this long (the app may have been installed since). */

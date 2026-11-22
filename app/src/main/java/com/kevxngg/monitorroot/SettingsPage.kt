@@ -118,8 +118,12 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     if (it != Prefs.fontSize) {
                         Prefs.fontSize = it
                         Prefs.save()
-                        // The size is applied when the screen is created: it is recreated right away
-                        (ctx as? android.app.Activity)?.recreate()
+                        // The size is applied when the screen is created: it is recreated right away,
+                        // coming back to Settings
+                        (ctx as? android.app.Activity)?.let { a ->
+                            a.intent.putExtra("page", "settings")
+                            a.recreate()
+                        }
                     }
                 }
             }
