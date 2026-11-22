@@ -35,6 +35,21 @@ class ProcessMappingTest {
     }
 
     @Test
+    fun prefixOfProcessName() {
+        // Google Play services processes share a uid with other Google packages and have no ':'
+        val gms = listOf("com.google.android.gsf", "com.google.android.gms")
+        assertEquals("com.google.android.gms", ProcessMapping.pick("com.google.android.gms.persistent", gms))
+        assertEquals("com.google.android.gms", ProcessMapping.pick("com.google.android.gms.unstable", gms.reversed()))
+    }
+
+    @Test
+    fun stableChoiceWithoutMatch() {
+        // No name match: always the same package, whatever order Android returns them in
+        val shared = listOf("com.android.providers.media", "com.android.providers.downloads")
+        assertEquals(ProcessMapping.pick("android.process.media", shared), ProcessMapping.pick("android.process.media", shared.reversed()))
+    }
+
+    @Test
     fun failedLookupRetriedAfterAMinute() {
         assertFalse(ProcessMapping.retryDue(0L, 59_999L))
         assertTrue(ProcessMapping.retryDue(0L, 60_000L))
