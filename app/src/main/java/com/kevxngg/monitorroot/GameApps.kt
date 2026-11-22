@@ -81,14 +81,24 @@ object GameApps {
         if (held.isNotEmpty() || !RootShell.open() || RootShell.viaShizuku) return
         val keep = protectedNow(ctx, game)
         val installed = RootShell.run("pm list packages -3").mapNotNull { it.trim().removePrefix("package:").takeIf { p -> p.isNotEmpty() } }
-        val pkgs = installed.filter { p -> p !in keep && SYSTEM_PREFIXES.none { p == it || p.startsWith(it) } }
-        // The phone's own apps with an icon (camera, calendar, gallery, notes...) are closed too, but
-        // nothing about them is changed: they can only come back if you open them
-        closed = RootShell.run("cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER")
+        val userApps = installed.filter { p -> p !in keep && SYSTEM_PREFIXES.none { p == it || p.startsWith(it) } }
+        // The phone's own apps with an icon (camera, calendar, gallery, weather, Play Store...).
+        // Many are restarted by the system right away, so they are held like your apps (blocked in the
+        // background and put back as they were afterwards). Never the ones that share the system's
+        // identity (Settings and similar: blocking them would block the system itself), nor the clock
+        // (its alarms must ring): those are only closed.
+        val uids = RootShell.run("cmd package list packages -U").mapNotNull { l ->
+            val p = l.substringAfter("package:").substringBefore(' ').trim()
+            val uid = l.substringAfter("uid:", "").trim().substringBefore(',').toIntOrNull() ?: return@mapNotNull null
+            p to uid
+        }.toMap()
+        val phoneApps = RootShell.run("cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER")
             .map { it.trim() }.filter { it.contains('/') && !it.contains('=') && !it.contains(' ') }
             .map { it.substringBefore('/') }.toSet()
-            .filter { p -> p !in keep && p !in pkgs && SYSTEM_KEEP.none { p.contains(it, ignoreCase = true) } }
-            .toSet()
+            .filter { p -> p !in keep && p !in userApps && SYSTEM_KEEP.none { p.contains(it, ignoreCase = true) } }
+        val onlyClose = phoneApps.filter { p -> (uids[p] ?: 0) < 10_000 || p.contains("clock", true) || p.contains("alarm", true) }
+        closed = onlyClose.toSet()
+        val pkgs = userApps + (phoneApps - onlyClose.toSet())
         if (closed.isNotEmpty()) RootShell.run(closed.joinToString("\n") { "am kill ${Actions.q(it)}" })
         if (pkgs.isEmpty()) return
         // Current state of each app, to put it back exactly as it was
@@ -111,18 +121,18 @@ object GameApps {
             "cmd appops set $q RUN_ANY_IN_BACKGROUND ignore; cmd activity set-standby-bucket $q restricted; am kill $q"
         })
         // A first check a few seconds later ends whatever survived "am kill"
-        lastCheck = SystemClock.elapsedRealtime() - 25_000
+        lastCheck = SystemClock.elapsedRealtime() - 7_000
     }
 
     /**
-     * Every 30 s while playing: an app the system started anyway (a push message, for example)
+     * Every 10 s while playing: an app the system started anyway (a push message, for example)
      * is closed again. The app on screen [onScreen] is never touched (you may have opened it on purpose).
      */
     fun keepClosed(onScreen: String?) {
         val pkgs = held + closed
         if (pkgs.isEmpty()) return
         val now = SystemClock.elapsedRealtime()
-        if (now - lastCheck < 30_000) return
+        if (now - lastCheck < 10_000) return
         lastCheck = now
         // pid -> app (sub-processes such as "app:service" count as the app)
         val procs = RootShell.run("ps -A -o PID,NAME").mapNotNull { l ->
@@ -158,9 +168,10 @@ object GameApps {
             val f = e.split('|')
             if (f.size < 3) return@mapNotNull null
             val q = Actions.q(f[0])
-            val bucket = BUCKETS[f[1].toIntOrNull()] ?: "active"
             val mode = f[2].takeIf { it in setOf("allow", "ignore", "deny", "default", "foreground") } ?: "default"
-            "cmd appops set $q RUN_ANY_IN_BACKGROUND $mode; cmd activity set-standby-bucket $q $bucket"
+            // Phone apps that the system keeps "exempt" have no bucket to put back
+            val bucket = BUCKETS[f[1].toIntOrNull()]?.let { "; cmd activity set-standby-bucket $q $it" } ?: ""
+            "cmd appops set $q RUN_ANY_IN_BACKGROUND $mode$bucket"
         }
         if (script.isNotEmpty()) RootShell.run(script.joinToString("\n"))
         prefs(ctx).edit().remove(KEY).apply()
