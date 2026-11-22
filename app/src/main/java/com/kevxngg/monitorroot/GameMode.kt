@@ -232,6 +232,14 @@ class GameModeService : Service() {
         return fg
     }
 
+    private var lastTopCheck = 0L
+    private val TOP = Regex("""topResumedActivity=ActivityRecord\{\S+ u\d+ ([\w.]+)/""")
+
+    /** The app really on top according to the system (needs root or Shizuku; null if unknown). */
+    private fun topResumed(): String? =
+        if (!RootShell.open()) null
+        else RootShell.run("dumpsys activity activities | grep -m 1 topResumedActivity").firstOrNull()?.let { TOP.find(it)?.groupValues?.get(1) }
+
     /** Screen on and unlocked (otherwise the user is not playing). */
     private fun screenActive(): Boolean {
         val pm = getSystemService(android.os.PowerManager::class.java)
@@ -246,8 +254,23 @@ class GameModeService : Service() {
             current?.let { exitGame(it, reason = "screen off or locked") }
             return
         }
-        val fg = foreground()
         val cur = current
+        var fg = foreground()
+        // Usage events miss some changes (for example closing a floating window, or returning to a game
+        // that never paused): the app really on top is checked with the system when it matters
+        val nowMs = SystemClock.elapsedRealtime()
+        val top = when {
+            cur != null && fg != cur -> topResumed()
+            cur == null && (fg == null || fg !in Prefs.games) && nowMs - lastTopCheck > 10_000 -> {
+                lastTopCheck = nowMs
+                topResumed()?.takeIf { it in Prefs.games }
+            }
+            else -> null
+        }
+        if (top != null) {
+            fg = top
+            lastFg = top
+        }
         if (cur != null) {
             // The session continues while the game is open, even if you briefly switch to another
             // app (ads, sign-in, another window). It ends when the game is closed (removed from
@@ -259,7 +282,8 @@ class GameModeService : Service() {
             // Game left in the background: after a while the session ends (sooner with Diablo Mode,
             // so the phone is not left at full power without thermal control in a pocket or another app)
             val now = SystemClock.elapsedRealtime()
-            if (fg == cur) awaySince = 0L else if (awaySince == 0L) awaySince = now
+            // Looking at Monitor itself (to check the game's stats) does not count as leaving the game
+            if (fg == cur || fg == packageName) awaySince = 0L else if (awaySince == 0L) awaySince = now
             val away = awaySince != 0L && now - awaySince > (if (DiabloMode.active) 60_000L else 180_000L)
             if (closed || otherGame || away) {
                 exitGame(cur, reason = when {
