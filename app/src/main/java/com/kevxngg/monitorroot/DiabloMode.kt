@@ -36,7 +36,8 @@ object DiabloMode {
 
     // Passive kernel limits that were removed (to restore them on exit)
     private var zonesOff: List<String> = emptyList()          // thermal zones set to "disabled"
-    private var mtkBefore: List<Pair<String, String>> = emptyList()  // MediaTek file → original value
+    private var mtkBefore: List<Pair<String, String>> = emptyList()  // file → original value (MediaTek limits, cpusets)
+    private var littleCpus: String? = null   // CPUs left to the other foreground apps (the little cluster)
 
     private var cpuBefore: CpuPower.Snapshot? = null
     private var gpuBefore: GpuControl.State? = null
@@ -77,7 +78,8 @@ object DiabloMode {
             .putBoolean("active", true).putString("services", stopped.joinToString(",")).apply()
         stopped.forEach { RootShell.run("stop ${Actions.q(it)}") }
         pauseJoyose()
-        val (zones, mtk) = liftPassiveLimits()
+        val (zones, limits) = liftPassiveLimits()
+        val mtk = limits + reserveBigCores(before.clusters)
         zonesOff = zones; mtkBefore = mtk
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString("zones", zones.joinToString(","))
@@ -89,6 +91,29 @@ object DiabloMode {
         gpuBefore?.let { pinGpu(it) }
         active = true
         return true
+    }
+
+    /**
+     * Leaves the big cores to the game: the other apps and services that run in the foreground
+     * (another app's service, system_server, audio…) are limited to the little cluster, while the
+     * game (top-app) keeps every core. On a Helio G99 the game's threads saturate its only two big
+     * cores, and sharing them with those processes made the frame times jump.
+     * Returns the cpuset files changed with their original value, to restore them.
+     */
+    private fun reserveBigCores(clusters: List<CpuPower.Cluster>): List<Pair<String, String>> {
+        if (clusters.size < 2) return emptyList()
+        val little = clusters.minByOrNull { it.hwMaxKhz ?: Long.MAX_VALUE }?.cpus?.replace('–', '-')
+            ?.takeIf { Regex("""\d+(-\d+)?""").matches(it) } ?: return emptyList()
+        littleCpus = little
+        val out = ArrayList<Pair<String, String>>()
+        for (set in listOf("foreground", "foreground_window")) {
+            val file = "/dev/cpuset/$set/cpus"
+            val cur = RootShell.run("cat $file 2>/dev/null").firstOrNull()?.trim().orEmpty()
+            if (cur.isEmpty()) continue
+            out.add(file to cur)
+            RootShell.run("echo $little > $file")
+        }
+        return out
     }
 
     /**
@@ -124,7 +149,9 @@ object DiabloMode {
      * Removes the kernel's PASSIVE thermal limits (the ones that lower frequency at low heat).
      * Only zones that have NO "critical" or "hot" trip point are disabled: the ones that really protect
      * the hardware (emergency shutdown) stay active.
-     * On MediaTek, FPSGO, thermal EARA and the PPM thermal policy are also turned off.
+     * On MediaTek, thermal EARA and the PPM thermal policy are also turned off. FPSGO is left on:
+     * it is MediaTek's frame pacing (it moves the game's render thread to the right cores), and
+     * turning it off made the frame rate lower and less even.
      */
     private fun liftPassiveLimits(): Pair<List<String>, List<Pair<String, String>>> {
         val zones = RootShell.run(
@@ -146,7 +173,6 @@ object DiabloMode {
             mtk.add(file to cur)
             RootShell.run("echo $value > ${Actions.q(file)}")
         }
-        setIfExists("/sys/kernel/fpsgo/common/fpsgo_enable", "0")
         setIfExists("/sys/kernel/eara_thermal/enable", "0")
         // PPM: disable only the thermal policy (the others are left alone)
         val ppm = RootShell.run("cat /proc/ppm/policy_status 2>/dev/null")
@@ -196,7 +222,8 @@ object DiabloMode {
         zonesOff.forEach { RootShell.run("echo disabled > ${Actions.q("$it/mode")}") }
         mtkBefore.forEach { (file, _) ->
             when {
-                file.endsWith("fpsgo_enable") || file.endsWith("eara_thermal/enable") -> RootShell.run("echo 0 > ${Actions.q(file)}")
+                file.endsWith("eara_thermal/enable") -> RootShell.run("echo 0 > ${Actions.q(file)}")
+                file.startsWith("/dev/cpuset/") -> littleCpus?.let { RootShell.run("echo $it > ${Actions.q(file)}") }
             }
         }
     }
@@ -219,7 +246,7 @@ object DiabloMode {
                 }
             }
         }
-        stopped = emptyList(); cpuBefore = null; gpuBefore = null; zonesOff = emptyList(); mtkBefore = emptyList()
+        stopped = emptyList(); cpuBefore = null; gpuBefore = null; zonesOff = emptyList(); mtkBefore = emptyList(); littleCpus = null
         // Without root nothing could be restored: the saved state is kept so recoverIfNeeded() does it later
         if (!root) return
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
