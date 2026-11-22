@@ -113,6 +113,16 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     Prefs.theme = it; Prefs.save()
                 }
             }
+            SettingCard(Icons.Outlined.FormatSize, tr("Tamaño del texto"), tr("Agranda los textos de la app")) {
+                WinDropdown(listOf(tr("Normal"), tr("Grande"), tr("Muy grande")), Prefs.fontSize.coerceIn(0, FontScale.LEVELS.size - 1)) {
+                    if (it != Prefs.fontSize) {
+                        Prefs.fontSize = it
+                        Prefs.save()
+                        // The size is applied when the screen is created: it is recreated right away
+                        (ctx as? android.app.Activity)?.recreate()
+                    }
+                }
+            }
             SettingCard(Icons.Outlined.Home, tr("Página de inicio predeterminada"), tr("La página que se abre al iniciar la app")) {
                 WinDropdown(Page.entries.filter { it != Page.SETTINGS }.map { tr(it.title) }, Prefs.startPage) {
                     Prefs.startPage = it; Prefs.save()

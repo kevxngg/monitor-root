@@ -11,6 +11,8 @@ import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import android.graphics.Color as AColor
+import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -64,6 +66,25 @@ enum class Page(val title: String, val icon: ImageVector) {
 }
 
 class MainActivity : ComponentActivity() {
+    /**
+     * Text size (Settings > Text size): Android's own font scale × the chosen level, once.
+     * Applied to the activity's configuration, so every screen, dialog and menu follows it.
+     * The level is read straight from the preferences file: Prefs is not loaded yet here.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase)
+        val level = try {
+            newBase.getSharedPreferences("prefs", Context.MODE_PRIVATE).getInt(FontScale.KEY, 0)
+        } catch (_: Exception) {
+            0
+        }
+        if (level != 0) {
+            applyOverrideConfiguration(Configuration().apply {
+                fontScale = FontScale.effective(newBase.resources.configuration.fontScale, level)
+            })
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Prefs.init(applicationContext)
