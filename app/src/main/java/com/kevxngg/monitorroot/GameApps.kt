@@ -36,6 +36,9 @@ object GameApps {
     @Volatile private var closed: Set<String> = emptySet()
     /** How many times each phone app came back after being closed. */
     private val comebacks = HashMap<String, Int>()
+    /** Phone apps among [held]; the ones the system keeps restarting stop being closed (they stay blocked). */
+    @Volatile private var phoneHeld: Set<String> = emptySet()
+    @Volatile private var giveUp: Set<String> = emptySet()
     /** Phone apps that must never be closed even if they have an icon (the system security and game tools, calls). */
     // (Closing the clock does not cancel alarms: they stay registered with the system.)
     private val SYSTEM_KEEP = listOf("securitycenter", "incallui", "systemui")
@@ -99,6 +102,8 @@ object GameApps {
         val onlyClose = phoneApps.filter { p -> (uids[p] ?: 0) < 10_000 || p.contains("clock", true) || p.contains("alarm", true) }
         closed = onlyClose.toSet()
         val pkgs = userApps + (phoneApps - onlyClose.toSet())
+        phoneHeld = (phoneApps - onlyClose.toSet()).toSet()
+        giveUp = emptySet()
         if (closed.isNotEmpty()) RootShell.run(closed.joinToString("\n") { "am kill ${Actions.q(it)}" })
         if (pkgs.isEmpty()) return
         // Current state of each app, to put it back exactly as it was
@@ -143,16 +148,19 @@ object GameApps {
         val running = procs.map { it.second }.toSet()
         // A phone app that keeps coming back is being restarted by the system on purpose (for example
         // the camera kept ready to open fast): closing it over and over would only waste CPU
-        closed.filter { it in running }.forEach { p ->
+        (closed + (phoneHeld - giveUp)).filter { it in running }.forEach { p ->
             val n = (comebacks[p] ?: 0) + 1
             comebacks[p] = n
-            if (n >= 2) closed = closed - p
+            if (n >= 3) {
+                closed = closed - p
+                giveUp = giveUp + p
+            }
         }
         // Phone apps: closed the normal way. Your apps: "am kill" skips a process that is handling a
         // message or broadcast, and some stayed alive for minutes, so their processes are ended directly
         // (as Android does when it needs memory); they are already restricted and won't come back.
         val script = closed.filter { it in running && it != onScreen }.map { "am kill ${Actions.q(it)}" } +
-            procs.filter { it.second in held && it.second != onScreen }.map { "kill -9 ${it.first}" }
+            procs.filter { it.second in held && it.second !in giveUp && it.second != onScreen }.map { "kill -9 ${it.first}" }
         if (script.isNotEmpty()) RootShell.run(script.joinToString("\n"))
     }
 
@@ -163,6 +171,8 @@ object GameApps {
         held = emptySet()
         closed = emptySet()
         comebacks.clear()
+        phoneHeld = emptySet()
+        giveUp = emptySet()
         if (saved.isNullOrEmpty() || !RootShell.open()) return
         val script = saved.split(';').mapNotNull { e ->
             val f = e.split('|')
