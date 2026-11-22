@@ -109,7 +109,8 @@ object GameApps {
             val q = Actions.q(p)
             "cmd appops set $q RUN_ANY_IN_BACKGROUND ignore; cmd activity set-standby-bucket $q restricted; am kill $q"
         })
-        lastCheck = SystemClock.elapsedRealtime()
+        // A first check a few seconds later ends whatever survived "am kill"
+        lastCheck = SystemClock.elapsedRealtime() - 25_000
     }
 
     /**
@@ -122,7 +123,13 @@ object GameApps {
         val now = SystemClock.elapsedRealtime()
         if (now - lastCheck < 30_000) return
         lastCheck = now
-        val running = RootShell.run("ps -A -o NAME").map { it.trim().substringBefore(':') }.toSet()
+        // pid -> app (sub-processes such as "app:service" count as the app)
+        val procs = RootShell.run("ps -A -o PID,NAME").mapNotNull { l ->
+            val f = l.trim().split(Regex("\\s+"), limit = 2)
+            val pid = f.getOrNull(0)?.toIntOrNull() ?: return@mapNotNull null
+            pid to (f.getOrNull(1)?.substringBefore(':') ?: return@mapNotNull null)
+        }
+        val running = procs.map { it.second }.toSet()
         // A phone app that keeps coming back is being restarted by the system on purpose (for example
         // the camera kept ready to open fast): closing it over and over would only waste CPU
         closed.filter { it in running }.forEach { p ->
@@ -130,8 +137,12 @@ object GameApps {
             comebacks[p] = n
             if (n >= 2) closed = closed - p
         }
-        val again = (held + closed).filter { it in running }
-        if (again.isNotEmpty()) RootShell.run(again.joinToString("\n") { "am kill ${Actions.q(it)}" })
+        // Phone apps: closed the normal way. Your apps: "am kill" skips a process that is handling a
+        // message or broadcast, and some stayed alive for minutes, so their processes are ended directly
+        // (as Android does when it needs memory); they are already restricted and won't come back.
+        val script = closed.filter { it in running }.map { "am kill ${Actions.q(it)}" } +
+            procs.filter { it.second in held }.map { "kill -9 ${it.first}" }
+        if (script.isNotEmpty()) RootShell.run(script.joinToString("\n"))
     }
 
     /** Puts every app back as it was before the game. */
