@@ -274,6 +274,9 @@ class AppMeta(
 object Apps {
     private var pm: PackageManager? = null
     private val cache = HashMap<String, AppMeta?>()
+    /** When a lookup failed: it is tried again later (the app may have been installed since). */
+    private val failedAt = HashMap<String, Long>()
+    private val uidPackages = HashMap<Int, List<String>>()
 
     fun init(ctx: Context) {
         pm = ctx.packageManager
@@ -281,7 +284,11 @@ object Apps {
 
     @Synchronized
     fun meta(pkg: String): AppMeta? {
-        if (cache.containsKey(pkg)) return cache[pkg]
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (cache.containsKey(pkg)) {
+            val hit = cache[pkg]
+            if (hit != null || !ProcessMapping.retryDue(failedAt[pkg] ?: 0L, now)) return hit
+        }
         val p = pm ?: return null
         val meta = try {
             @Suppress("DEPRECATION")
@@ -303,7 +310,18 @@ object Apps {
             null
         }
         cache[pkg] = meta
+        if (meta == null) failedAt[pkg] = now else failedAt.remove(pkg)
         return meta
+    }
+
+    /** Packages that run with [uid] (usually one; several when they share a uid). Cached. */
+    @Synchronized
+    fun packagesForUid(uid: Int): List<String> = uidPackages.getOrPut(uid) {
+        try {
+            pm?.getPackagesForUid(uid)?.toList().orEmpty()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     fun launchablePackages(): List<String> {

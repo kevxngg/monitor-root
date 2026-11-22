@@ -376,7 +376,10 @@ class SystemReader(context: Context) {
             val pio = prevIo[pid]
             val diskBps = if (io != null && pio != null && dt > 0) ((io - pio) / dt).toLong().coerceAtLeast(0) else 0L
             val (user, rawName) = names[pid] ?: ("?" to comm)
-            val pkgCandidate = rawName.substringBefore(':')
+            // The app is found from the process's user (its uid); the name is only the fallback,
+            // because many apps run processes whose name is not their package
+            val byUid = ProcessMapping.uidOf(user)?.let { ProcessMapping.pick(rawName, Apps.packagesForUid(it)) }
+            val pkgCandidate = byUid ?: rawName.substringBefore(':')
             val meta = if (pkgCandidate.contains('.') && !pkgCandidate.startsWith("/")) Apps.meta(pkgCandidate) else null
             procs.add(
                 ProcInfo(
