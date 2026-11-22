@@ -115,9 +115,9 @@ object GameApps {
 
     /**
      * Every 30 s while playing: an app the system started anyway (a push message, for example)
-     * is closed again.
+     * is closed again. The app on screen [onScreen] is never touched (you may have opened it on purpose).
      */
-    fun keepClosed() {
+    fun keepClosed(onScreen: String?) {
         val pkgs = held + closed
         if (pkgs.isEmpty()) return
         val now = SystemClock.elapsedRealtime()
@@ -140,8 +140,8 @@ object GameApps {
         // Phone apps: closed the normal way. Your apps: "am kill" skips a process that is handling a
         // message or broadcast, and some stayed alive for minutes, so their processes are ended directly
         // (as Android does when it needs memory); they are already restricted and won't come back.
-        val script = closed.filter { it in running }.map { "am kill ${Actions.q(it)}" } +
-            procs.filter { it.second in held }.map { "kill -9 ${it.first}" }
+        val script = closed.filter { it in running && it != onScreen }.map { "am kill ${Actions.q(it)}" } +
+            procs.filter { it.second in held && it.second != onScreen }.map { "kill -9 ${it.first}" }
         if (script.isNotEmpty()) RootShell.run(script.joinToString("\n"))
     }
 

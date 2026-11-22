@@ -309,7 +309,7 @@ class GameModeService : Service() {
                 applyHz()
             }
             // Background apps: closed again if something started them; let go if the option is turned off
-            if (Prefs.gameKill) GameApps.keepClosed() else GameApps.release(applicationContext)
+            if (Prefs.gameKill) GameApps.keepClosed(fg) else GameApps.release(applicationContext)
         }
         if (current != null && (Prefs.gameRecord || DiabloMode.active)) record(inGame = fg == current)
         // Keep Diablo Mode: if something changed the frequencies or re-enabled thermal control, it is corrected
