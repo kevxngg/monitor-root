@@ -127,7 +127,7 @@ private fun MacSearch(query: String, onQuery: (String) -> Unit, modifier: Modifi
     val win = LocalWin.current
     Row(
         modifier
-            .height(30.dp)
+            .heightIn(min = 30.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(win.content)
             .border(1.dp, win.border, RoundedCornerShape(6.dp))

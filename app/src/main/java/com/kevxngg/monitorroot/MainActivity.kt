@@ -429,7 +429,7 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
     val win = LocalWin.current
     val compact = LocalCompact.current
     Row(
-        Modifier.fillMaxWidth().height(48.dp).padding(start = 12.dp, end = 10.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 12.dp, end = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Filled.Insights, null, tint = win.accent, modifier = Modifier.size(18.dp))
@@ -441,7 +441,7 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
         Row(
             Modifier
                 .then(if (compact) Modifier.weight(1f) else Modifier.width(380.dp))
-                .height(34.dp)
+                .heightIn(min = 34.dp)
                 .clip(corner(4))
                 .background(win.card)
                 .border(1.dp, win.border, corner(4))
@@ -501,7 +501,7 @@ private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expande
     Row(
         Modifier
             .fillMaxWidth()
-            .height(40.dp)
+            .heightIn(min = 40.dp)
             .padding(vertical = 2.dp)
             .clip(corner(4))
             .background(if (selected) win.hover else Color.Transparent)

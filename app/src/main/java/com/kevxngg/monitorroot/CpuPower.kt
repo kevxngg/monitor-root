@@ -375,15 +375,17 @@ private fun PowerModeCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, onSe
             CpuPower.Mode.BALANCED to tr("Equilibrado"),
             CpuPower.Mode.PERFORMANCE to tr("Mejor rendimiento"),
         )
-        Row(Modifier.fillMaxWidth().clip(corner(6)).border(1.dp, win.border, corner(6))) {
+        // Height of the tallest button, so all of them and the dividers grow together with larger text
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clip(corner(6)).border(1.dp, win.border, corner(6))) {
             options.forEachIndexed { i, (mode, label) ->
                 val selected = mode == current
                 val enabled = !busy && !selected && CpuPower.isAvailable(mode, clusters)
-                if (i > 0) Box(Modifier.width(1.dp).height(52.dp).background(win.border))
+                if (i > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(win.border))
                 Box(
                     Modifier
                         .weight(1f)
-                        .height(52.dp)
+                        .heightIn(min = 52.dp)
+                        .fillMaxHeight()
                         .background(if (selected) win.accent else Color.Transparent)
                         .then(if (enabled) Modifier.clickable { onSelect(mode) } else Modifier)
                         .padding(horizontal = 6.dp),

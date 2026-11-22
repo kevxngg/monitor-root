@@ -138,7 +138,7 @@ private fun SideItem(r: Res, selected: Boolean, d: SideData, modifier: Modifier,
     val color = r.color(win)
     Row(
         modifier
-            .height(68.dp)
+            .heightIn(min = 68.dp)
             .clip(corner(6))
             .background(if (selected) win.hover else Color.Transparent)
             .clickable(onClick = onClick)
