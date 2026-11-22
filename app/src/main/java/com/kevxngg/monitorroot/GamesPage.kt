@@ -97,6 +97,8 @@ fun GamesPage(onRun: () -> Unit) {
             GameCard {
                 GameToggle(Icons.Outlined.PictureInPicture, tr("Mostrar el monitor flotante"), tr("Se oculta al salir del juego."), Prefs.gameOverlay) { Prefs.gameOverlay = it; Prefs.save() }
                 ToggleDivider()
+                RefreshRateRow()
+                ToggleDivider()
                 GameToggle(Icons.Outlined.CleaningServices, tr("Cerrar apps en segundo plano"), tr("Libera memoria al abrir el juego."), Prefs.gameKill) { Prefs.gameKill = it; Prefs.save() }
                 ToggleDivider()
                 GameToggle(Icons.Outlined.DoNotDisturbOn, tr("No molestar"), tr("Silencia las notificaciones mientras juegas."), Prefs.gameDnd) { Prefs.gameDnd = it; Prefs.save() }
@@ -520,6 +522,38 @@ private fun GameToggle(
         }
         Spacer(Modifier.width(8.dp))
         WinSwitch(checked, onChange)
+    }
+}
+
+/** Screen refresh rate while playing: a rate the game can sustain gives the most even frames. */
+@Composable
+private fun RefreshRateRow() {
+    val win = LocalWin.current
+    val ctx = LocalContext.current
+    val rates = remember {
+        try {
+            @Suppress("DEPRECATION")
+            (ctx.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager).defaultDisplay
+                .supportedModes.map { Math.round(it.refreshRate) }.filter { it >= 30 }.distinct().sortedDescending()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+    if (rates.size < 2) return
+    val options = listOf(tr("Sin cambios")) + rates.map { "$it Hz" }
+    val selected = if (Prefs.gameHz == 0) 0 else rates.indexOf(Prefs.gameHz).let { if (it < 0) 0 else it + 1 }
+    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Outlined.Speed, null, tint = win.sub, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(tr("Frecuencia de pantalla"), fontSize = 14.sp, color = win.text)
+            Text(tr("Si el juego no llega a los FPS de la pantalla, una frecuencia más baja los mantiene estables."), fontSize = 12.sp, color = win.sub)
+        }
+        Spacer(Modifier.width(8.dp))
+        WinDropdown(options, selected, enabled = !RootShell.viaShizuku) { i ->
+            Prefs.gameHz = if (i == 0) 0 else rates[i - 1]
+            Prefs.save()
+        }
     }
 }
 

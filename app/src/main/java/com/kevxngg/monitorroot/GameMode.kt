@@ -169,6 +169,7 @@ class GameModeService : Service() {
             if (RootShell.open()) RootShell.run("appops set $packageName GET_USAGE_STATS allow")
             DiabloMode.recoverIfNeeded(applicationContext)
             recoverCpuIfNeeded()
+            if (RootShell.open()) restoreHz()   // the app was killed in the middle of a game
             while (alive) {
                 try {
                     tick()
@@ -245,12 +246,16 @@ class GameModeService : Service() {
         } else if (fg != null && fg in Prefs.games) {
             enterGame(fg)
         }
-        // The profile was changed on the Games page while playing: it is applied right away
+        // The profile or the refresh rate was changed on the Games page while playing: applied right away
         current?.let { pkg ->
             if (appliedPower != Prefs.gamePower && RootShell.open()) {
                 revertProfile()
                 applyProfile()
                 updateNotification(pkg)
+            }
+            if (appliedHz != Prefs.gameHz && RootShell.open()) {
+                restoreHz()
+                applyHz()
             }
         }
         if (current != null && (Prefs.gameRecord || DiabloMode.active)) record(inGame = fg == current)
@@ -280,6 +285,7 @@ class GameModeService : Service() {
         battStart = battery()
         if (!RootShell.open()) return
         applyProfile()
+        applyHz()
         // Close background apps to free memory
         if (Prefs.gameKill) RootShell.run("am kill-all")
         // Do Not Disturb (only if it was off)
@@ -328,6 +334,50 @@ class GameModeService : Service() {
 
     private fun gamePrefs() = getSharedPreferences("game", Context.MODE_PRIVATE)
 
+    // ---- Screen refresh rate while playing ----
+    // A game that can't keep up with the screen (e.g. 80 FPS on a 120 Hz screen) alternates frames of
+    // one and two refreshes, which feels like stutter. At a rate it can sustain, every frame lasts the same.
+    private var appliedHz = 0
+
+    /** Settings (namespace:key) that decide the refresh rate; only the ones the phone has are changed. */
+    private val HZ_KEYS = listOf(
+        "system:min_refresh_rate", "system:peak_refresh_rate",
+        "system:user_refresh_rate", "system:miui_refresh_rate", "secure:miui_refresh_rate",
+    )
+
+    private fun applyHz() {
+        val hz = Prefs.gameHz
+        appliedHz = hz
+        if (hz <= 0) return
+        val saved = HZ_KEYS.mapNotNull { k ->
+            val ns = k.substringBefore(':'); val key = k.substringAfter(':')
+            val v = RootShell.run("settings get $ns $key").firstOrNull()?.trim()
+            if (v.isNullOrEmpty() || v == "null") null else "$k=$v"
+        }
+        if (saved.isEmpty()) return
+        // Remembered on disk, so the original rate comes back even if the app is killed mid-game
+        gamePrefs().edit().putString("hz", saved.joinToString(";")).apply()
+        saved.forEach { e ->
+            val k = e.substringBefore('=')
+            val ns = k.substringBefore(':'); val key = k.substringAfter(':')
+            val value = if (key == "min_refresh_rate" || key == "peak_refresh_rate") "$hz.0" else "$hz"
+            RootShell.run("settings put $ns $key $value")
+        }
+    }
+
+    private fun restoreHz() {
+        val sp = gamePrefs()
+        val saved = sp.getString("hz", null)
+        appliedHz = 0
+        if (saved.isNullOrEmpty()) return
+        saved.split(';').filter { it.contains('=') }.forEach { e ->
+            val k = e.substringBefore('=')
+            val ns = k.substringBefore(':'); val key = k.substringAfter(':')
+            RootShell.run("settings put $ns $key ${Actions.q(e.substringAfter('='))}")
+        }
+        sp.edit().remove("hz").apply()
+    }
+
     /** If the app was killed while a game had a power mode applied, the CPU goes back to balanced. */
     private fun recoverCpuIfNeeded() {
         val sp = gamePrefs()
@@ -352,6 +402,7 @@ class GameModeService : Service() {
         current = null
         GameModeState.playing = null
         revertProfile()
+        if (RootShell.open()) restoreHz()
         if (changedDnd && RootShell.open()) RootShell.run("cmd notification set_dnd off")
         changedDnd = false
         if (startedOverlay) {

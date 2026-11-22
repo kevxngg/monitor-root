@@ -140,6 +140,7 @@ object Prefs {
     var gameKill by mutableStateOf(false)
     var gameDnd by mutableStateOf(false)
     var gameRecord by mutableStateOf(true)
+    var gameHz by mutableIntStateOf(0)          // screen refresh rate while playing (0 = no change)
     var gameDiablo by mutableStateOf(false)
     var diabloAccepted by mutableStateOf(false) // the Diablo Mode warning was already accepted once
 
@@ -186,6 +187,7 @@ object Prefs {
         gameKill = p.getBoolean("gmKill", false)
         gameDnd = p.getBoolean("gmDnd", false)
         gameRecord = p.getBoolean("gmRecord", true)
+        gameHz = p.getInt("gmHz", 0)
         gameDiablo = false
         if (p.getBoolean("gmDiablo", false)) gamePower = 4
         // Whoever already had Diablo Mode selected accepted the warning in a previous version
@@ -228,6 +230,7 @@ object Prefs {
             ?.putBoolean("gmKill", gameKill)
             ?.putBoolean("gmDnd", gameDnd)
             ?.putBoolean("gmRecord", gameRecord)
+            ?.putInt("gmHz", gameHz)
             ?.putBoolean("gmDiablo", false)
             ?.putBoolean("gmDiabloOk", diabloAccepted)
             ?.putBoolean("alTemp", alertTemp)

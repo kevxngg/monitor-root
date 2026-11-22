@@ -112,13 +112,22 @@ object QuickStats {
             layer = null
             return null
         }
-        val layers = RootShell.run("dumpsys SurfaceFlinger --list").map { it.trim() }.filter { it.contains(pkg) }
-        layer = layers.firstOrNull { it.startsWith("SurfaceView") && it.contains("BLAST") }
-            ?: layers.firstOrNull { it.startsWith("SurfaceView") }
+        val layers = RootShell.run("dumpsys SurfaceFlinger --list").map { layerName(it.trim()) }.filter { it.contains(pkg) }
+        layer = layers.firstOrNull { it.contains("SurfaceView[") && it.contains("BLAST") }
+            ?: layers.firstOrNull { it.contains("SurfaceView[") && !it.startsWith("Background") }
             ?: layers.firstOrNull { it.contains("BLAST") }
             ?: layers.firstOrNull()
         return layer
     }
+
+    /**
+     * Name to pass to --latency. Since Android 14 the list shows each layer as
+     * "RequestedLayerState{c5ea7fb SurfaceView[...](BLAST)#9085 parentId=9084}", and --latency only
+     * accepts the part with the id ("c5ea7fb SurfaceView[...](BLAST)#9085").
+     */
+    private fun layerName(line: String): String =
+        if (!line.startsWith("RequestedLayerState{")) line
+        else line.removePrefix("RequestedLayerState{").removeSuffix("}").substringBefore(" parentId=").substringBefore(" z=").trim()
 
     /** Counts the frames the layer displayed in the last second. */
     private fun layerFps(): Int? {
@@ -137,6 +146,7 @@ object QuickStats {
     private var tsReady = false
     private var tsLast = 0L
     private var tsWorks = true
+    private var tsFails = 0
 
     fun startTimeStats() {
         RootShell.run("dumpsys SurfaceFlinger --timestats -enable -clear")
@@ -152,7 +162,11 @@ object QuickStats {
 
     /** Reads the total frames since the last read and resets it. */
     private fun timeStatsFrames(): Long? {
-        val out = RootShell.run("dumpsys SurfaceFlinger --timestats -dump; dumpsys SurfaceFlinger --timestats -clear")
+        // -enable first: if something else turned TimeStats off (another tool, a SurfaceFlinger restart),
+        // the totals would stay frozen and the FPS would read 0 or disappear
+        val out = RootShell.run(
+            "dumpsys SurfaceFlinger --timestats -enable >/dev/null; dumpsys SurfaceFlinger --timestats -dump; dumpsys SurfaceFlinger --timestats -clear"
+        )
         // The first "totalFrames" (before the layers) is the whole display's
         for (l in out) {
             val t = l.trim()
@@ -173,9 +187,12 @@ object QuickStats {
         val dt = (now - tsLast) / 1000f
         tsLast = now
         if (frames == null) {
-            tsWorks = false // this phone has no TimeStats: the other methods are used
+            // One empty answer can be the shell reconnecting: it is only abandoned after several in a row
+            if (++tsFails >= 5) tsWorks = false // this phone has no TimeStats: the other methods are used
+            tsReady = false
             return null
         }
+        tsFails = 0
         if (dt < 0.3f) return null
         return (frames / dt).toInt().coerceIn(0, 240)
     }
@@ -217,7 +234,8 @@ object QuickStats {
         val z = zones()
         val script = buildString {
             append("head -n 1 /proc/stat; echo @@; ")
-            append("grep -H . /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/kernel/gpu/gpu_busy /sys/kernel/ged/hal/gpu_utilization /sys/module/ged/parameters/gpu_loading; echo @@; ")
+            append("grep -H . /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/kernel/gpu/gpu_busy 2>/dev/null; ")
+            append("if [ -e /sys/kernel/ged/hal/gpu_utilization ]; then for i in 1 2 3 4; do echo ged:${'$'}(cut -d' ' -f1 /sys/kernel/ged/hal/gpu_utilization); sleep 0.04; done; fi; echo @@; ")
             append("grep -E '^(MemTotal|MemAvailable):' /proc/meminfo; echo @@; ")
             append("cat /sys/devices/system/cpu/cpufreq/policy*/scaling_cur_freq 2>/dev/null; echo @@; ")
             append("cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqency 2>/dev/null | head -n 1; ")
@@ -241,9 +259,13 @@ object QuickStats {
         }
         // GPU
         // Take the highest of the sources (on MediaTek, gpu_utilization often reads 0 and gpu_loading is the real one)
-        val gpu = parts.getOrNull(1)?.lines().orEmpty().mapNotNull { l ->
+        // On MediaTek the GPU works in bursts between frames: a single reading is often 0 % even
+        // while playing, so several quick samples are averaged
+        val gpuLines = parts.getOrNull(1)?.lines().orEmpty()
+        val ged = gpuLines.filter { it.startsWith("ged:") }.mapNotNull { it.removePrefix("ged:").trim().toIntOrNull() }
+        val gpu = (if (ged.isNotEmpty()) ged.average().toInt() else gpuLines.mapNotNull { l ->
             Regex("\\d+").find(l.substringAfter(':'))?.value?.toIntOrNull()
-        }.maxOrNull()?.coerceIn(0, 100)
+        }.maxOrNull())?.coerceIn(0, 100)
         // RAM
         val mem = parts.getOrNull(2)?.lines().orEmpty().associate { l ->
             l.substringBefore(':') to (l.split(WS).getOrNull(1)?.toLongOrNull() ?: 0L)
