@@ -1,0 +1,133 @@
+package com.kevxngg.monitorroot
+
+import android.content.Context
+import android.os.SystemClock
+
+/**
+ * "Close background apps" in game mode (root): the installed apps are closed and kept from
+ * starting again until you leave the game.
+ *
+ * For each app: background running is blocked (appops RUN_ANY_IN_BACKGROUND), it goes to the
+ * "restricted" standby bucket (no jobs, alarms or syncs) and its processes are killed. It is not
+ * force-stopped, so when the game ends everything goes back exactly as it was and its
+ * notifications keep working.
+ *
+ * Never touched: system apps, the game, Monitor, the keyboard, the launcher, the phone and SMS apps,
+ * apps with an active VPN or accessibility service, apps playing media, and the root and Shizuku managers.
+ */
+object GameApps {
+    private const val KEY = "held"
+
+    /** Apps the system or the user needs while playing, even if they were installed as user apps. */
+    private val SYSTEM_PREFIXES = listOf(
+        "android", "com.android.", "com.google.android.", "com.miui.", "com.xiaomi.", "com.mi.",
+        "com.mediatek.", "com.qualcomm.", "com.qti.", "com.samsung.", "com.sec.", "com.oneplus.",
+        "com.oplus.", "com.coloros.", "com.huawei.", "com.vivo.", "com.motorola.",
+    )
+    private val ALWAYS_KEEP = setOf(
+        "me.weishu.kernelsu", "com.topjohnwu.magisk", "me.bmax.apatch", "moe.shizuku.privileged.api",
+        "com.rifsxd.ksunext", "io.github.vvb2060.magisk",
+    )
+    private val SPECIAL = Regex("""permission=android\.permission\.BIND_(VPN_SERVICE|ACCESSIBILITY_SERVICE|INPUT_METHOD|DEVICE_ADMIN|COMPANION_DEVICE_SERVICE)""")
+    private val BUCKETS = mapOf(10 to "active", 20 to "working_set", 30 to "frequent", 40 to "rare", 45 to "restricted")
+
+    @Volatile private var held: Set<String> = emptySet()
+    private var lastCheck = 0L
+
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences("game", Context.MODE_PRIVATE)
+
+    /** Packages that must keep running right now (besides the system and [game]). */
+    private fun protectedNow(ctx: Context, game: String): Set<String> {
+        val keep = HashSet(ALWAYS_KEEP)
+        keep += ctx.packageName
+        keep += game
+        fun pkgOf(component: String?) = component?.trim()?.substringBefore('/')?.takeIf { it.isNotEmpty() && it != "null" }
+        RootShell.run("settings get secure default_input_method").firstOrNull().let(::pkgOf)?.let { keep += it }
+        RootShell.run("cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME")
+            .lastOrNull().let(::pkgOf)?.let { keep += it }
+        RootShell.run("settings get secure enabled_accessibility_services").firstOrNull()?.split(':')
+            ?.mapNotNull(::pkgOf)?.let { keep += it }
+        RootShell.run("settings get secure always_on_vpn_app").firstOrNull().let(::pkgOf)?.let { keep += it }
+        for (role in listOf("DIALER", "SMS", "ASSISTANT", "HOME")) {
+            RootShell.run("cmd role get-role-holders android.app.role.$role").forEach { l -> pkgOf(l)?.let { keep += it } }
+        }
+        // Running services the phone depends on (VPN, accessibility, keyboard, device admin, watches)
+        var last: String? = null
+        RootShell.run("dumpsys activity services").forEach { l ->
+            val t = l.trim()
+            if (t.startsWith("packageName=")) last = t.substringAfter('=')
+            else if (SPECIAL.containsMatchIn(t)) last?.let { keep += it }
+        }
+        // Apps playing media (music while you play keeps working)
+        last = null
+        RootShell.run("dumpsys media_session").forEach { l ->
+            val t = l.trim()
+            if (t.startsWith("package=")) last = t.substringAfter('=')
+            else if (t.startsWith("state=PlaybackState {state=3")) last?.let { keep += it }
+        }
+        return keep
+    }
+
+    /** Closes the installed apps and keeps them closed until [release]. */
+    @Synchronized
+    fun hold(ctx: Context, game: String) {
+        if (held.isNotEmpty() || !RootShell.open() || RootShell.viaShizuku) return
+        val keep = protectedNow(ctx, game)
+        val pkgs = RootShell.run("pm list packages -3").mapNotNull { it.trim().removePrefix("package:").takeIf { p -> p.isNotEmpty() } }
+            .filter { p -> p !in keep && SYSTEM_PREFIXES.none { p == it || p.startsWith(it) } }
+        if (pkgs.isEmpty()) return
+        // Current state of each app, to put it back exactly as it was
+        val state = RootShell.run(pkgs.joinToString("\n") { p ->
+            val q = Actions.q(p)
+            "echo \"$p|${'$'}(cmd activity get-standby-bucket $q 2>/dev/null)|${'$'}(cmd appops get $q RUN_ANY_IN_BACKGROUND 2>/dev/null | head -1)\""
+        }).mapNotNull { l ->
+            val f = l.split('|')
+            if (f.size < 3 || f[0] !in pkgs) return@mapNotNull null
+            val bucket = f[1].trim().toIntOrNull() ?: 10
+            val mode = Regex("""RUN_ANY_IN_BACKGROUND: (\w+)""").find(f[2])?.groupValues?.get(1) ?: "default"
+            "${f[0]}|$bucket|$mode"
+        }
+        if (state.isEmpty()) return
+        // Saved before changing anything: if the app is killed mid-game, it is undone on the next start
+        prefs(ctx).edit().putString(KEY, state.joinToString(";")).apply()
+        held = state.map { it.substringBefore('|') }.toSet()
+        RootShell.run(held.joinToString("\n") { p ->
+            val q = Actions.q(p)
+            "cmd appops set $q RUN_ANY_IN_BACKGROUND ignore; cmd activity set-standby-bucket $q restricted; am kill $q"
+        })
+        lastCheck = SystemClock.elapsedRealtime()
+    }
+
+    /**
+     * Every 30 s while playing: an app the system started anyway (a push message, for example)
+     * is closed again.
+     */
+    fun keepClosed() {
+        val pkgs = held
+        if (pkgs.isEmpty()) return
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastCheck < 30_000) return
+        lastCheck = now
+        val running = RootShell.run("ps -A -o NAME").map { it.trim().substringBefore(':') }.toSet()
+        val again = pkgs.filter { it in running }
+        if (again.isNotEmpty()) RootShell.run(again.joinToString("\n") { "am kill ${Actions.q(it)}" })
+    }
+
+    /** Puts every app back as it was before the game. */
+    @Synchronized
+    fun release(ctx: Context) {
+        val saved = prefs(ctx).getString(KEY, null)
+        held = emptySet()
+        if (saved.isNullOrEmpty() || !RootShell.open()) return
+        val script = saved.split(';').mapNotNull { e ->
+            val f = e.split('|')
+            if (f.size < 3) return@mapNotNull null
+            val q = Actions.q(f[0])
+            val bucket = BUCKETS[f[1].toIntOrNull()] ?: "active"
+            val mode = f[2].takeIf { it in setOf("allow", "ignore", "deny", "default", "foreground") } ?: "default"
+            "cmd appops set $q RUN_ANY_IN_BACKGROUND $mode; cmd activity set-standby-bucket $q $bucket"
+        }
+        if (script.isNotEmpty()) RootShell.run(script.joinToString("\n"))
+        prefs(ctx).edit().remove(KEY).apply()
+    }
+}

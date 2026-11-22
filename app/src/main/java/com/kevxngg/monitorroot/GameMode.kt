@@ -169,7 +169,10 @@ class GameModeService : Service() {
             if (RootShell.open()) RootShell.run("appops set $packageName GET_USAGE_STATS allow")
             DiabloMode.recoverIfNeeded(applicationContext)
             recoverCpuIfNeeded()
-            if (RootShell.open()) restoreHz()   // the app was killed in the middle of a game
+            if (RootShell.open()) {   // the app was killed in the middle of a game
+                restoreHz()
+                GameApps.release(applicationContext)
+            }
             while (alive) {
                 try {
                     tick()
@@ -257,6 +260,8 @@ class GameModeService : Service() {
                 restoreHz()
                 applyHz()
             }
+            // Background apps: closed again if something started them; let go if the option is turned off
+            if (Prefs.gameKill) GameApps.keepClosed() else GameApps.release(applicationContext)
         }
         if (current != null && (Prefs.gameRecord || DiabloMode.active)) record(inGame = fg == current)
         // Keep Diablo Mode: if something changed the frequencies or re-enabled thermal control, it is corrected
@@ -286,8 +291,8 @@ class GameModeService : Service() {
         if (!RootShell.open()) return
         applyProfile()
         applyHz()
-        // Close background apps to free memory
-        if (Prefs.gameKill) RootShell.run("am kill-all")
+        // Close the installed apps and keep them closed until the game ends
+        if (Prefs.gameKill) GameApps.hold(applicationContext, pkg)
         // Do Not Disturb (only if it was off)
         if (Prefs.gameDnd) {
             val zen = RootShell.run("settings get global zen_mode").firstOrNull()?.trim()
@@ -402,7 +407,10 @@ class GameModeService : Service() {
         current = null
         GameModeState.playing = null
         revertProfile()
-        if (RootShell.open()) restoreHz()
+        if (RootShell.open()) {
+            restoreHz()
+            GameApps.release(applicationContext)
+        }
         if (changedDnd && RootShell.open()) RootShell.run("cmd notification set_dnd off")
         changedDnd = false
         if (startedOverlay) {

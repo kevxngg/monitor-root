@@ -99,7 +99,7 @@ fun GamesPage(onRun: () -> Unit) {
                 ToggleDivider()
                 RefreshRateRow()
                 ToggleDivider()
-                GameToggle(Icons.Outlined.CleaningServices, tr("Cerrar apps en segundo plano"), tr("Libera memoria al abrir el juego."), Prefs.gameKill) { Prefs.gameKill = it; Prefs.save() }
+                GameToggle(Icons.Outlined.CleaningServices, tr("Cerrar apps en segundo plano"), tr("Cierra tus apps y no las deja abrirse hasta que salgas del juego. Sus notificaciones pueden llegar con retraso."), Prefs.gameKill) { Prefs.gameKill = it; Prefs.save() }
                 ToggleDivider()
                 GameToggle(Icons.Outlined.DoNotDisturbOn, tr("No molestar"), tr("Silencia las notificaciones mientras juegas."), Prefs.gameDnd) { Prefs.gameDnd = it; Prefs.save() }
                 ToggleDivider()
