@@ -87,6 +87,25 @@ object GameSessions {
     }
 }
 
+/**
+ * Short log of game mode (when a game starts and ends, and why), kept in the app's files so a
+ * session that ends on its own can be explained. Only the last 200 lines are kept.
+ */
+object GameLog {
+    private const val FILE = "game_log.txt"
+
+    @Synchronized
+    fun add(ctx: Context, msg: String) {
+        try {
+            val f = File(ctx.filesDir, FILE)
+            val time = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())
+            val lines = (if (f.exists()) f.readLines() else emptyList()) + "$time $msg"
+            f.writeText(lines.takeLast(200).joinToString("\n") + "\n")
+        } catch (_: Exception) {
+        }
+    }
+}
+
 /** Which game is being played right now (to show it on the Games page). */
 object GameModeState {
     @Volatile var playing: String? = null
@@ -184,7 +203,7 @@ class GameModeService : Service() {
             }
             // The service was stopped: undo everything here, on the thread that applied it
             try {
-                current?.let { exitGame(it, notify = false) }
+                current?.let { exitGame(it, notify = false, reason = "game mode turned off") }
             } catch (_: Exception) {
             }
         }.start()
@@ -224,7 +243,7 @@ class GameModeService : Service() {
         // With the screen off or locked, game mode is exited so the performance governor,
         // Do Not Disturb, etc. do not stay active in a pocket.
         if (!screenActive()) {
-            current?.let { exitGame(it) }
+            current?.let { exitGame(it, reason = "screen off or locked") }
             return
         }
         val fg = foreground()
@@ -243,7 +262,12 @@ class GameModeService : Service() {
             if (fg == cur) awaySince = 0L else if (awaySince == 0L) awaySince = now
             val away = awaySince != 0L && now - awaySince > (if (DiabloMode.active) 60_000L else 180_000L)
             if (closed || otherGame || away) {
-                exitGame(cur)
+                exitGame(cur, reason = when {
+                    otherGame -> "another game opened: $fg"
+                    away -> "game in the background for too long (on screen: $fg)"
+                    running == false -> "game process ended"
+                    else -> "another app on screen: $fg"
+                })
                 if (otherGame) enterGame(fg!!)
             }
         } else if (fg != null && fg in Prefs.games) {
@@ -280,6 +304,7 @@ class GameModeService : Service() {
     }
 
     private fun enterGame(pkg: String) {
+        GameLog.add(applicationContext, "start $pkg (profile ${Prefs.gamePower}, ${Prefs.gameHz} Hz)")
         current = pkg
         GameModeState.playing = pkg
         awaySince = 0L
@@ -403,7 +428,8 @@ class GameModeService : Service() {
         appliedPower = -1
     }
 
-    private fun exitGame(pkg: String, notify: Boolean = true) {
+    private fun exitGame(pkg: String, notify: Boolean = true, reason: String = "") {
+        GameLog.add(applicationContext, "end $pkg: $reason")
         current = null
         GameModeState.playing = null
         revertProfile()
@@ -443,6 +469,7 @@ class GameModeService : Service() {
             blindTicks = if (d.cpuTemp == null && d.battTemp == null) blindTicks + 1 else 0
             if (hot || blindTicks >= 3) {
                 DiabloMode.disable(applicationContext)
+                GameLog.add(applicationContext, "Diablo Mode off: " + if (hot) "too hot (CPU ${d.cpuTemp}, battery ${d.battTemp})" else "no temperature reading")
                 notifyDiabloOff(if (hot) d else null)
                 current?.let { updateNotification(it) }   // the notification no longer says "Diablo Mode"
             }

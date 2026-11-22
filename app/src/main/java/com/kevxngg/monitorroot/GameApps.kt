@@ -32,6 +32,10 @@ object GameApps {
     private val BUCKETS = mapOf(10 to "active", 20 to "working_set", 30 to "frequent", 40 to "rare", 45 to "restricted")
 
     @Volatile private var held: Set<String> = emptySet()
+    /** Phone apps with an icon (camera, calendar, gallery...): only closed, their settings are not changed. */
+    @Volatile private var closed: Set<String> = emptySet()
+    /** Phone apps that must never be closed even if they have an icon (alarms, game tools, store downloads). */
+    private val SYSTEM_KEEP = listOf("clock", "alarm", "securitycenter", "incallui", "vending", "settings", "systemui")
     private var lastCheck = 0L
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("game", Context.MODE_PRIVATE)
@@ -73,8 +77,16 @@ object GameApps {
     fun hold(ctx: Context, game: String) {
         if (held.isNotEmpty() || !RootShell.open() || RootShell.viaShizuku) return
         val keep = protectedNow(ctx, game)
-        val pkgs = RootShell.run("pm list packages -3").mapNotNull { it.trim().removePrefix("package:").takeIf { p -> p.isNotEmpty() } }
-            .filter { p -> p !in keep && SYSTEM_PREFIXES.none { p == it || p.startsWith(it) } }
+        val installed = RootShell.run("pm list packages -3").mapNotNull { it.trim().removePrefix("package:").takeIf { p -> p.isNotEmpty() } }
+        val pkgs = installed.filter { p -> p !in keep && SYSTEM_PREFIXES.none { p == it || p.startsWith(it) } }
+        // The phone's own apps with an icon (camera, calendar, gallery, notes...) are closed too, but
+        // nothing about them is changed: they can only come back if you open them
+        closed = RootShell.run("cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER")
+            .map { it.trim() }.filter { it.contains('/') && !it.contains('=') && !it.contains(' ') }
+            .map { it.substringBefore('/') }.toSet()
+            .filter { p -> p !in keep && p !in pkgs && SYSTEM_KEEP.none { p.contains(it, ignoreCase = true) } }
+            .toSet()
+        if (closed.isNotEmpty()) RootShell.run(closed.joinToString("\n") { "am kill ${Actions.q(it)}" })
         if (pkgs.isEmpty()) return
         // Current state of each app, to put it back exactly as it was
         val state = RootShell.run(pkgs.joinToString("\n") { p ->
@@ -103,7 +115,7 @@ object GameApps {
      * is closed again.
      */
     fun keepClosed() {
-        val pkgs = held
+        val pkgs = held + closed
         if (pkgs.isEmpty()) return
         val now = SystemClock.elapsedRealtime()
         if (now - lastCheck < 30_000) return
@@ -118,6 +130,7 @@ object GameApps {
     fun release(ctx: Context) {
         val saved = prefs(ctx).getString(KEY, null)
         held = emptySet()
+        closed = emptySet()
         if (saved.isNullOrEmpty() || !RootShell.open()) return
         val script = saved.split(';').mapNotNull { e ->
             val f = e.split('|')
