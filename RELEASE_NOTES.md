@@ -1,6 +1,8 @@
 ## What's new
-- Text size: a new option in Settings > General makes the app's text bigger (Normal, Large, Extra large). It works on top of Android's own font size, so your accessibility setting is kept, and it applies to every screen, dialog and menu. Bars, buttons and rows grow with the text instead of cutting it.
-- Running apps are now recognised by the app they belong to, not only by their process name. Processes such as the media and contacts storage or Google Play services' screens used to appear as Android processes; they now show under their app.
-- An app installed while Monitor is open now shows its name and icon within a minute.
-
-Note: Android only lets an app see other apps' processes with root or Shizuku, and Monitor lists apps that are actually running (not the ones you only used recently).
+- Security: automatic updates now require the app's current signing key, and the downloaded file is checked again right before it is installed. Versions older than 2.9 are asked to update, so every phone moves to the current key.
+- Game mode restores everything it changes (Do Not Disturb, screen refresh rate, blocked apps, Diablo Mode) even if Android closes Monitor in the middle of a game or root is lost for a moment.
+- Floating monitor: no readings while the screen is off, correct GPU usage on MediaTek phones, and battery temperature read reliably.
+- Power-save mode keeps its limit after a game; GPU settings are locked while a game is open; with Shizuku, game mode no longer touches the CPU.
+- Less battery use: fewer background checks, and no repeated root prompts when root is denied.
+- The battery history can no longer be lost because of one damaged entry.
+- Fixes for possible freezes when changing the connection mode.
