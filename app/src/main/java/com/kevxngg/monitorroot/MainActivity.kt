@@ -1,5 +1,6 @@
 package com.kevxngg.monitorroot
 
+import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -515,7 +516,7 @@ private fun NavRail(page: Page, expanded: Boolean, onMenu: () -> Unit, onSelect:
 }
 
 @Composable
-private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expanded: Boolean, onClick: () -> Unit, description: String = title) {
+private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expanded: Boolean, description: String = title, onClick: () -> Unit) {
     val win = LocalWin.current
     Row(
         Modifier
@@ -525,7 +526,7 @@ private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expande
             .clip(corner(4))
             .background(if (selected) win.hover else Color.Transparent)
             .clickable(onClick = onClick)
-            .androidx.compose.ui.semantics.semantics { this.selected = selected },
+            .semantics { this.selected = selected },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(

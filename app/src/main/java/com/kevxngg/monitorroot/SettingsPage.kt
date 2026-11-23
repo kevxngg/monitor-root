@@ -1,5 +1,6 @@
 package com.kevxngg.monitorroot
 
+import androidx.compose.ui.semantics.semantics
 import android.os.Build
 
 import androidx.compose.foundation.background
@@ -283,7 +284,7 @@ fun SettingCard(icon: ImageVector, title: String, subtitle: String, control: @Co
             .background(win.card)
             .border(1.dp, win.border, corner(6))
             // Title, description and control are read together by TalkBack
-            .androidx.compose.ui.semantics.semantics(mergeDescendants = true) {}
+            .semantics(mergeDescendants = true) {}
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

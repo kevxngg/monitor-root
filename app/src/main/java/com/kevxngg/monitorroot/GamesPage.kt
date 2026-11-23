@@ -1,5 +1,6 @@
 package com.kevxngg.monitorroot
 
+import androidx.compose.foundation.selection.toggleable
 import android.content.Intent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -523,7 +524,7 @@ private fun GameToggle(
     val win = LocalWin.current
     Row(
         Modifier.fillMaxWidth()
-            .androidx.compose.foundation.selection.toggleable(value = checked, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = onChange)
+            .toggleable(value = checked, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = onChange)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

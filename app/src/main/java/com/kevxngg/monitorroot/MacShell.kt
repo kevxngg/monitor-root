@@ -1,5 +1,6 @@
 package com.kevxngg.monitorroot
 
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -117,7 +118,7 @@ private fun MacTabs(page: Page, onPage: (Page) -> Unit) {
                     .clip(RoundedCornerShape(6.dp))
                     .background(if (selected) win.hover else Color.Transparent)
                     .clickable { onPage(p) }
-                    .androidx.compose.ui.semantics.semantics { this.selected = selected }
+                    .semantics { this.selected = selected }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             )
         }
