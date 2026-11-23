@@ -334,7 +334,9 @@ private fun SessionDialog(s: GameSession, onDismiss: () -> Unit) {
     )
 }
 
-private val DiabloRed = androidx.compose.ui.graphics.Color(0xFFE5484D)
+private val DiabloRed: androidx.compose.ui.graphics.Color
+    @Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalWin.current.dark) androidx.compose.ui.graphics.Color(0xFFFF7A7A) else androidx.compose.ui.graphics.Color(0xFFC62828)
 
 /** Red Diablo Mode warning (short version under the card or full one in the dialog). */
 @Composable

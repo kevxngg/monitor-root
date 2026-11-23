@@ -116,6 +116,7 @@ fun ProcessesPage(
     fun endTask(r: TaskRow) {
         scope.launch(Dispatchers.IO) {
             if (r.pkg != null) Actions.forceStop(r.pkg) else Actions.kill(r.procs.map { it.pid })
+            Feedback.show(tr("Se finalizó %s", r.name))
         }
         selKey = null
     }
@@ -129,7 +130,10 @@ fun ProcessesPage(
         val on = pkg !in Prefs.efficiency
         Prefs.efficiency = if (on) Prefs.efficiency + pkg else Prefs.efficiency - pkg
         Prefs.save()
-        scope.launch(Dispatchers.IO) { Actions.setEfficiency(pkg, r.procs, on) }
+        scope.launch(Dispatchers.IO) {
+            Actions.setEfficiency(pkg, r.procs, on)
+            Feedback.show(if (on) tr("Modo de eficiencia activado: %s", r.name) else tr("Modo de eficiencia desactivado: %s", r.name))
+        }
     }
 
     fun menuFor(r: TaskRow): List<MenuEntry> = buildList {
@@ -178,7 +182,10 @@ fun ProcessesPage(
     Column(Modifier.fillMaxSize()) {
         PageHeader(tr("Procesos")) {
             CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
-            CmdButton(Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null && !(RootShell.viaShizuku && selected.pkg == null)) { selected?.let(::requestEnd) }
+            CmdButton(
+                Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null && !(RootShell.viaShizuku && selected.pkg == null),
+                disabledHint = if (selected != null) tr("Con Shizuku solo se pueden finalizar apps. Los procesos del sistema necesitan root.") else null,
+            ) { selected?.let(::requestEnd) }
             CmdButton(Icons.Outlined.Eco, tr("Modo de eficiencia"), enabled = selected?.pkg != null) { selected?.let(::toggleEfficiency) }
             CmdMore(
                 listOf(

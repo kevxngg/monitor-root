@@ -84,7 +84,9 @@ fun TuneCard(title: String, onReset: (() -> Unit)?, resetEnabled: Boolean = true
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = win.text, modifier = Modifier.weight(1f))
-            if (onReset != null) TextButton(onClick = onReset, enabled = resetEnabled) { Text(tr("Restablecer")) }
+            if (onReset != null) {
+                TextButton(onClick = { onReset(); Feedback.show(tr("Valores restablecidos")) }, enabled = resetEnabled) { Text(tr("Restablecer")) }
+            }
         }
         content()
         Text(

@@ -87,7 +87,10 @@ fun DetailsPage(
                 if (suspended) Icons.Outlined.PlayArrow else Icons.Outlined.Pause, enabled = !shizuku,
             ) {
                 if (!suspended && p.pkg == null) confirmSuspend = p
-                else scope.launch(Dispatchers.IO) { Actions.kill(listOf(p.pid), if (suspended) "CONT" else "STOP") }
+                else scope.launch(Dispatchers.IO) {
+                    Actions.kill(listOf(p.pid), if (suspended) "CONT" else "STOP")
+                    Feedback.show(if (suspended) tr("%s reanudado", p.name) else tr("%s suspendido", p.name))
+                }
             },
             MenuEntry(rootLabel(tr("Establecer prioridad")), Icons.Outlined.LowPriority, enabled = !shizuku) { prio = p },
             MenuEntry(rootLabel(tr("Establecer afinidad")), Icons.Outlined.Memory, enabled = !shizuku) { affinity = p },
@@ -123,7 +126,10 @@ fun DetailsPage(
     Column(Modifier.fillMaxSize()) {
         PageHeader(tr("Detalles")) {
             CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
-            CmdButton(Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null && !(RootShell.viaShizuku && selected.pkg == null)) { selected?.let { confirmEnd = it to false } }
+            CmdButton(
+                Icons.Outlined.Block, tr("Finalizar tarea"), enabled = selected != null && !(RootShell.viaShizuku && selected.pkg == null),
+                disabledHint = if (selected != null) tr("Con Shizuku solo se pueden finalizar apps. Los procesos del sistema necesitan root.") else null,
+            ) { selected?.let { confirmEnd = it to false } }
             CmdMore(selected?.let { menuFor(it).drop(1) } ?: listOf(MenuEntry(tr("Selecciona un proceso"), enabled = false) {}))
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
@@ -133,6 +139,9 @@ fun DetailsPage(
                     if (sortId == id) asc = !asc else {
                         sortId = id; asc = id == "name" || id == "pid" || id == "user"
                     }
+                }
+                if (rows.isEmpty()) {
+                    if (query.isBlank()) EmptyText(tr("Cargando procesos…")) else NoMatchText(query)
                 }
                 LazyColumn(Modifier.fillMaxSize(), state = listState) {
                     itemsIndexed(rows, key = { _, p -> p.pid }) { i, p ->
@@ -163,7 +172,12 @@ fun DetailsPage(
             tr("¿Suspender %s?", p.name),
             tr("Es un proceso del sistema: suspenderlo puede congelar el teléfono hasta que lo reinicies."),
             tr("Suspender proceso"),
-            onConfirm = { scope.launch(Dispatchers.IO) { Actions.kill(listOf(p.pid), "STOP") } },
+            onConfirm = {
+                scope.launch(Dispatchers.IO) {
+                    Actions.kill(listOf(p.pid), "STOP")
+                    Feedback.show(tr("%s suspendido", p.name))
+                }
+            },
             onDismiss = { confirmSuspend = null },
         )
     }
@@ -178,6 +192,7 @@ fun DetailsPage(
                 val pkg = p.pkg
                 scope.launch(Dispatchers.IO) {
                     if (RootShell.viaShizuku && pkg != null) Actions.forceStop(pkg) else Actions.kill(pids)
+                    Feedback.show(tr("Se finalizó %s", p.name))
                 }
                 selPid = null
             },
@@ -186,7 +201,12 @@ fun DetailsPage(
     }
     props?.let { p -> PropertiesDialog(p, s.uptimeSec) { props = null } }
     prio?.let { p ->
-        PriorityDialog(p.nice, onPick = { v -> scope.launch(Dispatchers.IO) { Actions.setNice(listOf(p), v) } }, onDismiss = { prio = null })
+        PriorityDialog(p.nice, onPick = { v ->
+            scope.launch(Dispatchers.IO) {
+                Actions.setNice(listOf(p), v)
+                Feedback.show(tr("Prioridad cambiada: %s", p.name))
+            }
+        }, onDismiss = { prio = null })
     }
     affinity?.let { p ->
         AffinityDialog(p.pid, s.cores.size.coerceAtLeast(Runtime.getRuntime().availableProcessors())) { affinity = null }

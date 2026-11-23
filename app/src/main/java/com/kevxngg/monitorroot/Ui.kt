@@ -124,14 +124,17 @@ fun PageHeader(title: String, actions: @Composable RowScope.() -> Unit) {
 }
 
 @Composable
-fun CmdButton(icon: ImageVector, text: String, enabled: Boolean = true, onClick: () -> Unit) {
+fun CmdButton(icon: ImageVector, text: String, enabled: Boolean = true, disabledHint: String? = null, onClick: () -> Unit) {
     val win = LocalWin.current
     val compact = LocalCompact.current
     val tint = if (enabled) win.text else win.sub.copy(alpha = 0.5f)
     Row(
         Modifier
             .clip(corner(4))
-            .clickable(enabled = enabled, onClick = onClick)
+            // A disabled button with a reason says why when tapped
+            .clickable(enabled = enabled || disabledHint != null) {
+                if (enabled) onClick() else disabledHint?.let { Feedback.show(it, ok = false) }
+            }
             .padding(horizontal = 10.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -221,7 +224,8 @@ fun TableHeader(
     h: ScrollState,
     sortId: String,
     asc: Boolean,
-    onSort: (String) -> Unit,
+    /** null: the columns cannot be sorted (headers are not clickable). */
+    onSort: ((String) -> Unit)?,
 ) {
     val win = LocalWin.current
     Row(
@@ -229,22 +233,24 @@ fun TableHeader(
             .then(if (win.mac) Modifier.background(win.mica) else Modifier)
             .bottomLine(win.border),
     ) {
-        HeaderCell(nameTitle, null, sortId == "name", asc, nameW, false) { onSort("name") }
+        HeaderCell(nameTitle, null, sortId == "name", asc, nameW, false, onSort?.let { { it("name") } })
         Row(Modifier.horizontalScroll(h)) {
             cols.forEach { c ->
                 Box(Modifier.width(1.dp).fillMaxHeight().padding(vertical = 6.dp).background(win.divider))
-                HeaderCell(c.title, c.top, sortId == c.id, asc, c.width - 1.dp, c.end) { onSort(c.id) }
+                HeaderCell(c.title, c.top, sortId == c.id, asc, c.width - 1.dp, c.end, onSort?.let { { it(c.id) } })
             }
         }
     }
 }
 
 @Composable
-private fun HeaderCell(title: String, top: String?, active: Boolean, asc: Boolean, width: Dp, end: Boolean, onClick: () -> Unit) {
+private fun HeaderCell(title: String, top: String?, active: Boolean, asc: Boolean, width: Dp, end: Boolean, onClick: (() -> Unit)?) {
     val win = LocalWin.current
     val align = if (end) Alignment.End else Alignment.Start
     Column(
-        Modifier.width(width).fillMaxHeight().clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp),
+        Modifier.width(width).fillMaxHeight()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = align,
         verticalArrangement = Arrangement.Bottom,
     ) {
@@ -371,6 +377,10 @@ fun EmptyText(text: String) {
         Text(text, color = win.sub, fontSize = 13.sp, textAlign = TextAlign.Center)
     }
 }
+
+/** A search that found nothing. */
+@Composable
+fun NoMatchText(query: String) = EmptyText(tr("Nada coincide con “%s”.", query))
 
 // ===================== DIALOGS =====================
 

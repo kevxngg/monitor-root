@@ -127,7 +127,10 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(LocalWin provides win, LocalLayoutDirection provides dir) {
                 val typography = if (win.mac) macTypography() else Typography()
                 MaterialTheme(colorScheme = scheme, typography = typography) {
-                    Box(Modifier.fillMaxSize().background(win.mica)) { App() }
+                    Box(Modifier.fillMaxSize().background(win.mica)) {
+                        App()
+                        FeedbackHost(Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(bottom = 48.dp))
+                    }
                 }
             }
         }

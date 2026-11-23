@@ -147,6 +147,13 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
                 delay(800)
                 native = loadNative()
                 apps = loadAppServices()
+                Feedback.show(
+                    when (verb) {
+                        "start" -> tr("Se inició %s", sv.name)
+                        "stop" -> tr("Se detuvo %s", sv.name)
+                        else -> tr("Se reinició %s", sv.name)
+                    },
+                )
             }
         }
         confirm = (title + warn) to action
@@ -200,6 +207,9 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
                 if (native == null) {
                     EmptyText(tr("Leyendo servicios…"))
                 } else {
+                    if (rows.isEmpty()) {
+                        if (query.isBlank()) EmptyText(tr("No hay servicios para mostrar.")) else NoMatchText(query)
+                    }
                     LazyColumn(Modifier.fillMaxSize()) {
                         itemsIndexed(rows, key = { _, sv -> sv.key }) { i, sv ->
                             TableRow(

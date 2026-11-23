@@ -408,6 +408,12 @@ private fun MemDetail(s: Snapshot, h: History) {
             if (m.pageTablesKb > 0) tr("Tablas de páginas") to formatKb(m.pageTablesKb) else null,
         ),
     )
+    if (m.commitLimitKb > 0 && m.committedKb > m.commitLimitKb) {
+        Text(
+            tr("Confirmada: memoria que las apps reservaron. Android permite reservar más de la que existe, por eso puede superar el límite."),
+            fontSize = 11.sp, color = LocalWin.current.sub, modifier = Modifier.padding(top = 8.dp),
+        )
+    }
 }
 
 // ===================== DISK =====================

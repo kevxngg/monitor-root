@@ -14,7 +14,7 @@ object UiStyles {
     val NAMES = listOf("Windows 11", "macOS")
 
     fun palette(style: Int, dark: Boolean, pureBlack: Boolean): Win = when {
-        style == MACOS -> if (dark) MAC_DARK else MAC_LIGHT
+        style == MACOS -> if (!dark) MAC_LIGHT else if (pureBlack) black(MAC_DARK) else MAC_DARK
         pureBlack -> black(DarkWin)
         dark -> DarkWin
         else -> LightWin
