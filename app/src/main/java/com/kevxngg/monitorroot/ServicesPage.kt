@@ -223,7 +223,7 @@ fun ServicesPage(s: Snapshot, query: String, onRun: () -> Unit, onGoDetails: (In
                                     null, tint = win.sub, modifier = Modifier.size(16.dp),
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text(sv.name, fontSize = 12.5.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(sv.name, fontSize = 12.5.sp, color = LocalRowText.current ?: win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }

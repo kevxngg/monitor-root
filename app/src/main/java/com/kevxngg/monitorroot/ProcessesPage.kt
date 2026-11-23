@@ -230,7 +230,7 @@ fun ProcessesPage(
                                     Spacer(Modifier.width(8.dp))
                                     Text(
                                         if (r.procs.size > 1) "${r.name} (${r.procs.size})" else r.name,
-                                        fontSize = 13.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                        fontSize = 13.sp, color = LocalRowText.current ?: win.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                     )
                                 }
                             }

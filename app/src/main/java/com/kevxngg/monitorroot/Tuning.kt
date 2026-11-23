@@ -71,7 +71,7 @@ fun TuneRow(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-fun TuneCard(title: String, onReset: (() -> Unit)?, content: @Composable ColumnScope.() -> Unit) {
+fun TuneCard(title: String, onReset: (() -> Unit)?, resetEnabled: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
     val win = LocalWin.current
     Column(
         Modifier
@@ -84,7 +84,7 @@ fun TuneCard(title: String, onReset: (() -> Unit)?, content: @Composable ColumnS
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = win.text, modifier = Modifier.weight(1f))
-            if (onReset != null) TextButton(onClick = onReset) { Text(tr("Restablecer")) }
+            if (onReset != null) TextButton(onClick = onReset, enabled = resetEnabled) { Text(tr("Restablecer")) }
         }
         content()
         Text(

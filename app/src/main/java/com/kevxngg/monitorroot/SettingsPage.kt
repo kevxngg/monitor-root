@@ -282,6 +282,8 @@ fun SettingCard(icon: ImageVector, title: String, subtitle: String, control: @Co
             .clip(corner(6))
             .background(win.card)
             .border(1.dp, win.border, corner(6))
+            // Title, description and control are read together by TalkBack
+            .androidx.compose.ui.semantics.semantics(mergeDescendants = true) {}
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -303,7 +305,7 @@ fun WinDropdown(options: List<String>, selected: Int, enabled: Boolean = true, o
     Box {
         Row(
             Modifier
-                .widthIn(max = 170.dp)
+                .widthIn(max = if (LocalCompact.current) 132.dp else 170.dp)
                 .clip(corner(4))
                 .background(win.content)
                 .border(1.dp, win.border, corner(4))
@@ -322,7 +324,7 @@ fun WinDropdown(options: List<String>, selected: Int, enabled: Boolean = true, o
 }
 
 @Composable
-fun WinSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
+fun WinSwitch(checked: Boolean, onChange: ((Boolean) -> Unit)?) {
     val win = LocalWin.current
     Switch(
         checked = checked,
@@ -345,7 +347,7 @@ fun RunTaskDialog(onDismiss: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var text by remember { mutableStateOf("") }
-    var admin by remember { mutableStateOf(true) }
+    var admin by remember { mutableStateOf(false) }
     var output by remember { mutableStateOf<String?>(null) }
     var running by remember { mutableStateOf(false) }
     var apps by remember { mutableStateOf<List<AppMeta>>(emptyList()) }

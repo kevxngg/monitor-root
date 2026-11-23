@@ -437,7 +437,7 @@ private fun CpuAdvancedCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, ru
         val all: List<CpuPower.Cluster> = clusters
         ({ run { CpuPower.apply(CpuPower.Mode.BALANCED, all) } })
     }
-    TuneCard(tr("Ajustes avanzados de la CPU"), reset) {
+    TuneCard(tr("Ajustes avanzados de la CPU"), reset, resetEnabled = !busy) {
         when {
             clusters == null -> Text(tr("Cargando…"), fontSize = 12.sp, color = win.sub)
             clusters.isEmpty() -> Text(tr("No se pueden cambiar estos ajustes en este teléfono."), fontSize = 12.sp, color = win.sub)

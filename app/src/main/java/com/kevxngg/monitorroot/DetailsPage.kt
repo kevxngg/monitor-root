@@ -149,7 +149,7 @@ fun DetailsPage(
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 if (Prefs.showPackageNames) p.name else p.label ?: p.name,
-                                fontSize = 12.5.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                fontSize = 12.5.sp, color = LocalRowText.current ?: win.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }

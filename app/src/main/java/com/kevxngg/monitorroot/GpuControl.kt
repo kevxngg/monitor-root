@@ -229,7 +229,7 @@ fun GpuTuningCard() {
     RepeatWhileVisible(2000) { gaming = GameModeState.playing != null }
 
     fun run(action: () -> Unit) {
-        if (GameModeState.playing != null) return
+        if (busy || GameModeState.playing != null) return
         busy = true
         scope.launch {
             state = withContext(Dispatchers.IO) {
@@ -245,13 +245,13 @@ fun GpuTuningCard() {
         val target: GpuControl.State = s
         ({ run { GpuControl.reset(target) } })
     }
-    TuneCard(tr("Ajustes de la GPU"), reset) {
+    TuneCard(tr("Ajustes de la GPU"), reset, resetEnabled = !busy && !gaming) {
         when {
             !loaded -> Text(tr("Cargando…"), fontSize = 12.sp, color = win.sub)
             s == null -> Text(tr("No se pueden cambiar estos ajustes en este teléfono."), fontSize = 12.sp, color = win.sub)
             else -> {
                 Text(tr("Controlador: %s", s.kind.label), fontSize = 12.sp, color = win.sub)
-                if (gaming) Text(tr("Hay un juego abierto: el modo juego controla la CPU. Cambia el perfil en la página Juegos."), fontSize = 12.sp, color = win.warn)
+                if (gaming) Text(tr("Hay un juego abierto: el modo juego controla la GPU. Cambia el perfil en la página Juegos."), fontSize = 12.sp, color = win.warn)
                 if (s.governors.isNotEmpty()) {
                     TuneRow(tr("Gobernador")) {
                         TuneDropdown(s.governor ?: "—", s.governors, !busy && !gaming) { idx -> run { GpuControl.setGovernor(s, s.governors[idx]) } }

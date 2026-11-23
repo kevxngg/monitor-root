@@ -205,7 +205,7 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
                             ) {
                                 AppIcon(r.icon, r.label)
                                 Spacer(Modifier.width(8.dp))
-                                Text(r.label, fontSize = 13.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(r.label, fontSize = 13.sp, color = LocalRowText.current ?: win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }

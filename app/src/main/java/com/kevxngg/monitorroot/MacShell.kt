@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -116,7 +117,8 @@ private fun MacTabs(page: Page, onPage: (Page) -> Unit) {
                     .clip(RoundedCornerShape(6.dp))
                     .background(if (selected) win.hover else Color.Transparent)
                     .clickable { onPage(p) }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .androidx.compose.ui.semantics.semantics { this.selected = selected }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
             )
         }
     }
@@ -147,7 +149,7 @@ private fun MacSearch(query: String, onQuery: (String) -> Unit, modifier: Modifi
         if (query.isNotEmpty()) {
             Icon(
                 Icons.Outlined.Close, tr("Borrar"), tint = win.sub,
-                modifier = Modifier.size(15.dp).clickable { onQuery("") },
+                modifier = Modifier.size(31.dp).clip(RoundedCornerShape(16.dp)).clickable { onQuery("") }.padding(8.dp),
             )
         }
     }

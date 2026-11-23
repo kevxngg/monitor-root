@@ -522,7 +522,9 @@ private fun GameToggle(
 ) {
     val win = LocalWin.current
     Row(
-        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth()
+            .androidx.compose.foundation.selection.toggleable(value = checked, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = onChange)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, null, tint = win.sub, modifier = Modifier.size(22.dp))
@@ -532,7 +534,7 @@ private fun GameToggle(
             Text(desc, fontSize = 12.sp, color = win.sub)
         }
         Spacer(Modifier.width(8.dp))
-        WinSwitch(checked, onChange)
+        WinSwitch(checked, null)   // the whole row toggles it
     }
 }
 

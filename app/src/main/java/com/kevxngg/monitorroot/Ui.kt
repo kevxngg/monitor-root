@@ -113,9 +113,11 @@ fun PageHeader(title: String, actions: @Composable RowScope.() -> Unit) {
         Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val compact = LocalCompact.current
         Text(
-            title, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = win.text,
-            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+            title, fontSize = if (compact && title.length > 16) 16.sp else 18.sp, fontWeight = FontWeight.SemiBold,
+            color = win.text, lineHeight = 20.sp,
+            maxLines = if (compact) 2 else 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
         )
         actions()
     }
@@ -130,7 +132,7 @@ fun CmdButton(icon: ImageVector, text: String, enabled: Boolean = true, onClick:
         Modifier
             .clip(corner(4))
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 7.dp),
+            .padding(horizontal = 10.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = text, tint = tint, modifier = Modifier.size(18.dp))
@@ -186,7 +188,7 @@ fun CmdMore(entries: List<MenuEntry>) {
     val win = LocalWin.current
     var open by remember { mutableStateOf(false) }
     Box {
-        Box(Modifier.clip(corner(4)).clickable { open = true }.padding(7.dp)) {
+        Box(Modifier.clip(corner(4)).clickable { open = true }.padding(11.dp)) {
             Icon(Icons.Outlined.MoreHoriz, tr("Más"), tint = win.text, modifier = Modifier.size(18.dp))
         }
         WinMenu(open, { open = false }, entries)
@@ -281,7 +283,7 @@ fun TableRow(
         else -> Color.Transparent
     }
     val textColor = if (selected && win.mac) Color.White else win.text
-    Box(Modifier.fillMaxWidth()) {
+    CompositionLocalProvider(LocalRowText provides textColor) { Box(Modifier.fillMaxWidth()) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -315,7 +317,7 @@ fun TableRow(
             }
         }
         menu()
-    }
+    } }
 }
 
 @Composable
@@ -342,9 +344,13 @@ fun AppIcon(icon: ImageBitmap?, name: String, size: Dp = 18.dp) {
     }
 }
 
+/** Text colour of the table row being drawn (white on the selected macOS row), for the name column. */
+val LocalRowText = compositionLocalOf<Color?> { null }
+
 @Composable
 fun Chevron(expanded: Boolean, visible: Boolean, onClick: () -> Unit) {
     val win = LocalWin.current
+    val rowText = LocalRowText.current
     Box(
         Modifier.size(22.dp).clip(corner(3)).then(if (visible) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
@@ -352,7 +358,7 @@ fun Chevron(expanded: Boolean, visible: Boolean, onClick: () -> Unit) {
         if (visible) {
             Icon(
                 if (expanded) Icons.Outlined.KeyboardArrowDown else Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                null, tint = win.sub, modifier = Modifier.size(16.dp),
+                null, tint = if (rowText == Color.White) Color.White else win.sub, modifier = Modifier.size(16.dp),
             )
         }
     }

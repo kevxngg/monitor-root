@@ -141,7 +141,9 @@ fun formatHoursMinutes(minutes: Int): String =
 fun BatteryHistoryCard(refreshKey: Long, color: Color, batt: BattInfo? = null) {
     val win = LocalWin.current
     val ctx = LocalContext.current
-    val entries = remember(refreshKey / 60) { BatteryLog.read(ctx) }
+    val entries by produceState(initialValue = emptyList<BatteryLog.Entry>(), refreshKey / 60) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { BatteryLog.read(ctx) }
+    }
     val now = System.currentTimeMillis()
     val day = entries.filter { now - it.time <= 24 * 3600_000L }
 

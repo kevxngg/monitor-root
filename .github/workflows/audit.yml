@@ -4,7 +4,7 @@ name: Audit
 # Read-only: no secrets, no signing, nothing published.
 on:
   push:
-    branches: [ 'audit/**' ]
+    branches: [ 'audit/**', 'ui-audit/**' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
