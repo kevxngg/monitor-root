@@ -91,7 +91,11 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val nameW = nameWidth(maxWidth, cols)
             Column(Modifier.fillMaxSize()) {
-                TableHeader(tr("Usuario"), nameW, cols, h, "cpu", false) {}
+                // Grouped by user, sorted by CPU: the headers do not sort
+                TableHeader(tr("Usuario"), nameW, cols, h, "", false, null)
+                if (groups.isEmpty()) {
+                    if (query.isBlank()) EmptyText(tr("Cargando procesos…")) else NoMatchText(query)
+                }
                 LazyColumn(Modifier.fillMaxSize()) {
                     groups.forEachIndexed { gi, g ->
                         item(key = "user:${g.id}") {
@@ -116,7 +120,7 @@ fun UsersPage(s: Snapshot, query: String, onRun: () -> Unit) {
                                 Icon(Icons.Outlined.AccountCircle, null, tint = win.accent, modifier = Modifier.size(22.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "${g.name} (${g.rows.size})", fontSize = 13.sp, color = win.text,
+                                    "${g.name} (${g.rows.size})", fontSize = 13.sp, color = LocalRowText.current ?: win.text,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                                 )
                             }

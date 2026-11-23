@@ -42,11 +42,11 @@ private fun sideData(r: Res, s: Snapshot, h: History): SideData = when (r) {
     } ?: SideData(h["dact"], 100f, s.disk?.type ?: "—", "%.0f%%".format(s.disk?.activePct ?: 0f))
     Res.WIFI -> SideData(
         h["wrx"], netScale(h["wrx"], h["wtx"]), s.wifi.ssid ?: "Wi‑Fi",
-        "E: ${formatBits(s.wifi.net.txBps * 8f)} R: ${formatBits(s.wifi.net.rxBps * 8f)}", h["wtx"],
+        "↑ ${formatBits(s.wifi.net.txBps * 8f)}  ↓ ${formatBits(s.wifi.net.rxBps * 8f)}", h["wtx"],
     )
     Res.MOBILE -> SideData(
         h["mrx"], netScale(h["mrx"], h["mtx"]), if (s.mobile == null) tr("Desconectado") else tr("Datos móviles"),
-        "E: ${formatBits((s.mobile?.txBps ?: 0L) * 8f)} R: ${formatBits((s.mobile?.rxBps ?: 0L) * 8f)}", h["mtx"],
+        "↑ ${formatBits((s.mobile?.txBps ?: 0L) * 8f)}  ↓ ${formatBits((s.mobile?.rxBps ?: 0L) * 8f)}", h["mtx"],
     )
     Res.GPU -> SideData(
         h["gpu"], 100f, s.gpu.model ?: tr(s.gpu.source),
@@ -112,7 +112,9 @@ fun PerformancePage(s: Snapshot, h: History, onRun: () -> Unit) {
                     val density = LocalDensity.current
                     LaunchedEffect(res) {
                         val itemPx = with(density) { (STRIP_ITEM + STRIP_GAP).toPx() }
-                        strip.animateScrollTo((res.ordinal * itemPx - itemPx / 3).toInt().coerceAtLeast(0))
+                        // The selected card starts at the left edge: no cut fragments of the previous one,
+                        // and the next card peeks in on the right to show the strip scrolls
+                        strip.animateScrollTo((res.ordinal * itemPx).toInt().coerceAtLeast(0))
                     }
                     Row(
                         Modifier
@@ -224,22 +226,32 @@ private fun StatsBlock(stats: List<Pair<String, String>>, kv: List<Pair<String, 
 @Composable
 private fun BigStats(items: List<Pair<String, String>>) {
     val win = LocalWin.current
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items.chunked(3).forEach { row ->
+    // On a phone three columns were too narrow: labels were cut ("Tiempo de…") and values lost
+    // their units ("4.7 GB (517.7…"). Two columns there, three on wide screens.
+    val perRow = if (LocalCompact.current) 2 else 3
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        items.chunked(perRow).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { (label, value) ->
                     Column(Modifier.weight(1f)) {
-                        Text(label, fontSize = 12.sp, color = win.sub, maxLines = 1)
+                        Text(label, fontSize = 12.sp, color = win.sub, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         // Long values (for example "Descargando", i.e. discharging) are shrunk to fit whole
-                        val size = when {
-                            value.length <= 8 -> 19.sp
-                            value.length <= 11 -> 16.sp
-                            else -> 14.sp
+                        // The size only ever shrinks for a given stat: it no longer jumps between 19 and
+                        // 16 sp every second when a rate goes from "9.8 MB/s" to "10.2 MB/s"
+                        val wanted = when {
+                            value.length <= 8 -> 19f
+                            value.length <= 11 -> 16f
+                            else -> 14f
                         }
-                        Text(value, fontSize = size, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        var size by remember(label) { mutableFloatStateOf(wanted) }
+                        if (wanted < size) size = wanted
+                        Text(
+                            value, fontSize = size.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            style = androidx.compose.material3.LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
+                        )
                     }
                 }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
@@ -289,7 +301,7 @@ private fun CpuDetail(s: Snapshot, h: History, logical: Boolean) {
                             TaskGraph(h["core${c.index}"], 100f, color, Modifier.fillMaxWidth().height(70.dp))
                             Text(
                                 "CPU ${c.index} · " + (if (c.curMhz > 0) formatGhz(c.curMhz) else tr("apagado")),
-                                fontSize = 10.sp, color = win.sub,
+                                fontSize = 11.sp, color = win.sub,
                             )
                         }
                     }
@@ -396,6 +408,12 @@ private fun MemDetail(s: Snapshot, h: History) {
             if (m.pageTablesKb > 0) tr("Tablas de páginas") to formatKb(m.pageTablesKb) else null,
         ),
     )
+    if (m.commitLimitKb > 0 && m.committedKb > m.commitLimitKb) {
+        Text(
+            tr("Confirmada: memoria que las apps reservaron. Android permite reservar más de la que existe, por eso puede superar el límite."),
+            fontSize = 11.sp, color = LocalWin.current.sub, modifier = Modifier.padding(top = 8.dp),
+        )
+    }
 }
 
 // ===================== DISK =====================

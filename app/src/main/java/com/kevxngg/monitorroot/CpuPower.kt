@@ -385,30 +385,42 @@ private fun PowerModeCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, onSe
             CpuPower.Mode.BALANCED to tr("Equilibrado"),
             CpuPower.Mode.PERFORMANCE to tr("Mejor rendimiento"),
         )
-        // Height of the tallest button, so all of them and the dividers grow together with larger text
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clip(corner(6)).border(1.dp, win.border, corner(6))) {
-            options.forEachIndexed { i, (mode, label) ->
-                val selected = mode == current
-                val enabled = !busy && !selected && CpuPower.isAvailable(mode, clusters)
-                if (i > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(win.border))
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .heightIn(min = 52.dp)
-                        .fillMaxHeight()
-                        .background(if (selected) win.accent else Color.Transparent)
-                        .then(if (enabled) Modifier.clickable { onSelect(mode) } else Modifier)
-                        .padding(horizontal = 6.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label, fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 2,
-                        color = when {
-                            selected -> if (win.dark) win.mica else Color.White
-                            !CpuPower.isAvailable(mode, clusters) -> win.sub.copy(alpha = 0.5f)
-                            else -> win.text
-                        },
-                    )
+        // Phone with large text: one button per line, so no label is split mid-word
+        val stacked = LocalCompact.current && androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.1f
+        @Composable
+        fun option(mode: CpuPower.Mode, label: String, modifier: Modifier) {
+            val selected = mode == current
+            val enabled = !busy && !selected && CpuPower.isAvailable(mode, clusters)
+            Box(
+                modifier
+                    .background(if (selected) win.accent else Color.Transparent)
+                    .then(if (enabled) Modifier.clickable { onSelect(mode) } else Modifier)
+                    .padding(horizontal = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label, fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 2,
+                    color = when {
+                        selected -> if (win.dark) win.mica else Color.White
+                        !CpuPower.isAvailable(mode, clusters) -> win.sub.copy(alpha = 0.5f)
+                        else -> win.text
+                    },
+                )
+            }
+        }
+        if (stacked) {
+            Column(Modifier.fillMaxWidth().clip(corner(6)).border(1.dp, win.border, corner(6))) {
+                options.forEachIndexed { i, (mode, label) ->
+                    if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(win.border))
+                    option(mode, label, Modifier.fillMaxWidth().heightIn(min = 48.dp))
+                }
+            }
+        } else {
+            // Height of the tallest button, so all of them and the dividers grow together with larger text
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clip(corner(6)).border(1.dp, win.border, corner(6))) {
+                options.forEachIndexed { i, (mode, label) ->
+                    if (i > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(win.border))
+                    option(mode, label, Modifier.weight(1f).heightIn(min = 52.dp).fillMaxHeight())
                 }
             }
         }
@@ -437,7 +449,7 @@ private fun CpuAdvancedCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, ru
         val all: List<CpuPower.Cluster> = clusters
         ({ run { CpuPower.apply(CpuPower.Mode.BALANCED, all) } })
     }
-    TuneCard(tr("Ajustes avanzados de la CPU"), reset) {
+    TuneCard(tr("Ajustes avanzados de la CPU"), reset, resetEnabled = !busy) {
         when {
             clusters == null -> Text(tr("Cargando…"), fontSize = 12.sp, color = win.sub)
             clusters.isEmpty() -> Text(tr("No se pueden cambiar estos ajustes en este teléfono."), fontSize = 12.sp, color = win.sub)

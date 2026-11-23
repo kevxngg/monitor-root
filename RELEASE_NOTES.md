@@ -1,4 +1,7 @@
 ## What's new
+- Interface: a short confirmation after each action (end task, start or stop a service, startup apps, reset), "nothing matches" when a search finds nothing, and buttons that only work with root now say why when tapped.
+- Easier to read: better contrast in light themes, full values on the Performance page, two-line page titles, and no words split in two with large text.
+- macOS style: pure black theme available.
 - Security: automatic updates now require the app's current signing key, and the downloaded file is checked again right before it is installed. Versions older than 2.9 are asked to update, so every phone moves to the current key.
 - Game mode restores everything it changes (Do Not Disturb, screen refresh rate, blocked apps, Diablo Mode) even if Android closes Monitor in the middle of a game or root is lost for a moment.
 - Floating monitor: no readings while the screen is off, correct GPU usage on MediaTek phones, and battery temperature read reliably.

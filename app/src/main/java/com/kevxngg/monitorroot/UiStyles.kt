@@ -14,7 +14,7 @@ object UiStyles {
     val NAMES = listOf("Windows 11", "macOS")
 
     fun palette(style: Int, dark: Boolean, pureBlack: Boolean): Win = when {
-        style == MACOS -> if (dark) MAC_DARK else MAC_LIGHT
+        style == MACOS -> if (!dark) MAC_LIGHT else if (pureBlack) black(MAC_DARK) else MAC_DARK
         pureBlack -> black(DarkWin)
         dark -> DarkWin
         else -> LightWin
@@ -26,7 +26,7 @@ object UiStyles {
         content = Color(0xFFFFFFFF),
         card = Color(0xFFF6F6F6),
         text = Color(0xFF1D1D1F),
-        sub = Color(0xFF8A8A8E),
+        sub = Color(0xFF636366),   // 8A8A8E was below 4.5:1 on the grey backgrounds
         border = Color(0xFFD6D6D6),
         divider = Color(0xFFE8E8E8),
         hover = Color(0xFFE4E4E6),        // gray of the active tab/button (as in the cutout)
