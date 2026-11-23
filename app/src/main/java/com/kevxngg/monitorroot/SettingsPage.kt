@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -277,17 +278,32 @@ fun SectionLabel(text: String) {
 @Composable
 fun SettingCard(icon: ImageVector, title: String, subtitle: String, control: @Composable () -> Unit) {
     val win = LocalWin.current
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(corner(6))
-            .background(win.card)
-            .border(1.dp, win.border, corner(6))
-            // Title, description and control are read together by TalkBack
-            .semantics(mergeDescendants = true) {}
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    // Phone with large text: the control goes below, so the text keeps the card's full width
+    val stacked = LocalCompact.current && LocalDensity.current.fontScale > 1.1f
+    val card = Modifier
+        .fillMaxWidth()
+        .clip(corner(6))
+        .background(win.card)
+        .border(1.dp, win.border, corner(6))
+        // Title, description and control are read together by TalkBack
+        .semantics(mergeDescendants = true) {}
+        .padding(horizontal = 14.dp, vertical = 12.dp)
+    if (stacked) {
+        Column(card) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, null, tint = win.text, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(14.dp))
+                Text(title, fontSize = 14.sp, color = win.text, modifier = Modifier.weight(1f))
+            }
+            Text(subtitle, fontSize = 12.sp, color = win.sub, modifier = Modifier.padding(start = 34.dp))
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                control()
+            }
+        }
+        return
+    }
+    Row(card, verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = win.text, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
