@@ -21,6 +21,21 @@ class AuditFixesTest {
     }
 
     @Test
+    fun firstRotationIsAccepted() {
+        // Installed app signed with the old key; the new version rotates to a new key (lineage old -> new)
+        assertTrue(SignerCheck.matches(listOf("old", "new"), listOf("old")))
+        assertTrue(SignerCheck.matches(listOf("old", "new", "newer"), listOf("old", "new")))
+    }
+
+    @Test
+    fun installScriptCleansOldCopiesAndHasHashFallbacks() {
+        val s = Updater.installScript("/x/u.apk", "/data/local/tmp/monitorroot-update-1.apk", "ab12", "com.kevxngg.monitorroot")
+        assertTrue(s.startsWith("rm -f /data/local/tmp/monitorroot-update-*.apk"))
+        assertTrue(s.contains("toybox sha256sum"))
+        assertTrue(s.contains("busybox sha256sum"))
+    }
+
+    @Test
     fun noSignersIsRejected() {
         assertFalse(SignerCheck.matches(emptyList(), listOf("new")))
         assertFalse(SignerCheck.matches(listOf("new"), emptyList()))
