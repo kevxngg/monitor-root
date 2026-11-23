@@ -282,6 +282,17 @@ object CpuPower {
 
     fun snapshot(): Snapshot = Snapshot(read())
 
+    /**
+     * Limits to write back for a cluster. The snapshot's limits are the EFFECTIVE ones (they include
+     * what the system was imposing, e.g. a thermal cap), so they are only kept when the user set them by
+     * hand; otherwise the full range. Power-save keeps its maximum at the minimum, as it was applied.
+     */
+    fun restoreLimits(kind: Kind, custom: Boolean, min: Long?, max: Long?, hwMin: Long?, hwMax: Long?): Pair<Long?, Long?> = when {
+        custom -> min to max
+        kind == Kind.FIXED_MIN -> (hwMin ?: min) to (hwMin ?: max)
+        else -> (hwMin ?: min) to (hwMax ?: max)
+    }
+
     /** Returns each cluster exactly to how it was. */
     fun restore(s: Snapshot) {
         Prefs.cpuCustomLimits = s.customLimits
@@ -291,8 +302,7 @@ object CpuPower {
             // The limits read in the snapshot are the EFFECTIVE ones (they include what the system was
             // imposing at that moment, e.g. a thermal cap). Writing them back would turn a temporary
             // cap into a permanent limit, so they are only restored if the user had set them by hand.
-            val min = if (s.customLimits) c.minKhz else (hwMin(c) ?: c.minKhz)
-            val max = if (s.customLimits) c.maxKhz else (hwMax(c) ?: c.maxKhz)
+            val (min, max) = restoreLimits(c.kind, s.customLimits, c.minKhz, c.maxKhz, hwMin(c), hwMax(c))
             // Widen the range first so the kernel accepts both limits
             hwMax(c)?.let { write("${c.path}/scaling_max_freq", it) }
             min?.let { write("${c.path}/scaling_min_freq", it) }
@@ -375,30 +385,42 @@ private fun PowerModeCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, onSe
             CpuPower.Mode.BALANCED to tr("Equilibrado"),
             CpuPower.Mode.PERFORMANCE to tr("Mejor rendimiento"),
         )
-        // Height of the tallest button, so all of them and the dividers grow together with larger text
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clip(corner(6)).border(1.dp, win.border, corner(6))) {
-            options.forEachIndexed { i, (mode, label) ->
-                val selected = mode == current
-                val enabled = !busy && !selected && CpuPower.isAvailable(mode, clusters)
-                if (i > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(win.border))
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .heightIn(min = 52.dp)
-                        .fillMaxHeight()
-                        .background(if (selected) win.accent else Color.Transparent)
-                        .then(if (enabled) Modifier.clickable { onSelect(mode) } else Modifier)
-                        .padding(horizontal = 6.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label, fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 2,
-                        color = when {
-                            selected -> if (win.dark) win.mica else Color.White
-                            !CpuPower.isAvailable(mode, clusters) -> win.sub.copy(alpha = 0.5f)
-                            else -> win.text
-                        },
-                    )
+        // Phone with large text: one button per line, so no label is split mid-word
+        val stacked = LocalCompact.current && androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.1f
+        @Composable
+        fun option(mode: CpuPower.Mode, label: String, modifier: Modifier) {
+            val selected = mode == current
+            val enabled = !busy && !selected && CpuPower.isAvailable(mode, clusters)
+            Box(
+                modifier
+                    .background(if (selected) win.accent else Color.Transparent)
+                    .then(if (enabled) Modifier.clickable { onSelect(mode) } else Modifier)
+                    .padding(horizontal = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label, fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 2,
+                    color = when {
+                        selected -> if (win.dark) win.mica else Color.White
+                        !CpuPower.isAvailable(mode, clusters) -> win.sub.copy(alpha = 0.5f)
+                        else -> win.text
+                    },
+                )
+            }
+        }
+        if (stacked) {
+            Column(Modifier.fillMaxWidth().clip(corner(6)).border(1.dp, win.border, corner(6))) {
+                options.forEachIndexed { i, (mode, label) ->
+                    if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(win.border))
+                    option(mode, label, Modifier.fillMaxWidth().heightIn(min = 48.dp))
+                }
+            }
+        } else {
+            // Height of the tallest button, so all of them and the dividers grow together with larger text
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clip(corner(6)).border(1.dp, win.border, corner(6))) {
+                options.forEachIndexed { i, (mode, label) ->
+                    if (i > 0) Box(Modifier.width(1.dp).fillMaxHeight().background(win.border))
+                    option(mode, label, Modifier.weight(1f).heightIn(min = 52.dp).fillMaxHeight())
                 }
             }
         }
@@ -427,7 +449,7 @@ private fun CpuAdvancedCard(clusters: List<CpuPower.Cluster>?, busy: Boolean, ru
         val all: List<CpuPower.Cluster> = clusters
         ({ run { CpuPower.apply(CpuPower.Mode.BALANCED, all) } })
     }
-    TuneCard(tr("Ajustes avanzados de la CPU"), reset) {
+    TuneCard(tr("Ajustes avanzados de la CPU"), reset, resetEnabled = !busy) {
         when {
             clusters == null -> Text(tr("Cargando…"), fontSize = 12.sp, color = win.sub)
             clusters.isEmpty() -> Text(tr("No se pueden cambiar estos ajustes en este teléfono."), fontSize = 12.sp, color = win.sub)

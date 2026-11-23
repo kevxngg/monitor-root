@@ -1,0 +1,73 @@
+name: Audit
+
+# Static analysis that the build workflow does not do: Android Lint and CodeQL.
+# Read-only: no secrets, no signing, nothing published.
+on:
+  push:
+    branches: [ 'audit/**', 'ui-audit/**' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+        with:
+          gradle-version: '8.9'
+      - name: Unit tests
+        run: gradle testDebugUnitTest --no-daemon
+      - name: Android Lint
+        run: gradle lintDebug --no-daemon -Pandroid.lint.abortOnError=false 2>&1 | tail -20
+      - name: Lint summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET, collections
+          files = glob.glob('app/build/reports/lint-results-debug.xml') + glob.glob('app/build/intermediates/lint_intermediate_text_report/**/*.xml', recursive=True)
+          if not files:
+              print('no lint report'); raise SystemExit
+          root = ET.parse(files[0]).getroot()
+          c = collections.Counter((i.get('severity'), i.get('id')) for i in root.iter('issue'))
+          for (sev, iid), n in sorted(c.items(), key=lambda x: (x[0][0] != 'Fatal', x[0][0] != 'Error', -x[1])):
+              print(f'{sev:12} {n:4}  {iid}')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.*
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+        with:
+          gradle-version: '8.9'
+      - uses: github/codeql-action/init@d2aacf54c2fbc910db8d7ec338fdb54ea48c692d # v3
+        with:
+          languages: java-kotlin
+          build-mode: manual
+          queries: security-and-quality
+      - name: Build for CodeQL
+        run: gradle assembleDebug --no-daemon
+      - uses: github/codeql-action/analyze@d2aacf54c2fbc910db8d7ec338fdb54ea48c692d # v3
+        with:
+          category: /language:java-kotlin

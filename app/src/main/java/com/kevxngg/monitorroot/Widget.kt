@@ -21,13 +21,12 @@ class MonitorWidget : AppWidgetProvider() {
         WidgetUpdater.requestRefresh(ctx)
     }
 
-    override fun onReceive(ctx: Context, intent: Intent) {
-        super.onReceive(ctx, intent)
-        if (intent.action == ACTION_REFRESH) WidgetUpdater.requestRefresh(ctx)
-    }
+}
 
-    companion object {
-        const val ACTION_REFRESH = "com.kevxngg.monitorroot.WIDGET_REFRESH"
+/** The widget's refresh button. Not exported: other apps cannot trigger root readings through it. */
+class WidgetRefreshReceiver : android.content.BroadcastReceiver() {
+    override fun onReceive(ctx: Context, intent: Intent) {
+        WidgetUpdater.requestRefresh(ctx)
     }
 }
 
@@ -82,7 +81,7 @@ object WidgetUpdater {
         views.setOnClickPendingIntent(
             R.id.w_refresh,
             PendingIntent.getBroadcast(
-                ctx, 11, Intent(ctx, MonitorWidget::class.java).setAction(MonitorWidget.ACTION_REFRESH),
+                ctx, 11, Intent(ctx, WidgetRefreshReceiver::class.java),
                 PendingIntent.FLAG_IMMUTABLE,
             ),
         )

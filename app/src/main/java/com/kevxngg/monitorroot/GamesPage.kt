@@ -1,5 +1,6 @@
 package com.kevxngg.monitorroot
 
+import androidx.compose.foundation.selection.toggleable
 import android.content.Intent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -333,7 +334,9 @@ private fun SessionDialog(s: GameSession, onDismiss: () -> Unit) {
     )
 }
 
-private val DiabloRed = androidx.compose.ui.graphics.Color(0xFFE5484D)
+private val DiabloRed: androidx.compose.ui.graphics.Color
+    @Composable @androidx.compose.runtime.ReadOnlyComposable
+    get() = if (LocalWin.current.dark) androidx.compose.ui.graphics.Color(0xFFFF7A7A) else androidx.compose.ui.graphics.Color(0xFFC62828)
 
 /** Red Diablo Mode warning (short version under the card or full one in the dialog). */
 @Composable
@@ -522,7 +525,9 @@ private fun GameToggle(
 ) {
     val win = LocalWin.current
     Row(
-        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(horizontal = 14.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth()
+            .toggleable(value = checked, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = onChange)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, null, tint = win.sub, modifier = Modifier.size(22.dp))
@@ -532,7 +537,7 @@ private fun GameToggle(
             Text(desc, fontSize = 12.sp, color = win.sub)
         }
         Spacer(Modifier.width(8.dp))
-        WinSwitch(checked, onChange)
+        WinSwitch(checked, null)   // the whole row toggles it
     }
 }
 

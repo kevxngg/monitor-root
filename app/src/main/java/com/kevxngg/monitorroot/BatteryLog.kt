@@ -58,21 +58,28 @@ object BatteryLog {
             // Entries dated in the future (the clock was changed) are dropped so logging does not stall
             if (last != null && entry.time - last.time in 0 until MIN_GAP_MS) return
             val kept = (all + entry).filter { it.time <= entry.time && entry.time - it.time <= KEEP_MS }
-            File(ctx.filesDir, FILE).writeText(
-                kept.joinToString("\n") { "${it.time},${it.level},${it.tempC},${if (it.charging) 1 else 0}" }
-            )
+            // Written to a temporary file and then renamed: a kill in the middle never leaves it empty
+            val tmp = File(ctx.filesDir, "$FILE.tmp")
+            tmp.writeText(kept.joinToString("\n") { "${it.time},${it.level},${it.tempC},${if (it.charging) 1 else 0}" })
+            tmp.renameTo(File(ctx.filesDir, FILE))
         } catch (_: Exception) {
         }
     }
 
     fun read(ctx: Context): List<Entry> = try {
-        File(ctx.filesDir, FILE).takeIf { it.exists() }?.readLines().orEmpty().mapNotNull { line ->
-            val p = line.split(',')
-            if (p.size < 4) null
-            else Entry(p[0].toLong(), p[1].toInt(), p[2].toFloat(), p[3] == "1")
-        }
+        File(ctx.filesDir, FILE).takeIf { it.exists() }?.readLines().orEmpty().mapNotNull(::parseLine)
     } catch (_: Exception) {
         emptyList()
+    }
+
+    /** One saved line, or null if it is damaged (a bad line no longer wipes the whole history). */
+    fun parseLine(line: String): Entry? {
+        val p = line.split(',')
+        if (p.size < 4) return null
+        val time = p[0].trim().toLongOrNull() ?: return null
+        val level = p[1].trim().toIntOrNull() ?: return null
+        val temp = p[2].trim().toFloatOrNull() ?: return null
+        return Entry(time, level, temp, p[3].trim() == "1")
     }
 
     /** Percent per hour over the current stretch (discharging or charging), using up to 2 hours. */
@@ -134,7 +141,9 @@ fun formatHoursMinutes(minutes: Int): String =
 fun BatteryHistoryCard(refreshKey: Long, color: Color, batt: BattInfo? = null) {
     val win = LocalWin.current
     val ctx = LocalContext.current
-    val entries = remember(refreshKey / 60) { BatteryLog.read(ctx) }
+    val entries by produceState(initialValue = emptyList<BatteryLog.Entry>(), refreshKey / 60) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { BatteryLog.read(ctx) }
+    }
     val now = System.currentTimeMillis()
     val day = entries.filter { now - it.time <= 24 * 3600_000L }
 

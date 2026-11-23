@@ -94,11 +94,15 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
     var confirmReset by remember { mutableStateOf(false) }
     if (confirmReset) {
         ConfirmDialog(
-            tr("Eliminar historial de uso"), tr("¿Eliminar el historial de uso? No se puede deshacer."), tr("Eliminar"),
+            tr("Eliminar historial de uso"),
+            // Only Monitor's count starts again: Android's own usage statistics are not deleted
+            tr("Monitor empezará a contar el uso desde ahora. Las estadísticas propias de Android no se borran."),
+            tr("Eliminar"),
             onConfirm = {
                 Prefs.historyResetAt = System.currentTimeMillis()
                 Prefs.save()
                 reload++
+                Feedback.show(tr("Historial de uso eliminado"))
             },
             onDismiss = { confirmReset = false },
         )
@@ -173,6 +177,7 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
                 }
                 when {
                     data == null -> EmptyText(tr("Leyendo estadísticas de uso…"))
+                    rows.isEmpty() && query.isNotBlank() -> NoMatchText(query)
                     rows.isEmpty() -> EmptyText(tr("No hay datos. Si es la primera vez, toca Actualizar."))
                     else -> LazyColumn(Modifier.fillMaxSize()) {
                         itemsIndexed(rows, key = { _, r -> r.pkg }) { i, r ->
@@ -205,7 +210,7 @@ fun HistoryPage(s: Snapshot, query: String, onRun: () -> Unit) {
                             ) {
                                 AppIcon(r.icon, r.label)
                                 Spacer(Modifier.width(8.dp))
-                                Text(r.label, fontSize = 13.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(r.label, fontSize = 13.sp, color = LocalRowText.current ?: win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }

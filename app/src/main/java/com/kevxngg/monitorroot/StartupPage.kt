@@ -105,7 +105,17 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
         scope.launch(Dispatchers.IO) {
             val verb = if (on) "enable" else "disable"
             RootShell.run(r.comps.joinToString("; ") { "pm $verb ${Actions.q("${it.packageName}/${it.className}")}" })
-            data = loadStartup()
+            val fresh = loadStartup()
+            data = fresh
+            // Read back: only says it worked if the system really changed it
+            val now = fresh.firstOrNull { it.pkg == r.pkg }?.enabled
+            Feedback.show(
+                when (now) {
+                    on -> if (on) tr("%s se iniciará con el teléfono", r.label) else tr("%s ya no se iniciará con el teléfono", r.label)
+                    else -> tr("No se pudo cambiar %s", r.label)
+                },
+                ok = now == on,
+            )
         }
     }
 
@@ -151,6 +161,7 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
                 }
                 when {
                     data == null -> EmptyText(tr("Buscando apps que se inician con el teléfono…"))
+                    rows.isEmpty() && query.isNotBlank() -> NoMatchText(query)
                     rows.isEmpty() -> EmptyText(tr("No hay aplicaciones de arranque para mostrar."))
                     else -> LazyColumn(Modifier.fillMaxSize()) {
                         itemsIndexed(rows, key = { _, r -> r.pkg }) { i, r ->
@@ -187,7 +198,7 @@ fun StartupPage(s: Snapshot, query: String, onRun: () -> Unit) {
                             ) {
                                 AppIcon(r.icon, r.label)
                                 Spacer(Modifier.width(8.dp))
-                                Text(r.label, fontSize = 13.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(r.label, fontSize = 13.sp, color = LocalRowText.current ?: win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }

@@ -8,3 +8,6 @@ local.properties
 *.jks
 *.p12
 *.keystore
+
+# Local work files of the agent (plans ledger, scripts)
+.superpowers/

@@ -69,7 +69,7 @@ val LightWin = Win(
     heatMid = Color(0xFFA9D6F5),
     heatHigh = Color(0xFFF6C38F),
     eco = Color(0xFF0F7B0F),
-    warn = Color(0xFFB3800A),
+    warn = Color(0xFF8A6100),   // B3800A was ~3.3:1 for small warning text
 )
 
 val DarkWin = Win(

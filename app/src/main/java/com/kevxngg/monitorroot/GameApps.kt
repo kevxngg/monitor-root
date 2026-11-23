@@ -82,6 +82,10 @@ object GameApps {
     @Synchronized
     fun hold(ctx: Context, game: String) {
         if (held.isNotEmpty() || !RootShell.open() || RootShell.viaShizuku) return
+        // Apps of an earlier game still blocked (could not be released): released first, so their
+        // blocked state is never saved as the "original"
+        if (prefs(ctx).contains(KEY)) release(ctx)
+        if (prefs(ctx).contains(KEY)) return
         val keep = protectedNow(ctx, game)
         val installed = RootShell.run("pm list packages -3").mapNotNull { it.trim().removePrefix("package:").takeIf { p -> p.isNotEmpty() } }
         val userApps = installed.filter { p -> p !in keep && SYSTEM_PREFIXES.none { p == it || p.startsWith(it) } }
@@ -168,12 +172,14 @@ object GameApps {
     @Synchronized
     fun release(ctx: Context) {
         val saved = prefs(ctx).getString(KEY, null)
+        // Without root nothing can be released: everything is kept to try again later
+        if (!saved.isNullOrEmpty() && !RootShell.open()) return
         held = emptySet()
         closed = emptySet()
         comebacks.clear()
         phoneHeld = emptySet()
         giveUp = emptySet()
-        if (saved.isNullOrEmpty() || !RootShell.open()) return
+        if (saved.isNullOrEmpty()) return
         val script = saved.split(';').mapNotNull { e ->
             val f = e.split('|')
             if (f.size < 3) return@mapNotNull null

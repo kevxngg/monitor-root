@@ -29,10 +29,17 @@ class UpdateAlarm : BroadcastReceiver() {
         schedule(app)
         // Updates are checked in the background at most once per hour
         UpdateWorker.enqueueIfDue(app)
-        // Quick tasks on every alarm: battery history and widget
-        BatteryLog.record(app)
+        // Quick tasks on every alarm: widget, alerts, and the battery history (file work, off the main thread)
         WidgetUpdater.requestRefresh(app)
         Alerts.enqueue(app)
+        val pending = goAsync()
+        Thread {
+            try {
+                BatteryLog.record(app)
+            } finally {
+                pending.finish()
+            }
+        }.start()
     }
 
     companion object {

@@ -1,5 +1,6 @@
 package com.kevxngg.monitorroot
 
+import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -41,6 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -125,7 +127,10 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(LocalWin provides win, LocalLayoutDirection provides dir) {
                 val typography = if (win.mac) macTypography() else Typography()
                 MaterialTheme(colorScheme = scheme, typography = typography) {
-                    Box(Modifier.fillMaxSize().background(win.mica)) { App() }
+                    Box(Modifier.fillMaxSize().background(win.mica)) {
+                        App()
+                        FeedbackHost(Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(bottom = 48.dp))
+                    }
                 }
             }
         }
@@ -133,7 +138,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (isFinishing) RootShell.close()
+        // The shell is shared with game mode and the floating monitor: only closed if they are not running,
+        // and off the main thread (closing waits for any command in progress)
+        if (isFinishing && !Prefs.gameMode && !OverlayState.running) Thread { RootShell.close() }.start()
     }
 }
 
@@ -228,8 +235,9 @@ fun App() {
     fun connect(mode: Int) {
         busy = true; error = null
         Prefs.accessMode = mode; Prefs.save()
-        RootShell.reset()
         scope.launch {
+            // Waits for any command in progress: never on the main thread
+            withContext(Dispatchers.IO) { RootShell.reset() }
             if (mode == 1) {
                 if (!ShizukuShell.available()) {
                     error = tr("Shizuku no está activo: ábrelo e inícialo primero."); busy = false; return@launch
@@ -244,7 +252,11 @@ fun App() {
                     while (!ShizukuShell.hasPermission() && waited < 30_000) { delay(300); waited += 300 }
                 }
             }
-            val ok = withContext(Dispatchers.IO) { RootShell.open() }
+            val ok = withContext(Dispatchers.IO) {
+                // Other parts (floating monitor, game mode) may have failed while permission was pending
+                RootShell.clearRetryWait()
+                RootShell.open()
+            }
             busy = false
             if (ok) connected = true
             else error = if (mode == 1) tr("No se pudo conectar con Shizuku. Acepta el permiso en Shizuku e inténtalo de nuevo.")
@@ -477,7 +489,7 @@ private fun TitleBar(query: String, onQuery: (String) -> Unit) {
             if (query.isNotEmpty()) {
                 Icon(
                     Icons.Outlined.Close, tr("Borrar"), tint = win.sub,
-                    modifier = Modifier.size(16.dp).clickable { onQuery("") },
+                    modifier = Modifier.size(32.dp).clip(corner(16)).clickable { onQuery("") }.padding(8.dp),
                 )
             }
         }
@@ -495,7 +507,7 @@ private fun NavRail(page: Page, expanded: Boolean, onMenu: () -> Unit, onSelect:
             .then(if (expanded) Modifier.shadow(12.dp).background(win.mica) else Modifier)
             .padding(horizontal = 4.dp, vertical = 2.dp),
     ) {
-        NavItem(Icons.Outlined.Menu, "", selected = false, expanded = false, onClick = onMenu)
+        NavItem(Icons.Outlined.Menu, "", selected = false, expanded = false, onClick = onMenu, description = tr("Menú"))
         Spacer(Modifier.height(4.dp))
         Page.entries.filter { it != Page.SETTINGS }.forEach { p ->
             NavItem(p.icon, tr(p.title), page == p, expanded) { onSelect(p) }
@@ -507,7 +519,7 @@ private fun NavRail(page: Page, expanded: Boolean, onMenu: () -> Unit, onSelect:
 }
 
 @Composable
-private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expanded: Boolean, onClick: () -> Unit) {
+private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expanded: Boolean, description: String = title, onClick: () -> Unit) {
     val win = LocalWin.current
     Row(
         Modifier
@@ -516,7 +528,8 @@ private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expande
             .padding(vertical = 2.dp)
             .clip(corner(4))
             .background(if (selected) win.hover else Color.Transparent)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics { this.selected = selected },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -527,7 +540,7 @@ private fun NavItem(icon: ImageVector, title: String, selected: Boolean, expande
                 .background(if (selected) win.accent else Color.Transparent),
         )
         Spacer(Modifier.width(10.dp))
-        Icon(icon, title, tint = win.text, modifier = Modifier.size(20.dp))
+        Icon(icon, description, tint = win.text, modifier = Modifier.size(20.dp))
         if (expanded && title.isNotEmpty()) {
             Spacer(Modifier.width(14.dp))
             Text(title, fontSize = 14.sp, color = win.text, maxLines = 1, overflow = TextOverflow.Ellipsis)

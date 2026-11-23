@@ -23,6 +23,7 @@ object RootShell {
     /** Closes the current connection so the mode is chosen again (e.g. when changed in Settings). */
     fun reset() {
         synchronized(lock) {
+            lastOpenFail = 0L   // the user asked to connect again: try right away
             closeLocked()
             mode = Mode.NONE
         }
@@ -55,11 +56,32 @@ object RootShell {
     }
 
     /** Opens the shell: ROM service (no root) or su, in that order. */
+    /** When the last attempt to connect failed (0 = never). */
+    @Volatile private var lastOpenFail = 0L
+
+    /** After a failed attempt, wait before asking for root again (each attempt can show a root prompt). */
+    /** The user asked to connect: the wait after a failed attempt does not apply to this one. */
+    fun clearRetryWait() {
+        lastOpenFail = 0L
+    }
+
+    fun retryAllowed(lastFailMs: Long, nowMs: Long): Boolean = lastFailMs == 0L || nowMs - lastFailMs >= 10_000L
+
     fun open(): Boolean {
         synchronized(lock) {
             // Already connected: fast exit (called often, e.g. every second from the floating monitor)
             if (mode == Mode.HELPER || mode == Mode.SHIZUKU) return true
             if (process != null) return true
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (!retryAllowed(lastOpenFail, now)) return false
+            val ok = openLocked()
+            lastOpenFail = if (ok) 0L else now
+            return ok
+        }
+    }
+
+    private fun openLocked(): Boolean {
+        run {
             if (helperRun("id")?.any { it.contains("uid=0") } == true) {
                 mode = Mode.HELPER
                 return true
