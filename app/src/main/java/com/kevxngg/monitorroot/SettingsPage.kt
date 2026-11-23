@@ -322,7 +322,8 @@ fun WinDropdown(options: List<String>, selected: Int, enabled: Boolean = true, o
     Box {
         Row(
             Modifier
-                .widthIn(max = if (LocalCompact.current) 132.dp else 170.dp)
+                // Narrow on phones; with large text the control sits on its own line (SettingCard), so it can be wider
+                .widthIn(max = if (LocalCompact.current && LocalDensity.current.fontScale <= 1.1f) 132.dp else 170.dp)
                 .clip(corner(4))
                 .background(win.content)
                 .border(1.dp, win.border, corner(4))
