@@ -221,12 +221,15 @@ fun GpuTuningCard() {
     var state by remember { mutableStateOf<GpuControl.State?>(null) }
     var loaded by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    var gaming by remember { mutableStateOf(GameModeState.playing != null) }
     LaunchedEffect(Unit) {
         state = withContext(Dispatchers.IO) { GpuControl.read() }
         loaded = true
     }
+    RepeatWhileVisible(2000) { gaming = GameModeState.playing != null }
 
     fun run(action: () -> Unit) {
+        if (GameModeState.playing != null) return
         busy = true
         scope.launch {
             state = withContext(Dispatchers.IO) {
@@ -248,9 +251,10 @@ fun GpuTuningCard() {
             s == null -> Text(tr("No se pueden cambiar estos ajustes en este teléfono."), fontSize = 12.sp, color = win.sub)
             else -> {
                 Text(tr("Controlador: %s", s.kind.label), fontSize = 12.sp, color = win.sub)
+                if (gaming) Text(tr("Hay un juego abierto: el modo juego controla la CPU. Cambia el perfil en la página Juegos."), fontSize = 12.sp, color = win.warn)
                 if (s.governors.isNotEmpty()) {
                     TuneRow(tr("Gobernador")) {
-                        TuneDropdown(s.governor ?: "—", s.governors, !busy) { idx -> run { GpuControl.setGovernor(s, s.governors[idx]) } }
+                        TuneDropdown(s.governor ?: "—", s.governors, !busy && !gaming) { idx -> run { GpuControl.setGovernor(s, s.governors[idx]) } }
                     }
                 }
                 val pinned = if (s.fixed) null else GpuControl.pinnedLabel(s)
@@ -271,7 +275,7 @@ fun GpuTuningCard() {
                         else -> mhz(current)
                     }
                     TuneRow(if (s.fixed) tr("Frecuencia fija") else tr("Frecuencia máxima")) {
-                        TuneDropdown(label, options, !busy) { idx ->
+                        TuneDropdown(label, options, !busy && !gaming) { idx ->
                             run { GpuControl.setFreq(s, if (idx == 0) null else s.freqsKhz[idx - 1]) }
                         }
                     }

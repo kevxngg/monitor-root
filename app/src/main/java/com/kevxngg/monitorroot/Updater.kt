@@ -74,7 +74,9 @@ fun UpdateResult.Failure.message(): String {
 /** Looks for new versions in GitHub Releases and installs them with root. */
 object Updater {
     private const val API = "https://api.github.com/repos/kevxngg/monitor-root/releases/latest"
-    private const val TMP = "/data/local/tmp/monitorroot-update.apk"
+    /** Temporary copy for "pm install": a new random name each time (nothing can be planted there before). */
+    private fun tmpPath() = "/data/local/tmp/monitorroot-update-${java.util.UUID.randomUUID()}.apk"
+    private val SHA256 = Regex("^[0-9a-fA-F]{64}$")
 
     /** "Later": does not ask about that build again for an hour. */
     @Volatile var snoozedBuild = 0
@@ -263,14 +265,24 @@ object Updater {
             try { file.copyTo(pub, overwrite = true) } catch (e: Exception) { return false }
             pub
         } else file
-        val copied = RootShell.run("cp ${Actions.q(source.path)} $TMP && chmod 644 $TMP && echo OK").any { it.contains("OK") }
+        // The fingerprint is checked again on the very file that gets installed: between the check above
+        // and "pm install" the copy could have been replaced (external folder with Shizuku)
+        val started = RootShell.run(installScript(source.path, tmpPath(), sha256 ?: return false, ctx.packageName))
+            .any { it.contains("OK") }
         if (source != file) source.delete()
-        if (!copied) return false
-        RootShell.run(
-            "setsid sh -c 'pm install -r $TMP && am start -n ${ctx.packageName}/.MainActivity; rm -f $TMP' " +
-                "</dev/null >/dev/null 2>&1 &"
-        )
-        return true
+        return started
+    }
+
+    /**
+     * Shell script that copies the APK to [tmp], checks its SHA-256 there and only then installs it
+     * in the background (and opens the app again). Prints OK when the installation started.
+     */
+    fun installScript(src: String, tmp: String, sha256: String, pkg: String): String {
+        val t = Actions.q(tmp)
+        return "rm -f $t && cp ${Actions.q(src)} $t && chmod 644 $t && " +
+            "[ \"${'$'}(sha256sum $t 2>/dev/null | cut -d' ' -f1)\" = ${Actions.q(sha256.lowercase())} ] && " +
+            "{ setsid sh -c \"pm install -r $t && am start -n $pkg/.MainActivity; rm -f $t\" </dev/null >/dev/null 2>&1 & echo OK; } " +
+            "|| rm -f $t"
     }
 
     /**
@@ -290,23 +302,27 @@ object Updater {
             !file.exists() || file.length() == 0L -> false
             size != null && size > 0 && file.length() != size -> false
             // Without a published fingerprint nothing is installed automatically
-            sha256.isNullOrBlank() || !sha256Of(file).equals(sha256, ignoreCase = true) -> false
+            sha256.isNullOrBlank() || !SHA256.matches(sha256) || !sha256Of(file).equals(sha256, ignoreCase = true) -> false
             archive == null || archive.packageName != ctx.packageName -> false
             PackageInfoCompat.getLongVersionCode(archive) <= PackageInfoCompat.getLongVersionCode(installed) -> false
-            // Shares at least one certificate (supports Android 9+ key rotation)
-            else -> signerDigests(archive).intersect(signerDigests(installed)).isNotEmpty()
+            // Signed with the installed app's CURRENT key (a retired key from the rotation history is not enough)
+            else -> {
+                val (a, multiA) = signerHistory(archive)
+                val (i, multiI) = signerHistory(installed)
+                SignerCheck.matches(a, i, multiple = multiA || multiI)
+            }
         }
     } catch (e: Exception) {
         false
     }
 
-    private fun signerDigests(pi: PackageInfo): Set<String> {
+    /** Certificate digests from oldest to current (rotation history), and whether the APK has several signers. */
+    private fun signerHistory(pi: PackageInfo): Pair<List<String>, Boolean> {
         @Suppress("DEPRECATION")
-        val sigs = if (Build.VERSION.SDK_INT >= 28) {
-            val si = pi.signingInfo ?: return emptySet()
-            if (si.hasMultipleSigners()) si.apkContentsSigners else si.signingCertificateHistory
-        } else pi.signatures
-        return sigs.orEmpty().map { sha256Of(it.toByteArray()) }.toSet()
+        if (Build.VERSION.SDK_INT < 28) return pi.signatures.orEmpty().map { sha256Of(it.toByteArray()) } to false
+        val si = pi.signingInfo ?: return emptyList<String>() to false
+        return if (si.hasMultipleSigners()) si.apkContentsSigners.orEmpty().map { sha256Of(it.toByteArray()) } to true
+        else si.signingCertificateHistory.orEmpty().map { sha256Of(it.toByteArray()) } to false
     }
 
     private fun sha256Of(bytes: ByteArray): String =
@@ -434,5 +450,18 @@ fun ReleaseNotes(notes: String) {
                 t.isNotEmpty() -> Text(t, fontSize = 13.sp, color = win.text)
             }
         }
+    }
+}
+
+/**
+ * Whether an update APK is signed like the installed app. With key rotation the history goes from the
+ * oldest key to the current one: the APK must be signed with the installed app's current key, so an APK
+ * signed only with a retired key is refused. With several signers, all of them must be the same.
+ */
+object SignerCheck {
+    fun matches(archiveHistory: List<String>, installedHistory: List<String>, multiple: Boolean = false): Boolean {
+        if (archiveHistory.isEmpty() || installedHistory.isEmpty()) return false
+        if (multiple) return archiveHistory.toSet() == installedHistory.toSet()
+        return archiveHistory.last() == installedHistory.last()
     }
 }

@@ -39,6 +39,11 @@ object I18n {
     private fun unescape(s: String) = s.replace("\\n", "\n").replace("\\t", "\t")
 
     fun init(ctx: Context) {
+        // Already loaded in this process (services, tile, widget call this too): only the language is applied
+        if (table.isNotEmpty()) {
+            apply(Prefs.language)
+            return
+        }
         try {
             val lines = ctx.assets.open("i18n.tsv").bufferedReader(Charsets.UTF_8).readLines()
             columns = lines.first().split('\t')

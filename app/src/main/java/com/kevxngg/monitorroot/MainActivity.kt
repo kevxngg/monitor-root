@@ -133,7 +133,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (isFinishing) RootShell.close()
+        // The shell is shared with game mode and the floating monitor: only closed if they are not running,
+        // and off the main thread (closing waits for any command in progress)
+        if (isFinishing && !Prefs.gameMode && !OverlayState.running) Thread { RootShell.close() }.start()
     }
 }
 
@@ -228,8 +230,9 @@ fun App() {
     fun connect(mode: Int) {
         busy = true; error = null
         Prefs.accessMode = mode; Prefs.save()
-        RootShell.reset()
         scope.launch {
+            // Waits for any command in progress: never on the main thread
+            withContext(Dispatchers.IO) { RootShell.reset() }
             if (mode == 1) {
                 if (!ShizukuShell.available()) {
                     error = tr("Shizuku no está activo: ábrelo e inícialo primero."); busy = false; return@launch

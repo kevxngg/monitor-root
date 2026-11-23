@@ -191,6 +191,7 @@ class GameModeService : Service() {
             if (RootShell.open()) {   // the app was killed in the middle of a game
                 restoreHz()
                 GameApps.release(applicationContext)
+                restoreDnd()
             }
             while (alive) {
                 try {
@@ -261,7 +262,7 @@ class GameModeService : Service() {
         val nowMs = SystemClock.elapsedRealtime()
         val top = when {
             cur != null && fg != cur -> topResumed()
-            cur == null && (fg == null || fg !in Prefs.games) && nowMs - lastTopCheck > 10_000 -> {
+            cur == null && (fg == null || fg !in Prefs.games) && nowMs - lastTopCheck > 30_000 -> {
                 lastTopCheck = nowMs
                 topResumed()?.takeIf { it in Prefs.games }
             }
@@ -312,6 +313,8 @@ class GameModeService : Service() {
             if (Prefs.gameKill) GameApps.keepClosed(fg) else GameApps.release(applicationContext)
         }
         if (current != null && (Prefs.gameRecord || DiabloMode.active)) record(inGame = fg == current)
+        // Diablo Mode that could not be undone (root was lost): retried until thermal control is back
+        if (!DiabloMode.active) DiabloMode.recoverIfNeeded(applicationContext)
         // Keep Diablo Mode: if something changed the frequencies or re-enabled thermal control, it is corrected
         if (DiabloMode.active) DiabloMode.enforce()
     }
@@ -346,6 +349,8 @@ class GameModeService : Service() {
         if (Prefs.gameDnd) {
             val zen = RootShell.run("settings get global zen_mode").firstOrNull()?.trim()
             if (zen == "0") {
+                // Remembered on disk first: if the app is killed mid-game it is turned off on the next start
+                gamePrefs().edit().putBoolean("dnd", true).commit()
                 RootShell.run("cmd notification set_dnd priority")
                 changedDnd = true
             }
@@ -366,6 +371,8 @@ class GameModeService : Service() {
     private fun applyProfile() {
         val power = Prefs.gamePower
         appliedPower = power
+        // With Shizuku the CPU cannot be changed (the profile selector is disabled): nothing to apply
+        if (RootShell.viaShizuku) return
         // Diablo profile: everything at maximum. If not possible, Mejor rendimiento (Best performance) is used
         val diablo = power == 4 && DiabloMode.enable(applicationContext)
         // Power mode (the full CPU state is saved to restore it on exit)
@@ -399,7 +406,19 @@ class GameModeService : Service() {
         "system:user_refresh_rate", "system:miui_refresh_rate", "secure:miui_refresh_rate",
     )
 
+    /** Turns Do Not Disturb off if game mode turned it on (also after the app was killed). */
+    private fun restoreDnd() {
+        val sp = gamePrefs()
+        if (!sp.getBoolean("dnd", false)) return
+        RootShell.run("cmd notification set_dnd off")
+        sp.edit().remove("dnd").apply()
+    }
+
     private fun applyHz() {
+        // Original rate of an earlier game still pending (it could not be restored): restored first,
+        // so the game's rate is never saved as the "original"
+        if (gamePrefs().contains("hz")) restoreHz()
+        if (gamePrefs().contains("hz")) return
         val hz = Prefs.gameHz
         appliedHz = hz
         if (hz <= 0) return
@@ -461,8 +480,12 @@ class GameModeService : Service() {
             restoreHz()
             GameApps.release(applicationContext)
         }
-        if (changedDnd && RootShell.open()) RootShell.run("cmd notification set_dnd off")
-        changedDnd = false
+        if (changedDnd && RootShell.open()) {
+            restoreDnd()
+            changedDnd = false
+        }
+        // SurfaceFlinger keeps counting frames while TimeStats is on: off when nobody needs it
+        if (!OverlayState.running) try { QuickStats.stopTimeStats() } catch (_: Exception) {}
         if (startedOverlay) {
             OverlayControl.stop(applicationContext)
             startedOverlay = false

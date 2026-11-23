@@ -90,9 +90,13 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                     if (it != (if (Prefs.accessMode == 1) 1 else 0)) {
                         Prefs.accessMode = it
                         Prefs.save()
-                        RootShell.reset()
-                        // Restart the app to connect using the chosen mode
-                        (ctx as? android.app.Activity)?.recreate()
+                        // Restart the app to connect using the chosen mode (the old shell is closed off
+                        // the main thread: closing waits for any command in progress)
+                        val activity = ctx as? android.app.Activity
+                        Thread {
+                            RootShell.reset()
+                            activity?.runOnUiThread { activity.recreate() }
+                        }.start()
                     }
                 }
             }

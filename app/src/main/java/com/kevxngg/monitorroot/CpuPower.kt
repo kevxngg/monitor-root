@@ -282,6 +282,17 @@ object CpuPower {
 
     fun snapshot(): Snapshot = Snapshot(read())
 
+    /**
+     * Limits to write back for a cluster. The snapshot's limits are the EFFECTIVE ones (they include
+     * what the system was imposing, e.g. a thermal cap), so they are only kept when the user set them by
+     * hand; otherwise the full range. Power-save keeps its maximum at the minimum, as it was applied.
+     */
+    fun restoreLimits(kind: Kind, custom: Boolean, min: Long?, max: Long?, hwMin: Long?, hwMax: Long?): Pair<Long?, Long?> = when {
+        custom -> min to max
+        kind == Kind.FIXED_MIN -> (hwMin ?: min) to (hwMin ?: max)
+        else -> (hwMin ?: min) to (hwMax ?: max)
+    }
+
     /** Returns each cluster exactly to how it was. */
     fun restore(s: Snapshot) {
         Prefs.cpuCustomLimits = s.customLimits
@@ -291,8 +302,7 @@ object CpuPower {
             // The limits read in the snapshot are the EFFECTIVE ones (they include what the system was
             // imposing at that moment, e.g. a thermal cap). Writing them back would turn a temporary
             // cap into a permanent limit, so they are only restored if the user had set them by hand.
-            val min = if (s.customLimits) c.minKhz else (hwMin(c) ?: c.minKhz)
-            val max = if (s.customLimits) c.maxKhz else (hwMax(c) ?: c.maxKhz)
+            val (min, max) = restoreLimits(c.kind, s.customLimits, c.minKhz, c.maxKhz, hwMin(c), hwMax(c))
             // Widen the range first so the kernel accepts both limits
             hwMax(c)?.let { write("${c.path}/scaling_max_freq", it) }
             min?.let { write("${c.path}/scaling_min_freq", it) }

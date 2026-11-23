@@ -66,6 +66,10 @@ object DiabloMode {
     fun enable(ctx: Context): Boolean {
         if (active) return true
         if (!RootShell.open() || RootShell.viaShizuku) return false
+        // An earlier session that could not be undone is restored first: otherwise the services it left
+        // stopped would be saved as "not running" and never started again
+        recoverIfNeeded(ctx)
+        if (ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("active", false)) return false
         // 1) Save the current state to restore it exactly
         val before = CpuPower.snapshot()
         // Without the CPU state there would be nothing to restore later: it is not activated

@@ -197,6 +197,12 @@ object QuickStats {
         return (frames / dt).toInt().coerceIn(0, 240)
     }
 
+    /** Battery temperature (°C) and level from "path:value" lines; a missing file never shifts the other. */
+    fun parseBattery(lines: List<String>): Pair<Float?, Int?> {
+        fun value(name: String) = lines.firstOrNull { it.substringBefore(':').endsWith("/$name") }?.substringAfter(':')?.trim()
+        return value("temp")?.toFloatOrNull()?.div(10f) to value("capacity")?.toIntOrNull()
+    }
+
     /** Tests each method separately (for Settings > Test FPS). */
     @Synchronized
     fun diagnoseFps(): String {
@@ -235,14 +241,16 @@ object QuickStats {
         val script = buildString {
             append("head -n 1 /proc/stat; echo @@; ")
             append("grep -H . /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/kernel/gpu/gpu_busy 2>/dev/null; ")
-            append("if [ -e /sys/kernel/ged/hal/gpu_utilization ]; then for i in 1 2 3 4; do echo ged:${'$'}(cut -d' ' -f1 /sys/kernel/ged/hal/gpu_utilization); sleep 0.04; done; fi; echo @@; ")
+            // "read" is a shell builtin: no extra process per sample
+            append("if [ -e /sys/kernel/ged/hal/gpu_utilization ]; then for i in 1 2 3 4; do read u r < /sys/kernel/ged/hal/gpu_utilization; echo ged:${'$'}u; sleep 0.04; done; ")
+            append("read l r < /sys/module/ged/parameters/gpu_loading 2>/dev/null && echo gl:${'$'}l; fi; echo @@; ")
             append("grep -E '^(MemTotal|MemAvailable):' /proc/meminfo; echo @@; ")
             append("cat /sys/devices/system/cpu/cpufreq/policy*/scaling_cur_freq 2>/dev/null; echo @@; ")
             append("cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqency 2>/dev/null | head -n 1; ")
             append("for d in /sys/class/devfreq/*; do case \"${'$'}d\" in *mali*|*gpu*|*GPU*|*g3d*) cat \"${'$'}d/cur_freq\" 2>/dev/null; break;; esac; done; echo @@; ")
             append("cat /proc/net/dev; echo @@; ")
             append("echo @@; ")  // (formerly df: storage is now read with StatFs)
-            append("cat /sys/class/power_supply/battery/temp /sys/class/power_supply/battery/capacity; echo @@; ")
+            append("grep -H . /sys/class/power_supply/battery/temp /sys/class/power_supply/battery/capacity 2>/dev/null; echo @@; ")
             if (z.isNotEmpty()) append("cat ${z.joinToString(" ") { "$it/temp" }}; ")
             append("echo @@; ")
             if (fps) append("cat /sys/class/drm/sde-crtc-*/measured_fps; echo @@; service call SurfaceFlinger 1013; ")
@@ -263,7 +271,9 @@ object QuickStats {
         // while playing, so several quick samples are averaged
         val gpuLines = parts.getOrNull(1)?.lines().orEmpty()
         val ged = gpuLines.filter { it.startsWith("ged:") }.mapNotNull { it.removePrefix("ged:").trim().toIntOrNull() }
-        val gpu = (if (ged.isNotEmpty()) ged.average().toInt() else gpuLines.mapNotNull { l ->
+        // gpu_utilization reads 0 on many kernels: gpu_loading counts too (same rule as the main page)
+        val loading = gpuLines.firstOrNull { it.startsWith("gl:") }?.removePrefix("gl:")?.trim()?.toIntOrNull()
+        val gpu = (if (ged.isNotEmpty()) maxOf(ged.average().toInt(), loading ?: 0) else gpuLines.filter { !it.startsWith("gl:") }.mapNotNull { l ->
             Regex("\\d+").find(l.substringAfter(':'))?.value?.toIntOrNull()
         }.maxOrNull())?.coerceIn(0, 100)
         // RAM
@@ -306,9 +316,7 @@ object QuickStats {
         val stTotal = stat?.totalBytes?.div(1024)?.takeIf { it > 0 }
         val stUsed = stat?.let { (it.totalBytes - it.availableBytes) / 1024 }
         // Battery
-        val batt = parts.getOrNull(7)?.lines().orEmpty()
-        var battTemp = batt.getOrNull(0)?.trim()?.toFloatOrNull()?.div(10f)
-        var battLevel = batt.getOrNull(1)?.trim()?.toIntOrNull()
+        var (battTemp, battLevel) = parseBattery(parts.getOrNull(7)?.lines().orEmpty())
         if ((battTemp == null || battLevel == null) && ctx != null) {
             val api = AndroidStats.battery(ctx)
             battTemp = battTemp ?: api.tempC
@@ -397,8 +405,19 @@ class OverlayService : Service() {
         alive = true
         OverlayState.running = true
         Thread {
+            val power = getSystemService(android.os.PowerManager::class.java)
+            var screenWasOn = true
             while (alive) {
-                val d = try { if (RootShell.open()) QuickStats.read(fps = true, ctx = applicationContext) else null } catch (_: Exception) { null }
+                // With the screen off nobody sees the panel: no readings, and SurfaceFlinger stops counting frames
+                if (power?.isInteractive == false) {
+                    if (screenWasOn) try { QuickStats.stopTimeStats() } catch (_: Exception) {}
+                    screenWasOn = false
+                    SystemClock.sleep(5000)
+                    continue
+                }
+                screenWasOn = true
+                // FPS only while the panel is shown (the minimized bubble does not show them)
+                val d = try { if (RootShell.open()) QuickStats.read(fps = panel != null, ctx = applicationContext) else null } catch (_: Exception) { null }
                 last = d
                 main.post {
                     bubble?.invalidate()  // the red ring follows the Diablo Mode state
