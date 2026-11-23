@@ -279,8 +279,9 @@ object Updater {
      */
     fun installScript(src: String, tmp: String, sha256: String, pkg: String): String {
         val t = Actions.q(tmp)
-        return "rm -f $t && cp ${Actions.q(src)} $t && chmod 644 $t && " +
-            "[ \"${'$'}(sha256sum $t 2>/dev/null | cut -d' ' -f1)\" = ${Actions.q(sha256.lowercase())} ] && " +
+        // Copies left by an install that was interrupted are removed first
+        return "rm -f /data/local/tmp/monitorroot-update-*.apk; rm -f $t && cp ${Actions.q(src)} $t && chmod 644 $t && " +
+            "[ \"${'$'}( (sha256sum $t || toybox sha256sum $t || busybox sha256sum $t) 2>/dev/null | cut -d' ' -f1)\" = ${Actions.q(sha256.lowercase())} ] && " +
             "{ setsid sh -c \"pm install -r $t && am start -n $pkg/.MainActivity; rm -f $t\" </dev/null >/dev/null 2>&1 & echo OK; } " +
             "|| rm -f $t"
     }
@@ -455,13 +456,15 @@ fun ReleaseNotes(notes: String) {
 
 /**
  * Whether an update APK is signed like the installed app. With key rotation the history goes from the
- * oldest key to the current one: the APK must be signed with the installed app's current key, so an APK
- * signed only with a retired key is refused. With several signers, all of them must be the same.
+ * oldest key to the current one: the installed app's current key must be part of the APK's lineage, so
+ * an APK signed only with a retired key is refused, while a new rotation is accepted. With several signers, all of them must be the same.
  */
 object SignerCheck {
     fun matches(archiveHistory: List<String>, installedHistory: List<String>, multiple: Boolean = false): Boolean {
         if (archiveHistory.isEmpty() || installedHistory.isEmpty()) return false
         if (multiple) return archiveHistory.toSet() == installedHistory.toSet()
-        return archiveHistory.last() == installedHistory.last()
+        // The installed app's current key must be in the APK's lineage: accepts a rotation to a new key
+        // (old -> old,new), refuses an APK signed only with a key the app already rotated away from
+        return installedHistory.last() in archiveHistory
     }
 }

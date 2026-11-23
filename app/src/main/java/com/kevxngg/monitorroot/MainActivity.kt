@@ -247,7 +247,11 @@ fun App() {
                     while (!ShizukuShell.hasPermission() && waited < 30_000) { delay(300); waited += 300 }
                 }
             }
-            val ok = withContext(Dispatchers.IO) { RootShell.open() }
+            val ok = withContext(Dispatchers.IO) {
+                // Other parts (floating monitor, game mode) may have failed while permission was pending
+                RootShell.clearRetryWait()
+                RootShell.open()
+            }
             busy = false
             if (ok) connected = true
             else error = if (mode == 1) tr("No se pudo conectar con Shizuku. Acepta el permiso en Shizuku e inténtalo de nuevo.")

@@ -255,6 +255,9 @@ class GameModeService : Service() {
             current?.let { exitGame(it, reason = "screen off or locked") }
             return
         }
+        // Diablo Mode that could not be undone (root was lost): restored first, before any profile is
+        // applied, so a pinned CPU is never saved as the state to go back to
+        if (!DiabloMode.active) DiabloMode.recoverIfNeeded(applicationContext)
         val cur = current
         var fg = foreground()
         // Usage events miss some changes (for example closing a floating window, or returning to a game
@@ -313,8 +316,6 @@ class GameModeService : Service() {
             if (Prefs.gameKill) GameApps.keepClosed(fg) else GameApps.release(applicationContext)
         }
         if (current != null && (Prefs.gameRecord || DiabloMode.active)) record(inGame = fg == current)
-        // Diablo Mode that could not be undone (root was lost): retried until thermal control is back
-        if (!DiabloMode.active) DiabloMode.recoverIfNeeded(applicationContext)
         // Keep Diablo Mode: if something changed the frequencies or re-enabled thermal control, it is corrected
         if (DiabloMode.active) DiabloMode.enforce()
     }
@@ -410,7 +411,10 @@ class GameModeService : Service() {
     private fun restoreDnd() {
         val sp = gamePrefs()
         if (!sp.getBoolean("dnd", false)) return
-        RootShell.run("cmd notification set_dnd off")
+        // Still the "priority" mode game mode set (1): otherwise the user changed it and it is left alone
+        if (RootShell.run("settings get global zen_mode").firstOrNull()?.trim() == "1") {
+            RootShell.run("cmd notification set_dnd off")
+        }
         sp.edit().remove("dnd").apply()
     }
 

@@ -93,6 +93,9 @@
 
         <!-- Widget -->
         <receiver
+            android:name=".WidgetRefreshReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".MonitorWidget"
             android:exported="true"
             android:label="@string/app_name">

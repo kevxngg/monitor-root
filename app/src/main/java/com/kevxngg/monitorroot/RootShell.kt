@@ -60,6 +60,11 @@ object RootShell {
     @Volatile private var lastOpenFail = 0L
 
     /** After a failed attempt, wait before asking for root again (each attempt can show a root prompt). */
+    /** The user asked to connect: the wait after a failed attempt does not apply to this one. */
+    fun clearRetryWait() {
+        lastOpenFail = 0L
+    }
+
     fun retryAllowed(lastFailMs: Long, nowMs: Long): Boolean = lastFailMs == 0L || nowMs - lastFailMs >= 10_000L
 
     fun open(): Boolean {

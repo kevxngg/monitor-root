@@ -155,6 +155,7 @@ object QuickStats {
         tsLast = SystemClock.elapsedRealtime()
     }
 
+    @Synchronized
     fun stopTimeStats() {
         RootShell.run("dumpsys SurfaceFlinger --timestats -disable")
         tsReady = false
@@ -242,8 +243,8 @@ object QuickStats {
             append("head -n 1 /proc/stat; echo @@; ")
             append("grep -H . /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage /sys/kernel/gpu/gpu_busy 2>/dev/null; ")
             // "read" is a shell builtin: no extra process per sample
-            append("if [ -e /sys/kernel/ged/hal/gpu_utilization ]; then for i in 1 2 3 4; do read u r < /sys/kernel/ged/hal/gpu_utilization; echo ged:${'$'}u; sleep 0.04; done; ")
-            append("read l r < /sys/module/ged/parameters/gpu_loading 2>/dev/null && echo gl:${'$'}l; fi; echo @@; ")
+            append("if [ -e /sys/kernel/ged/hal/gpu_utilization ]; then for i in 1 2 3 4; do u=; read u r < /sys/kernel/ged/hal/gpu_utilization; echo ged:${'$'}u; sleep 0.04; done; ")
+            append("l=; read l r < /sys/module/ged/parameters/gpu_loading 2>/dev/null && echo gl:${'$'}l; fi; echo @@; ")
             append("grep -E '^(MemTotal|MemAvailable):' /proc/meminfo; echo @@; ")
             append("cat /sys/devices/system/cpu/cpufreq/policy*/scaling_cur_freq 2>/dev/null; echo @@; ")
             append("cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq /sys/class/kgsl/kgsl-3d0/gpuclk /sys/kernel/ged/hal/current_freqency 2>/dev/null | head -n 1; ")
