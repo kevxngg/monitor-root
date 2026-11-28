@@ -56,8 +56,10 @@ object OverlayState {
 /** Lightweight readings for the floating monitor and the widget. */
 object QuickStats {
     private val WS = Regex("\\s+")
-    private val CPU_ZONE = Regex("cpu|soc|tsens|mtktscpu|apc", RegexOption.IGNORE_CASE)
     private var cpuZones: List<String>? = null
+    /** Zone folder -> its type (cpu-1-0-0, soc_max...), to pick the right sensor. */
+    private val zoneType = HashMap<String, String>()
+    private var lastSensor: String? = null
     private var prevTotal = 0L
     private var prevIdle = 0L
     private var prevFlips = -1L
@@ -81,13 +83,21 @@ object QuickStats {
 
     private fun zones(): List<String> {
         cpuZones?.let { return it }
-        val found = RootShell.run("grep -H . /sys/class/thermal/thermal_zone*/type").mapNotNull { l ->
+        val all = RootShell.run("grep -H . /sys/class/thermal/thermal_zone*/type").mapNotNull { l ->
             val i = l.indexOf(':')
-            if (i > 0 && CPU_ZONE.containsMatchIn(l.substring(i + 1))) l.substring(0, i).removeSuffix("/type") else null
+            if (i > 0) l.substring(0, i).removeSuffix("/type") to l.substring(i + 1).trim() else null
         }
+        val found = all.filter { Thermal.isCpuCandidate(it.second) }
+        found.forEach { (path, type) -> zoneType[path] = type }
         // An empty answer (shell reconnecting) is not cached: it is tried again on the next reading
-        if (found.isNotEmpty()) cpuZones = found
-        return found
+        if (found.isNotEmpty()) {
+            cpuZones = found.map { it.first }
+            Diag.log("temperature", "CPU sensors: " + found.joinToString(", ") { it.second } +
+                " (not used: " + all.filter { !Thermal.isTemperature(it.second) }.joinToString(", ") { it.second }.ifEmpty { "none" } + ")")
+        } else if (all.isNotEmpty()) {
+            Diag.log("temperature", "no CPU sensor among: " + all.joinToString(", ") { it.second }.take(400))
+        }
+        return found.map { it.first }
     }
 
     private fun cpuFrom(line: String?): Pair<Long, Long>? {
@@ -189,7 +199,10 @@ object QuickStats {
         tsLast = now
         if (frames == null) {
             // One empty answer can be the shell reconnecting: it is only abandoned after several in a row
-            if (++tsFails >= 5) tsWorks = false // this phone has no TimeStats: the other methods are used
+            if (++tsFails >= 5) {
+                tsWorks = false // this phone has no TimeStats: the other methods are used
+                Diag.log("fps", "SurfaceFlinger TimeStats not available: using the layer and page-flip methods")
+            }
             tsReady = false
             return null
         }
@@ -252,7 +265,7 @@ object QuickStats {
             append("cat /proc/net/dev; echo @@; ")
             append("echo @@; ")  // (formerly df: storage is now read with StatFs)
             append("grep -H . /sys/class/power_supply/battery/temp /sys/class/power_supply/battery/capacity 2>/dev/null; echo @@; ")
-            if (z.isNotEmpty()) append("cat ${z.joinToString(" ") { "$it/temp" }}; ")
+            if (z.isNotEmpty()) append("grep -H . ${z.joinToString(" ") { "$it/temp" }} 2>/dev/null; ")
             append("echo @@; ")
             if (fps) append("cat /sys/class/drm/sde-crtc-*/measured_fps; echo @@; service call SurfaceFlinger 1013; ")
         }
@@ -323,11 +336,19 @@ object QuickStats {
             battTemp = battTemp ?: api.tempC
             battLevel = battLevel ?: api.level
         }
-        // CPU temperature (max of its sensors, discarding impossible values)
-        val cpuTemp = parts.getOrNull(8)?.lines().orEmpty().mapNotNull { it.trim().toFloatOrNull() }
-            .map { if (abs(it) >= 1000f) it / 1000f else it }
-            .filter { it > 0f && it < 125f }
-            .maxOrNull()
+        // CPU temperature: hottest CPU sensor, skipping zones that are not temperatures and faulty readings
+        val readings = parts.getOrNull(8)?.lines().orEmpty().mapNotNull { l ->
+            val i = l.lastIndexOf(':')
+            if (i <= 0) return@mapNotNull null
+            val v = l.substring(i + 1).trim().toFloatOrNull() ?: return@mapNotNull null
+            (zoneType[l.substring(0, i).removeSuffix("/temp")] ?: "cpu") to Thermal.celsius(v)
+        }
+        val pick = Thermal.cpu(readings)
+        if (pick != null && pick.sensor != lastSensor) {
+            lastSensor = pick.sensor
+            Diag.log("temperature", "CPU temperature from ${pick.sensor}" + (pick.ignored?.let { ", faulty reading ignored: $it" } ?: ""))
+        }
+        val cpuTemp = pick?.celsius
             ?: AndroidStats.cpuTemp()   // without /sys (Shizuku): system temperature service
         // Display FPS. First the SurfaceFlinger statistics (TimeStats),
         // which count the frames the display actually shows; if they are not
@@ -348,6 +369,7 @@ object QuickStats {
             }
             val screen = timeStatsFps()
             fpsValue = screen ?: listOfNotNull(layerFps(), flipFps?.takeIf { it > 0 }, measured).maxOrNull()
+            if (fpsValue == null) Diag.log("fps", "no method gave the FPS of the app on screen (layer: ${layer ?: "not found"})")
         }
         return Data(
             cpu, cpuTemp, gpu, ram, battTemp, battLevel, fpsValue,
@@ -397,6 +419,7 @@ class OverlayService : Service() {
         super.onCreate()
         Prefs.init(applicationContext)
         I18n.init(applicationContext)
+        Diag.init(applicationContext)
         ServiceCompat.startForeground(
             this, NOTIF_ID, notification(),
             if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0,
