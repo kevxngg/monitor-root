@@ -249,7 +249,7 @@ class PanelView(ctx: Context) : View(ctx) {
         // The top-right corner is the minimize area: the status ends before it
         status(c, width - pad - dp(40f), pad + dp(13f), cGreen)
         // four gauges
-        val gy = pad + dp(58f); val gr = dp(26f)
+        val gy = pad + dp(66f); val gr = dp(26f)   // room between the header and the gauge labels
         val cols = 4; val gw = (width - pad * 2) / cols
         val vals = listOf(
             Quad(cBlue, pct(d?.cpu), d?.cpuMhz?.let { "%.2f GHz".format(it / 1000f) } ?: "", "CPU", (d?.cpu ?: 0) / 100f),
