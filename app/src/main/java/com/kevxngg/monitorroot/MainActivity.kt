@@ -89,6 +89,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Diag.init(applicationContext)
         Prefs.init(applicationContext)
         Apps.init(applicationContext)
         I18n.init(applicationContext)
@@ -290,6 +291,11 @@ fun Shell() {
     // Game mode notifications open the Games page directly
     // ...and Settings comes back after its own restart (changing the text size)
     val askedPage = (context as? android.app.Activity)?.intent?.let { i ->
+        // A session summary notification opens that session's details
+        i.getLongExtra("session", 0L).takeIf { it > 0 }?.let {
+            GameModeState.openSession = it
+            i.removeExtra("session")
+        }
         i.getStringExtra("page").also { if (it == "settings") i.removeExtra("page") }
     }
     var page by remember {

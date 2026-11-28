@@ -81,7 +81,8 @@ class PanelView(ctx: Context) : View(ctx) {
     private val diablo get() = DiabloMode.active
 
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val textP = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = cText }
+    // Tabular digits: a value keeps its width as it changes, so nothing jumps around every second
+    private val textP = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = cText; fontFeatureSettings = "tnum" }
     private val mono = Typeface.MONOSPACE
     private val inter: Typeface = try {
         androidx.core.content.res.ResourcesCompat.getFont(ctx, R.font.inter) ?: Typeface.DEFAULT
@@ -98,7 +99,55 @@ class PanelView(ctx: Context) : View(ctx) {
     }
 
     private fun pct(v: Int?) = v?.let { "$it%" } ?: "—"
-    private fun load(v: Int?) = when { v == null -> cSub; v < 60 -> cGreen; v < 85 -> cOrange; else -> 0xFFFF5A5A.toInt() }
+    private val cHot = 0xFFFF5A5A.toInt()
+    private fun load(v: Int?) = when { v == null -> cSub; v < 60 -> cGreen; v < 85 -> cOrange; else -> cHot }
+    /** Temperature colour: orange as usual, red when it is really hot. */
+    private fun tempColor(t: Float?) = if ((t ?: 0f) >= HOT_C) cHot else cOrange
+    private val HOT_C = 80f
+
+    /** Graph scale for FPS: the next usual refresh rate above what was seen (60, 90, 120, 144...). */
+    private fun fpsScale(): Float {
+        val top = fpsHist.maxOrNull() ?: 60f
+        return listOf(60f, 90f, 120f, 144f, 165f, 240f).firstOrNull { it >= top } ?: top
+    }
+
+    /** Network graph scale: follows the traffic, so a slow connection is still visible. */
+    private fun netScale(): Float = max(64f, (netHist.maxOrNull() ?: 0f) * 1.2f)
+
+    /** Lowest FPS of the last ~30 readings (the stutters the average hides). */
+    private fun fpsMin(): Int? = fpsHist.toList().takeLast(30).filter { it > 0f }.takeIf { it.size >= 5 }?.minOrNull()?.toInt()
+
+    /** Width of a text with the given size and font. */
+    private fun textW(s: String, size: Float, bold: Boolean = false, face: Typeface? = null): Float {
+        textP.textSize = dp(size)
+        textP.typeface = when {
+            face === mono -> if (bold) monoBold else mono
+            else -> if (bold) interBold else inter
+        }
+        return textP.measureText(s)
+    }
+
+    /**
+     * Status at the right of the header, ending at [right]: a red DIABLO badge, "Live" when
+     * readings arrive, grey "Connecting…" when there are none yet (no root, shell reconnecting).
+     */
+    private fun status(c: Canvas, right: Float, baseline: Float, live: Int, face: Typeface? = null) {
+        if (diablo) {
+            val label = "DIABLO"
+            val w = textW(label, 9.5f, bold = true, face = face) + dp(12f)
+            p.style = Paint.Style.FILL; p.color = cDiablo
+            c.drawRoundRect(RectF(right - w, baseline - dp(11f), right, baseline + dp(4f)), dp(7.5f), dp(7.5f), p)
+            text(c, label, right - w / 2, baseline, 9.5f, cText, bold = true, center = true, face = face)
+            return
+        }
+        val ok = data != null
+        val label = if (ok) tr("En vivo") else tr("Conectando…")
+        val color = if (ok) live else cSub
+        val w = textW(label, 11f, face = face)
+        text(c, label, right, baseline, 11f, color, right = true, face = face)
+        p.style = Paint.Style.FILL; p.color = color
+        c.drawCircle(right - w - dp(8f), baseline - dp(4f), dp(3.5f), p)
+    }
 
     override fun onMeasure(widthSpec: Int, heightSpec: Int) {
         val w: Float; val h: Float
@@ -196,22 +245,17 @@ class PanelView(ctx: Context) : View(ctx) {
         // header
         drawAppLogo(c, context, pad + dp(10f), pad + dp(9f), dp(10f))
         text(c, "Monitor", pad + dp(26f), pad + dp(14f), 15f, cText, bold = true)
-        batt(d)?.let { text(c, it, pad + dp(98f), pad + dp(13.5f), 10.5f, cSub) }
-        if (diablo) {
-            text(c, "🔥 Diablo", width - pad - dp(100f), pad + dp(13f), 11f, cDiablo, bold = true)
-        } else {
-            p.style = Paint.Style.FILL; p.color = cGreen
-            c.drawCircle(width - pad - dp(96f), pad + dp(9f), dp(3.5f), p)
-            text(c, "Live", width - pad - dp(86f), pad + dp(13f), 11f, cGreen)
-        }
+        batt(d)?.let { text(c, it, pad + dp(32f) + textW("Monitor", 15f, bold = true), pad + dp(13.5f), 10.5f, cSub) }
+        // The top-right corner is the minimize area: the status ends before it
+        status(c, width - pad - dp(40f), pad + dp(13f), cGreen)
         // four gauges
-        val gy = pad + dp(58f); val gr = dp(26f)
+        val gy = pad + dp(66f); val gr = dp(26f)   // room between the header and the gauge labels
         val cols = 4; val gw = (width - pad * 2) / cols
         val vals = listOf(
             Quad(cBlue, pct(d?.cpu), d?.cpuMhz?.let { "%.2f GHz".format(it / 1000f) } ?: "", "CPU", (d?.cpu ?: 0) / 100f),
             Quad(cPurple, pct(d?.gpu), d?.gpuMhz?.let { "$it MHz" } ?: "", "GPU", (d?.gpu ?: 0) / 100f),
             Quad(cGreen, pct(d?.ram), "${gb(d?.ramUsedKb)}/${gb(d?.ramTotalKb)} GB", "RAM", (d?.ram ?: 0) / 100f),
-            Quad(cOrange, d?.cpuTemp?.let { "%.0f".format(it) } ?: "—", "CPU", "TEMP", ((d?.cpuTemp ?: 0f) / 100f)),
+            Quad(tempColor(d?.cpuTemp), d?.cpuTemp?.let { "%.0f".format(it) } ?: "—", "CPU", "TEMP", ((d?.cpuTemp ?: 0f) / 100f)),
         )
         vals.forEachIndexed { i, q ->
             val cx = pad + gw * i + gw / 2
@@ -227,7 +271,7 @@ class PanelView(ctx: Context) : View(ctx) {
         // bottom row: storage, network, fps
         val rTop = cardTop + cardH + gap
         val rH = dp(60f); val rw = (width - pad * 2 - gap * 2) / 3
-        drawInfoCard(c, pad, rTop, pad + rw, rTop + rH, "Almacen.", stPct(d)?.let { "$it%" } ?: "—",
+        drawInfoCard(c, pad, rTop, pad + rw, rTop + rH, tr("Disco"), stPct(d)?.let { "$it%" } ?: "—",
             d?.let { "${gb(it.stUsedKb)}/${gb(it.stTotalKb)} GB" } ?: "", (stPct(d) ?: 0L) / 100f)
         drawNetCard(c, pad + rw + gap, rTop, pad + rw * 2 + gap, rTop + rH, d)
         drawFpsCard(c, pad + rw * 2 + gap * 2, rTop, width - pad, rTop + rH, d)
@@ -262,17 +306,19 @@ class PanelView(ctx: Context) : View(ctx) {
 
     private fun drawNetCard(c: Canvas, l: Float, t: Float, r: Float, b: Float, d: QuickStats.Data?) {
         card(c, l, t, r, b)
-        text(c, "Red", l + dp(8f), t + dp(14f), 9f, cSub)
+        text(c, tr("Red"), l + dp(8f), t + dp(14f), 9f, cSub)
         text(c, "↑ ${net(d?.netUpKbs)}", l + dp(8f), t + dp(28f), 9.5f, cBlue)
         text(c, "↓ ${net(d?.netDownKbs)}", l + dp(8f), t + dp(40f), 9.5f, cGreen)
-        spark(c, l + dp(8f), t + dp(44f), r - dp(8f), b - dp(6f), netHist, cBlue, maxV = 2000f)
+        spark(c, l + dp(8f), t + dp(44f), r - dp(8f), b - dp(6f), netHist, cGreen, maxV = netScale())
     }
 
     private fun drawFpsCard(c: Canvas, l: Float, t: Float, r: Float, b: Float, d: QuickStats.Data?) {
         card(c, l, t, r, b)
         text(c, "FPS", l + dp(8f), t + dp(14f), 9f, cSub)
         text(c, d?.fps?.toString() ?: "—", l + dp(8f), t + dp(30f), 15f, cGreenFps, bold = true)
-        spark(c, l + dp(8f), t + dp(34f), r - dp(8f), b - dp(6f), fpsHist, cGreenFps, maxV = 120f)
+        // Lowest of the last seconds: the stutters an average hides
+        fpsMin()?.let { text(c, tr("mín %d", it), r - dp(8f), t + dp(14f), 8.5f, cSub, right = true) }
+        spark(c, l + dp(8f), t + dp(34f), r - dp(8f), b - dp(6f), fpsHist, cGreenFps, maxV = fpsScale())
     }
 
     private fun net(v: Float?) = when { v == null -> "—"; v >= 1024 -> "%.1f MB/s".format(v / 1024); else -> "%.0f KB/s".format(v) }
@@ -285,7 +331,7 @@ class PanelView(ctx: Context) : View(ctx) {
             Triple("CPU", pct(d?.cpu), load(d?.cpu)),
             Triple("GPU", pct(d?.gpu), cPurple),
             Triple("RAM", pct(d?.ram), load(d?.ram)),
-            Triple("TEMP", d?.cpuTemp?.let { "%.0f°".format(it) } ?: "—", cOrange),
+            Triple("TEMP", d?.cpuTemp?.let { "%.0f°".format(it) } ?: "—", tempColor(d?.cpuTemp)),
             Triple("FPS", d?.fps?.toString() ?: "—", cGreenFps),
         )
         val colW = width / items.size.toFloat()
@@ -301,7 +347,7 @@ class PanelView(ctx: Context) : View(ctx) {
                 p.color = color
                 c.drawRoundRect(RectF(cx - dp(22f), dp(56f), cx - dp(22f) + dp(44f) * frac.coerceIn(0f, 1f), dp(60f)), dp(2f), dp(2f), p)
             } else {
-                spark(c, cx - dp(26f), dp(50f), cx + dp(26f), dp(64f), fpsHist, cGreenFps, maxV = 120f)
+                spark(c, cx - dp(26f), dp(50f), cx + dp(26f), dp(64f), fpsHist, cGreenFps, maxV = fpsScale())
             }
         }
         val foot = listOfNotNull("↓ ${net(d?.netDownKbs)}", "↑ ${net(d?.netUpKbs)}", batt(d)?.let { "BAT $it" }).joinToString("    ")
@@ -330,13 +376,13 @@ class PanelView(ctx: Context) : View(ctx) {
         p.shader = LinearGradient(lx - lr, ly - lr, lx + lr, ly + lr, intArrayOf(cBlue, cPurple), null, Shader.TileMode.CLAMP)
         c.drawCircle(lx, ly, lr + dp(4f), p); p.shader = null
         drawAppLogo(c, context, lx, ly, lr)
-        text(c, if (diablo) "🔥 DIABLO" else "MONITOR", lx, ly + lr + dp(18f), 10f, if (diablo) cDiablo else cPurple, bold = true, center = true)
+        text(c, if (diablo) "DIABLO" else "MONITOR", lx, ly + lr + dp(18f), 10f, if (diablo) cDiablo else cPurple, bold = true, center = true)
         // four gauges
         val gy = dp(62f); val gr = dp(24f)
         val startX = dp(96f); val span = width - startX - dp(16f); val gw = span / 4
         listOf(
             Triple("CPU", pct(d?.cpu), cBlue), Triple("GPU", pct(d?.gpu), cPurple),
-            Triple("RAM", pct(d?.ram), cGreen), Triple("TEMP", d?.cpuTemp?.let { "%.0f°".format(it) } ?: "—", cOrange),
+            Triple("RAM", pct(d?.ram), cGreen), Triple("TEMP", d?.cpuTemp?.let { "%.0f°".format(it) } ?: "—", tempColor(d?.cpuTemp)),
         ).forEachIndexed { i, (label, value, color) ->
             val cx = startX + gw * i + gw / 2
             val frac = when (label) { "TEMP" -> (d?.cpuTemp ?: 0f) / 100f; else -> (value.filter { it.isDigit() }.toIntOrNull() ?: 0) / 100f }
@@ -345,7 +391,8 @@ class PanelView(ctx: Context) : View(ctx) {
         // bottom strip: FPS, network, storage
         val by = height - dp(22f)
         text(c, "FPS ${d?.fps ?: "—"}", dp(18f), by, 11f, cPurple, bold = true)
-        text(c, "↓${net(d?.netDownKbs)}  ↑${net(d?.netUpKbs)}", dp(130f), by, 10f, cBlue)
+        // Centred between FPS and battery: long values (MB/s, 3-digit FPS) never run into each other
+        text(c, "↓${net(d?.netDownKbs)}  ↑${net(d?.netUpKbs)}", width / 2f + dp(14f), by, 10f, cBlue, center = true)
         text(c, d?.battLevel?.let { "BAT $it%" } ?: "—", width - dp(18f), by, 11f, cGreen, bold = true, right = true)
     }
 
@@ -358,12 +405,7 @@ class PanelView(ctx: Context) : View(ctx) {
         val green = 0xFF4ADE80.toInt(); val d = data
         val pad = dp(14f)
         text(c, "Monitor Root v$appVersion", pad, pad + dp(12f), 11f, green, bold = true, face = mono)
-        if (diablo) {
-            text(c, "DIABLO", width - pad - dp(46f), pad + dp(12f), 10f, cDiablo, bold = true, face = mono)
-        } else {
-            p.style = Paint.Style.FILL; p.color = green; c.drawCircle(width - pad - dp(40f), pad + dp(8f), dp(3f), p)
-            text(c, "Live", width - pad - dp(32f), pad + dp(12f), 10f, green, face = mono)
-        }
+        status(c, width - pad - dp(36f), pad + dp(12f), green, face = mono)
         // left column: values
         val lines = listOf("CPU" to pct(d?.cpu), "GPU" to pct(d?.gpu), "RAM" to pct(d?.ram), "TEMP" to (d?.cpuTemp?.let { "%.0f°C".format(it) } ?: "—"))
         var y = pad + dp(34f)
@@ -374,6 +416,10 @@ class PanelView(ctx: Context) : View(ctx) {
         // activity bars on the right (like the bar chart in the sketch)
         val bl = width * 0.42f; val br = width - pad; val bt = pad + dp(26f); val bb = height - dp(34f)
         val bars = cpuHist.toList().takeLast(26)
+        // What the bars are: CPU over the last seconds, on a dim baseline
+        text(c, "CPU", br, bt - dp(2f), 8.5f, 0xFF2E7D32.toInt(), right = true, face = mono)
+        p.style = Paint.Style.FILL; p.color = 0xFF1B5E20.toInt()
+        c.drawRect(bl, bb, br, bb + dp(1f), p)
         if (bars.isNotEmpty()) {
             val bw = (br - bl) / bars.size
             bars.forEachIndexed { i, v ->

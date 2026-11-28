@@ -168,6 +168,9 @@ object GameApps {
         if (script.isNotEmpty()) RootShell.run(script.joinToString("\n"))
     }
 
+    /** How many apps are being kept closed right now. */
+    fun heldCount(): Int = (held + closed).size
+
     /** Puts every app back as it was before the game. */
     @Synchronized
     fun release(ctx: Context) {

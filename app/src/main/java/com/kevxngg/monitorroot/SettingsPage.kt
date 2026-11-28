@@ -42,6 +42,8 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
     var checkMsg by remember { mutableStateOf<String?>(null) }
     var found by remember { mutableStateOf<UpdateInfo?>(null) }
     found?.let { UpdateDialog(it) { found = null } }
+    var diagOpen by remember { mutableStateOf(false) }
+    if (diagOpen) DiagDialog { diagOpen = false }
     var showAbout by remember { mutableStateOf(false) }
     var fpsTesting by remember { mutableStateOf(false) }
     var fpsReport by remember { mutableStateOf<String?>(null) }
@@ -186,6 +188,12 @@ fun SettingsPage(onVerified: (UpdateInfo) -> Unit = {}) {
                 else tr("Edita el panel de ajustes rápidos y arrastra el botón Monitor."),
             ) {
                 if (Build.VERSION.SDK_INT >= 33) TextButton(onClick = { addTile(ctx) }) { Text(tr("Añadir")) }
+            }
+            SettingCard(
+                Icons.Outlined.BugReport, tr("Informe de diagnóstico"),
+                tr("Qué funciones fallan en este teléfono, para enviarlo si algo no va bien. No se envía nada solo."),
+            ) {
+                TextButton(onClick = { diagOpen = true }) { Text(tr("Ver")) }
             }
             Spacer(Modifier.height(8.dp))
             SectionLabel(tr("Alertas"))

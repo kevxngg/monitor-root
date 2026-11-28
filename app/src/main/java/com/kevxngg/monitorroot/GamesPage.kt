@@ -48,29 +48,82 @@ fun GamesPage(onRun: () -> Unit) {
     var confirmDiablo by remember { mutableStateOf(false) }
     var playing by remember { mutableStateOf(GameModeState.playing) }
     var charging by remember { mutableStateOf(DiabloMode.isCharging(ctx)) }
+    var tick by remember { mutableIntStateOf(0) }
+    var diagOpen by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<GameSession?>(null) }
+    // What game mode needs and is missing (checked every few seconds: the user may grant it meanwhile)
+    var rootOk by remember { mutableStateOf(true) }
+    var usageOk by remember { mutableStateOf(true) }
+    var overlayOk by remember { mutableStateOf(true) }
+    var notifOk by remember { mutableStateOf(true) }
 
     // New sessions and the current game update on their own
     RepeatWhileVisible(3000) {
         playing = GameModeState.playing
         charging = DiabloMode.isCharging(ctx)
+        tick++
         sessions = withContext(Dispatchers.IO) { GameSessions.read(ctx) }
+        withContext(Dispatchers.IO) {
+            rootOk = RootShell.open()
+            usageOk = GameMode.hasUsageAccess(ctx)
+            overlayOk = android.provider.Settings.canDrawOverlays(ctx)
+            notifOk = androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled()
+        }
+    }
+    // Opened from a session summary notification: that session's details
+    LaunchedEffect(sessions) {
+        val want = GameModeState.openSession
+        if (want != 0L) {
+            sessions.firstOrNull { it.start == want }?.let { detail = it }
+            GameModeState.openSession = 0L
+        }
     }
 
     Column(Modifier.fillMaxSize()) {
         PageHeader(tr("Juegos")) {
             CmdButton(Icons.Outlined.AddBox, tr("Ejecutar nueva tarea"), onClick = onRun)
             CmdButton(Icons.Outlined.SportsEsports, tr("Elegir juegos")) { picking = true }
+            CmdButton(Icons.Outlined.BugReport, tr("Informe de diagnóstico")) { diagOpen = true }
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             // ---- Game mode status ----
-            GameStatusCard(playing) { on ->
+            GameStatusCard(playing, tick, onEnd = {
+                // Ends this session; the game is not started again until it leaves the screen
+                try {
+                    ctx.startService(Intent(ctx, GameModeService::class.java).setAction(GameModeService.ACTION_END))
+                    Feedback.show(tr("Partida terminada"))
+                } catch (_: Exception) {
+                }
+            }) { on ->
                 Prefs.gameMode = on
                 Prefs.save()
                 val app = ctx.applicationContext
                 scope.launch(Dispatchers.IO) { if (on) GameMode.start(app) else GameMode.stop(app) }
+            }
+            // ---- What is missing for game mode to work fully ----
+            if (Prefs.gameMode) {
+                if (!rootOk) SetupWarning(tr("Sin root ni Shizuku el modo juego solo guarda el resumen: no cambia el perfil ni las demás opciones."))
+                if (!usageOk) SetupWarning(tr("Falta el acceso de uso: el modo juego no puede saber qué juego está abierto."), tr("Conceder")) {
+                    try {
+                        ctx.startActivity(Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    } catch (_: Exception) {
+                    }
+                }
+                if (Prefs.gameOverlay && !overlayOk) SetupWarning(tr("Falta el permiso para mostrar el monitor flotante sobre otras apps."), tr("Conceder")) {
+                    OverlayControl.openPermissionSettings(ctx)
+                }
+                if (!notifOk && (Prefs.gameRecord || Prefs.gamePower == 4)) SetupWarning(tr("Las notificaciones de Monitor están desactivadas: no verás el resumen ni los avisos de temperatura."), tr("Activar")) {
+                    try {
+                        ctx.startActivity(
+                            Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    } catch (_: Exception) {
+                    }
+                }
             }
 
             // ---- Performance profile (Diablo Mode is just one of them) ----
@@ -109,8 +162,9 @@ fun GamesPage(onRun: () -> Unit) {
 
             // ---- Your games in a grid ----
             Spacer(Modifier.height(8.dp))
-            SectionLabel(tr("Tus juegos (%d)", Prefs.games.size))
+            // Uninstalled games are not counted (they stay saved in case they are installed again)
             val myGames = remember(Prefs.games) { Prefs.games.mapNotNull { Apps.meta(it) }.sortedBy { it.label.lowercase() } }
+            SectionLabel(tr("Tus juegos (%d)", myGames.size))
             GameGrid(myGames, onAdd = { picking = true }, onLaunch = { pkg ->
                 // Game mode on (if it was off) and the game opens: the profile is applied as soon as it is on screen
                 if (!Prefs.gameMode) {
@@ -119,9 +173,11 @@ fun GamesPage(onRun: () -> Unit) {
                 }
                 val app = ctx.applicationContext
                 scope.launch(Dispatchers.IO) { GameMode.start(app) }
-                ctx.packageManager.getLaunchIntentForPackage(pkg)
-                    ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    ?.let { i -> try { ctx.startActivity(i) } catch (_: Exception) {} }
+                val label = Apps.meta(pkg)?.label ?: pkg
+                val launch = ctx.packageManager.getLaunchIntentForPackage(pkg)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                val opened = launch != null && try { ctx.startActivity(launch); true } catch (_: Exception) { false }
+                if (opened) Feedback.show(tr("Abriendo %s con el modo juego", label))
+                else Feedback.show(tr("No se puede abrir %s", label), ok = false)
             }) { pkg ->
                 Prefs.games = Prefs.games - pkg
                 Prefs.save()
@@ -139,8 +195,9 @@ fun GamesPage(onRun: () -> Unit) {
                 )
             }
             sessions.forEach { s ->
-                SessionRow(s) { detail = s }
+                SessionRow(s, onLongClick = { deleting = s }) { detail = s }
             }
+            if (sessions.isNotEmpty()) Text(tr("Mantén pulsada una partida para borrarla."), fontSize = 11.sp, color = win.sub, modifier = Modifier.padding(start = 4.dp))
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -150,6 +207,14 @@ fun GamesPage(onRun: () -> Unit) {
         onDismiss = { confirmDiablo = false },
     )
     if (picking) GamePickerDialog { picking = false }
+    if (diagOpen) DiagDialog { diagOpen = false }
+    deleting?.let { s ->
+        ConfirmDialog(s.label, tr("¿Borrar esta partida?"), tr("Borrar"), onConfirm = {
+            GameSessions.remove(ctx, s.start)
+            sessions = sessions.filter { it.start != s.start }
+            Feedback.show(tr("Partida borrada"))
+        }, onDismiss = { deleting = null })
+    }
     detail?.let { SessionDialog(it) { detail = null } }
     if (confirmClear) {
         ConfirmDialog(tr("Partidas recientes"), tr("¿Borrar el historial de partidas?"), tr("Borrar"), onConfirm = {
@@ -177,13 +242,14 @@ private fun Chip(text: String) {
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SessionRow(s: GameSession, onClick: () -> Unit) {
+private fun SessionRow(s: GameSession, onLongClick: () -> Unit, onClick: () -> Unit) {
     val win = LocalWin.current
     val meta = remember(s.pkg) { Apps.meta(s.pkg) }
     val date = remember(s.start) { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, I18n.locale()).format(Date(s.start)) }
     GameCard {
-        Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             AppIcon(meta?.icon, s.label, 36.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -193,6 +259,8 @@ private fun SessionRow(s: GameSession, onClick: () -> Unit) {
                     s.avgFps?.let { Chip(tr("%d FPS", it)) }
                     s.cpuTempMax?.let { Chip("%.0f °C".format(it)) }
                     s.battUsed?.takeIf { it > 0 }?.let { Chip("−$it %") }
+                    if (s.charging) Chip(tr("Cargando"))
+                    if (s.throttleSec >= 60) Chip(tr("Calor %d min", s.throttleSec / 60))
                 }
             }
         }
@@ -227,6 +295,10 @@ private fun GamePickerDialog(onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.height(6.dp))
                 val list = apps
+                val detected = list.orEmpty().filter { it.second }.map { it.first.pkg }
+                if (detected.any { it !in selected }) {
+                    TextButton(onClick = { selected = selected + detected }) { Text(tr("Añadir los %d juegos detectados", detected.size)) }
+                }
                 if (list == null) {
                     Text(tr("Cargando…"), fontSize = 13.sp, color = win.sub)
                 } else {
@@ -252,7 +324,9 @@ private fun GamePickerDialog(onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = {
-                Prefs.games = selected
+                // Apps that are no longer installed are dropped from the list
+                val installed = apps?.map { it.first.pkg }?.toSet()
+                Prefs.games = if (installed == null) selected else selected.filter { it in installed }.toSet()
                 Prefs.save()
                 onDismiss()
             }) { Text(tr("Aceptar")) }
@@ -267,13 +341,27 @@ private fun SessionDialog(s: GameSession, onDismiss: () -> Unit) {
     val win = LocalWin.current
     val ctx = LocalContext.current
     val color = Res.GPU.color(win)
+    val date = remember(s.start) { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, I18n.locale()).format(Date(s.start)) }
     val rows = listOfNotNull(
+        tr("Fecha") to date,
         tr("Duración") to tr("%d min", s.minutes),
+        s.onScreenSec.takeIf { it > 0 }?.let { tr("En pantalla") to tr("%d min", it / 60) },
         s.avgFps?.let { tr("FPS promedio") to "$it" },
         s.lowFps?.let { tr("FPS bajo (5 %)") to "$it" },
+        s.low1Fps?.let { tr("FPS bajo (1 %)") to "$it" },
         s.maxFps?.let { tr("FPS máximo") to "$it" },
-        s.cpuTempMax?.let { tr("Temperatura máxima") to "%.1f °C".format(it) },
-        s.battUsed?.let { tr("Batería usada") to "$it %" },
+        s.stability?.let { tr("Estabilidad") to "$it %" },
+        s.cpuTempMax?.let { tr("Temperatura máxima de la CPU") to "%.1f °C".format(it) },
+        s.battTempMax?.let { tr("Temperatura máxima de la batería") to "%.1f °C".format(it) },
+        s.throttleSec.takeIf { it > 0 }?.let { tr("Tiempo con calor (el sistema baja la velocidad)") to tr("%d min", (it + 59) / 60) },
+        when {
+            s.charging -> tr("Batería usada") to tr("Cargando")
+            else -> s.battUsed?.let { tr("Batería usada") to "$it %" }
+        },
+        s.drainPerHour?.let { tr("Batería por hora") to "$it %" },
+        s.profile.takeIf { it >= 0 }?.let { tr("Perfil") to profileName(it) },
+        s.hz.takeIf { it > 0 }?.let { tr("Frecuencia de pantalla") to "$it Hz" },
+        GameMode.endReasonText(s.endReason)?.let { tr("Cómo terminó") to it },
     )
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -305,7 +393,18 @@ private fun SessionDialog(s: GameSession, onDismiss: () -> Unit) {
                         area.close()
                         drawPath(area, color.copy(alpha = 0.2f))
                         drawPath(p, color, style = Stroke(width = 1.5.dp.toPx()))
+                        // Dashed line at the average
+                        s.avgFps?.let { avg ->
+                            val y = h * (1f - avg / top)
+                            drawLine(color.copy(alpha = 0.8f), Offset(0f, y), Offset(w, y), 1.dp.toPx(),
+                                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8f, 6f)))
+                        }
                         drawRect(color, style = Stroke(width = 1.dp.toPx()))
+                    }
+                    Row(Modifier.fillMaxWidth()) {
+                        Text("0", fontSize = 10.sp, color = win.sub, modifier = Modifier.weight(1f))
+                        s.avgFps?.let { Text(tr("- - promedio %d", it), fontSize = 10.sp, color = win.sub, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
+                        Text(tr("%d min", s.minutes), fontSize = 10.sp, color = win.sub, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
                     }
                 } else {
                     Text(tr("No hay datos de FPS de esta partida."), fontSize = 12.sp, color = win.sub)
@@ -399,8 +498,9 @@ private fun DiabloDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 // ===================== Games redesign components =====================
 
 /** Status card: game mode on or off, current game and profile. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun GameStatusCard(playing: String?, onToggle: (Boolean) -> Unit) {
+private fun GameStatusCard(playing: String?, tick: Int, onEnd: () -> Unit, onToggle: (Boolean) -> Unit) {
     val win = LocalWin.current
     val on = Prefs.gameMode
     val diablo = Prefs.gamePower == 4
@@ -439,6 +539,51 @@ private fun GameStatusCard(playing: String?, onToggle: (Boolean) -> Unit) {
             if (on) Text(tr("Perfil: %s", profileName(Prefs.gamePower)), fontSize = 12.sp, color = win.sub)
         }
         WinSwitch(on, onToggle)
+    }
+    // Live: what is really applied to the game and the last readings
+    if (on && playing != null) {
+        // Read again on every refresh of the page
+        key(tick) {
+        val st = GameModeState
+        val min = if (st.sessionStart > 0) ((System.currentTimeMillis() - st.sessionStart) / 60_000).toInt() else 0
+        Column(
+            Modifier.fillMaxWidth().padding(top = 6.dp).clip(corner(8)).background(win.card).border(1.dp, win.border, corner(8)).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Chip(tr("%d min", min))
+                st.fps?.let { Chip(tr("%d FPS", it)) }
+                st.cpuTemp?.let { Chip("CPU %.0f °C".format(it)) }
+                st.battTemp?.let { Chip(tr("batería %d °C", it.toInt())) }
+                if (st.profile > 0) Chip(profileName(st.profile))
+                if (st.hz > 0) Chip("${st.hz} Hz")
+                if (st.dnd) Chip(tr("No molestar"))
+                if (st.appsClosed > 0) Chip(tr("%d apps cerradas", st.appsClosed))
+                if (st.overlay) Chip(tr("Monitor flotante"))
+            }
+            if (st.diabloFailed) Text(tr("El Modo Diablo no se pudo activar en este teléfono: se usa Rendimiento."), fontSize = 12.sp, color = win.warn)
+            if (st.diabloCut) Text(tr("El Modo Diablo se desactivó para proteger el teléfono: sigues jugando con el perfil de fábrica."), fontSize = 12.sp, color = win.warn)
+            if (st.throttling) Text(tr("El teléfono está caliente y el sistema está bajando la velocidad."), fontSize = 12.sp, color = win.warn)
+            if (Prefs.gamePower != 0 && st.profile == 0 && !st.diabloCut) Text(tr("El perfil elegido no se puede aplicar en este teléfono."), fontSize = 12.sp, color = win.warn)
+            TextButton(onClick = onEnd, contentPadding = PaddingValues(horizontal = 4.dp)) { Text(tr("Terminar partida")) }
+        }
+        }
+    }
+}
+
+/** Something game mode needs and is missing, with a button to fix it. */
+@Composable
+private fun SetupWarning(text: String, action: String? = null, onAction: () -> Unit = {}) {
+    val win = LocalWin.current
+    Row(
+        Modifier.fillMaxWidth().padding(top = 6.dp).clip(corner(8)).background(win.warn.copy(alpha = if (win.dark) 0.14f else 0.08f))
+            .border(1.dp, win.warn.copy(alpha = 0.5f), corner(8)).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Outlined.WarningAmber, null, tint = win.warn, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(text, fontSize = 12.sp, color = win.text, modifier = Modifier.weight(1f))
+        if (action != null) TextButton(onClick = onAction) { Text(action) }
     }
 }
 
@@ -555,7 +700,17 @@ private fun RefreshRateRow() {
             emptyList()
         }
     }
-    if (rates.size < 2) return
+    if (rates.size < 2) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Speed, null, tint = win.sub, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(tr("Frecuencia de pantalla"), fontSize = 14.sp, color = win.sub)
+                Text(tr("Tu pantalla tiene una sola frecuencia: no hay nada que ajustar."), fontSize = 12.sp, color = win.sub)
+            }
+        }
+        return
+    }
     val options = listOf(tr("Sin cambios")) + rates.map { "$it Hz" }
     val selected = if (Prefs.gameHz == 0) 0 else rates.indexOf(Prefs.gameHz).let { if (it < 0) 0 else it + 1 }
     Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -564,6 +719,7 @@ private fun RefreshRateRow() {
         Column(Modifier.weight(1f)) {
             Text(tr("Frecuencia de pantalla"), fontSize = 14.sp, color = win.text)
             Text(tr("Si el juego no llega a los FPS de la pantalla, una frecuencia más baja los mantiene estables."), fontSize = 12.sp, color = win.sub)
+            if (RootShell.viaShizuku) Text(tr("Solo con root") + ": " + tr("con Shizuku no se puede cambiar."), fontSize = 12.sp, color = win.warn)
         }
         Spacer(Modifier.width(8.dp))
         WinDropdown(options, selected, enabled = !RootShell.viaShizuku) { i ->

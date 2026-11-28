@@ -76,6 +76,7 @@ object RootShell {
             if (!retryAllowed(lastOpenFail, now)) return false
             val ok = openLocked()
             lastOpenFail = if (ok) 0L else now
+            if (!ok) Diag.log("root", "could not connect (root denied or not available, Shizuku not running)")
             return ok
         }
     }

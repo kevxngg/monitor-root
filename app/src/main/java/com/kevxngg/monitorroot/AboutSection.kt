@@ -174,7 +174,11 @@ fun AboutPage(build: Int, onBack: () -> Unit) {
                 AboutDivider()
                 AboutRow(Icons.Outlined.History, tr("Registro de cambios"), tr("Ver todas las versiones")) { open(ctx, "$REPO/releases") }
                 AboutDivider()
-                AboutRow(Icons.Outlined.BugReport, tr("Informar un problema"), "GitHub Issues") { open(ctx, "$REPO/issues/new") }
+                AboutRow(Icons.Outlined.BugReport, tr("Informar un problema"), "GitHub Issues") {
+                    // The issue opens with the phone's data filled in and the diagnostics report copied
+                    val app = ctx.applicationContext
+                    Thread { reportOnGitHub(app, Diag.report(app)) }.start()
+                }
             }
 
             // ---- Social networks ----

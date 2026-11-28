@@ -464,8 +464,10 @@ class SystemReader(context: Context) {
                 val base = k.removeSuffix("/temp")
                 if (sys["$base/mode"] == "disabled") return@mapNotNull null
                 val raw = sys[k]?.toFloatOrNull() ?: return@mapNotNull null
-                val c = if (abs(raw) >= 1000f) raw / 1000f else raw
+                val c = Thermal.celsius(raw)
                 val name = sys["$base/type"] ?: base.substringAfterLast('/')
+                // Battery charge, voltage, current and throttling levels are not temperatures
+                if (!Thermal.isTemperature(name)) return@mapNotNull null
                 val isCpu = CPU_TEMP.containsMatchIn(name)
                 val same = lastTemp[name] == c
                 lastTemp[name] = c
@@ -481,7 +483,9 @@ class SystemReader(context: Context) {
                     ThermalInfo(n, s.celsius)
                 }.sortedByDescending { it.celsius }
             }
-        val mainTemp = thermals.filter { CPU_TEMP.containsMatchIn(it.name) }.maxByOrNull { it.celsius }
+        // Same choice as the floating monitor; then any CPU/GPU sensor; then the hottest
+        val mainTemp = Thermal.cpu(thermals.map { it.name to it.celsius })?.let { p -> thermals.firstOrNull { it.name == p.sensor && it.celsius == p.celsius } }
+            ?: thermals.filter { CPU_TEMP.containsMatchIn(it.name) }.maxByOrNull { it.celsius }
             ?: thermals.firstOrNull()
 
         // ---- Battery ----
@@ -610,6 +614,7 @@ class SystemReader(context: Context) {
         // Temperature: GPU sensor; if the chip has none, the SoC's
         val gpuTemp = thermals.filter { it.name.contains("gpu", ignoreCase = true) }.maxOfOrNull { it.celsius }
         val socTemp = if (gpuTemp == null) thermals.filter { SOC_TEMP.containsMatchIn(it.name) }.maxOfOrNull { it.celsius } else null
+        if (gpuLoad == null) Diag.log("gpu", "GPU usage not readable (source: $gpuSrc, model: ${model ?: "unknown"})")
         val gpu = GpuInfo(
             source = gpuSrc,
             model = model,
